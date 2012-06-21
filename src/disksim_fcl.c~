@@ -1,0 +1,105 @@
+    
+/*
+* Flash Cache Layer (FCL) (Version 1.0) 
+*
+* Author		: Yongseok Oh (ysoh@uos.ac.kr)
+* Date			: 18/06/2012  
+* Description	: 
+*
+*/
+
+#include "disksim_iosim.h"
+#include "modules/modules.h"
+#include "disksim_fcl.h"
+#include "disksim_ioqueue.h"
+
+
+struct ioq *fcl_overall_queue = NULL;
+
+
+ioreq_event * fcl_ioreq_copy (ioreq_event *old)
+{
+   ioreq_event *new = (ioreq_event *) getfromextraq();
+   memcpy ((char *)new, (char *)old, sizeof(ioreq_event));
+
+   return(new);
+}
+
+
+void fcl_request_arrive (ioreq_event *parent){
+	ioreq_event *child = NULL;
+
+	child = ioreq_copy (parent);
+
+	parent->tempint2 = 1;
+	child->tempptr2 = parent;
+	child->type = IO_REQUEST_ARRIVE2;
+	child->time = simtime + 0.0000;
+
+	ioqueue_add_new_request (fcl_overall_queue, parent);
+
+	ASSERT ( parent->blkno == child->blkno);
+
+	addtointq((event *) child);
+
+	//fprintf ( stdout, " %d \n", sizeof(ioreq_event));
+	//exit(0);
+
+	//fprintf ( stdout, " Arrive: %p %p \n", parent, child);
+	return;
+}	
+
+
+void fcl_request_complete (ioreq_event *child){
+	ioreq_event *parent, *req2;
+	
+	// child->tempptr2 부모의 포인터가 깨진다. 
+#if 1 
+	parent = (ioreq_event *)child->tempptr2;
+	//parent->tempint3 = 0;
+	//fprintf ( stdout, " Complete: %p %p %p %p\n", curr, curr->tempptr2, parent, req2);
+	//if (parent->tempint3 == 0 ) { 
+		//parent = ioqueue_get_specific_request (fcl_overall_queue, parent);
+		parent = ioqueue_get_specific_request (fcl_overall_queue, child);
+		//ASSERT (parent  == child->tempptr2);
+		if ( parent != child->tempptr2 ) {
+			fprintf ( stdout, " %p %p \n", parent, child->tempptr2 );
+		}
+		req2 = ioqueue_physical_access_done (fcl_overall_queue, parent);
+		ASSERT (req2 != NULL);
+		addtoextraq ((event *) parent);
+//	}
+#else
+///*
+	parent = ioqueue_get_specific_request (fcl_overall_queue, child);
+	req2 = ioqueue_physical_access_done (fcl_overall_queue, parent);
+	ASSERT (req2 != NULL);
+	addtoextraq ((event *) parent);
+//*/
+#endif 
+
+	child->tempptr2 = NULL;
+	addtoextraq ((event *) child);
+
+	return ;
+}
+
+void fcl_init () {
+
+	fprintf ( stdout, " Flash Cache Layer is initializing ... \n");
+
+	// alloc queue memory 
+	fcl_overall_queue = malloc(sizeof(ioqueue));
+	ioqueue_initialize (fcl_overall_queue, 0);
+
+}
+
+void fcl_exit () {
+
+	fprintf ( stdout, " Flash Cache Layer is finalizing ... \n"); 
+
+	fcl_overall_queue->printqueuestats = TRUE;
+	ioqueue_printstats( &fcl_overall_queue, 1, " FCL : ");
+	// free queue memory
+	free (fcl_overall_queue);
+}
