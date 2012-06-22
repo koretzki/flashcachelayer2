@@ -21,7 +21,7 @@ struct cache_manager *fcl_cache_manager;
 struct cache_manager *fcl_active_block_manager;
 listnode			 *fcl_pending_manager; 
 int 				 fcl_opid = 0;
-
+int					 fcl_outstanding = 10000;
 int 				 flash_max_pages = 50000;
 int 				 flash_max_sectors = 50000 * FCL_PAGE_SIZE;
 int 				 hdd_max_pages = 50000;
@@ -210,6 +210,10 @@ void fcl_distribute_request (ioreq_event *parent, int blkno) {
 	}else{ // miss case 
 		// evict the LRU position node from the LRU list
 		ln = CACHE_REPLACE(fcl_cache_manager, 0);
+		
+		if ( ln ) {
+			ASSERT ( ln->cn_flag == FCL_CACHE_FLAG_SEALED );
+		}
 
 		if ( ln && ln->cn_ssd_blk > 0 ) {
 			// move dirty data from SSD to HDD
@@ -520,7 +524,7 @@ void fcl_request_arrive (ioreq_event *parent){
 
 	printf ( " Queue # of reqs in queue = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ));
 
-	ASSERT ( ioqueue_get_number_in_queue ( fcl_global_queue ) < 10000);
+	ASSERT ( ioqueue_get_number_in_queue ( fcl_global_queue ) < fcl_outstanding);
 
 	temp = ioqueue_get_next_request ( fcl_global_queue );
 	ASSERT ( temp == parent );
@@ -950,6 +954,8 @@ void fcl_init () {
 	flash_max_pages = ssd_elem_export_size2 ( ssd );
 	flash_max_sectors = flash_max_pages * FCL_PAGE_SIZE;
 
+	lru_size = flash_max_pages;
+
 	printf (" FCL: Flash Cache Usable Size = %.2fGB \n", (double)flash_max_pages / 256 / 1024);
 
 	hdd_max_pages = ssd_elem_export_size2 ( hdd );
@@ -967,7 +973,7 @@ void fcl_init () {
 	fcl_global_queue = ioqueue_createdefaultqueue();
 	ioqueue_initialize (fcl_global_queue, 0);
 
-	constintarrtime = 0.5;
+	constintarrtime = 5.0;
 
 	ll_create ( &fcl_pending_manager );
 
