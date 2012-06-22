@@ -17,6 +17,8 @@
 #define SSD 0
 #define HDD 1
 
+
+
 void fcl_request_arrive (ioreq_event *curr) ;
 void fcl_request_complete (ioreq_event *curr) ;
 void fcl_init () ;

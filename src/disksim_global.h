@@ -267,13 +267,15 @@ typedef struct foo {
 } foo;
 
 //#define DISKSIM_EVENT_SIZE	128
-//#define DISKSIM_EVENT_SIZE	136 // ysoh 
+//#define DISKSIM_EVENT_SIZE	132 // ysoh 
 //#define DISKSIM_EVENT_SIZE	168 // ysoh 
-#define DISKSIM_EVENT_SIZE	176 // ysoh 
+//#define DISKSIM_EVENT_SIZE	176 // ysoh 
+//#define DISKSIM_EVENT_SIZE	184 // ysoh 
+#define DISKSIM_EVENT_SIZE	200 // ysoh 
 #define DISKSIM_EVENT_SPACESIZE	(DISKSIM_EVENT_SIZE - sizeof(struct foo))
 
 // ysoh
-#define FCL_EVENT_MAX 5 
+#define FCL_EVENT_MAX 6 
 
 typedef struct ev {
    double time;
@@ -303,8 +305,8 @@ typedef struct ioreq_ev {
    void  *tempptr1;
    void  *tempptr2;
 
-   // ysoh 
-   // for FCL 
+// ysoh 
+// for FCL 
    void  	*fcl_parent; 
    int    	 fcl_event_num;  
    int		 fcl_event_ptr;
@@ -312,6 +314,10 @@ typedef struct ioreq_ev {
    struct 	 ioreq_ev *fcl_event_list[FCL_EVENT_MAX];
    struct	 ioreq_ev *fcl_event_next;
 
+   void 	*fcl_complete_list;
+   void	 	*fcl_active_list;
+   void	 	*fcl_inactive_list;
+   void	 	*fcl_pending_list;
 
    void  *mems_sled;	 /* mems sled associated with a particular event */
    void  *mems_reqinfo; /* per-request info for mems subsystem */

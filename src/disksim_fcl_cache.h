@@ -79,6 +79,8 @@ struct lru_node{
 	int cn_flag;
 	unsigned int cn_recency;
 	unsigned int cn_frequency;
+	void *cn_temp1;
+	void *cn_temp2;
 };
 
 #if 0 

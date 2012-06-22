@@ -3836,6 +3836,8 @@ cn_node	src/disksim_fcl_cache.h	/^	listnode *cn_node;$/;"	m	struct:lru_node
 cn_read	src/disksim_fcl_cache.h	/^	int cn_read;$/;"	m	struct:lru_node
 cn_recency	src/disksim_fcl_cache.h	/^	unsigned int cn_recency;$/;"	m	struct:lru_node
 cn_ssd_blk	src/disksim_fcl_cache.h	/^	int cn_ssd_blk;$/;"	m	struct:lru_node
+cn_temp1	src/disksim_fcl_cache.h	/^	void *cn_temp1;$/;"	m	struct:lru_node
+cn_temp2	src/disksim_fcl_cache.h	/^	void *cn_temp2;$/;"	m	struct:lru_node
 cname	diskmodel/layout_g4_tools/g4_analysis.py	/^cname = sys.argv[4]$/;"	v
 coalesceok	src/disksim_ioqueue.h	/^   int		(**coalesceok)(void *,int,int,int,int);$/;"	m	struct:ioq
 coalesceokparam	src/disksim_ioqueue.h	/^   void *	coalesceokparam;$/;"	m	struct:ioq
@@ -4978,8 +4980,12 @@ fail	libddbg/ddbg_assert.c	/^static void fail(void) {$/;"	f	file:
 falseidletime	src/disksim_pfsim.h	/^   double     falseidletime;$/;"	m	struct:__anon106
 falseidletime	src/disksim_pfsim.h	/^   double falseidletime;$/;"	m	struct:process
 fastwrites	src/disksim_disk.h	/^  int		fastwrites;$/;"	m	struct:disk
+fcl_active_block_manager	src/disksim_fcl.c	/^struct cache_manager *fcl_active_block_manager;$/;"	v	typeref:struct:cache_manager
+fcl_active_list	src/disksim_global.h	/^   void	 	*fcl_active_list;$/;"	m	struct:ioreq_ev
 fcl_attach_child	src/disksim_fcl.c	/^void fcl_attach_child (ioreq_event **fcl_event_list, int *fcl_event_count, int list_index,  ioreq_event *child){$/;"	f
 fcl_cache_manager	src/disksim_fcl.c	/^struct cache_manager *fcl_cache_manager;$/;"	v	typeref:struct:cache_manager
+fcl_classify_child_request	src/disksim_fcl.c	/^void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int blkno ) {$/;"	f
+fcl_complete_list	src/disksim_global.h	/^   void 	*fcl_complete_list;$/;"	m	struct:ioreq_ev
 fcl_create_child	src/disksim_fcl.c	/^ioreq_event *fcl_create_child (ioreq_event *parent, int devno, int blkno, int bcount, unsigned int flags){$/;"	f
 fcl_distribute_request	src/disksim_fcl.c	/^void fcl_distribute_request (ioreq_event *parent, int blkno) {$/;"	f
 fcl_event_count	src/disksim_global.h	/^   int		 fcl_event_count[FCL_EVENT_MAX];$/;"	m	struct:ioreq_ev
@@ -4990,13 +4996,28 @@ fcl_event_ptr	src/disksim_global.h	/^   int		 fcl_event_ptr;$/;"	m	struct:ioreq_
 fcl_exit	src/disksim_fcl.c	/^void fcl_exit () {$/;"	f
 fcl_generate_child_request	src/disksim_fcl.c	/^void fcl_generate_child_request ( ioreq_event *parent, int devno, int blkno, int flags, int list_index )$/;"	f
 fcl_global_queue	src/disksim_fcl.c	/^struct ioq			 *fcl_global_queue = NULL;$/;"	v	typeref:struct:ioq
+fcl_inactive_list	src/disksim_global.h	/^   void	 	*fcl_inactive_list;$/;"	m	struct:ioreq_ev
 fcl_init	src/disksim_fcl.c	/^void fcl_init () {$/;"	f
+fcl_insert_active_list	src/disksim_fcl.c	/^void fcl_insert_active_list ( ioreq_event *child ) {$/;"	f
+fcl_insert_inactive_list	src/disksim_fcl.c	/^void fcl_insert_inactive_list ( ioreq_event *child ) {$/;"	f
+fcl_insert_pending_manager	src/disksim_fcl.c	/^void fcl_insert_pending_manager ( ioreq_event * parent) {$/;"	f
 fcl_issue_next_child	src/disksim_fcl.c	/^void fcl_issue_next_child ( ioreq_event *parent ){$/;"	f
+fcl_issue_pending_child	src/disksim_fcl.c	/^void fcl_issue_pending_child ( ioreq_event *parent ) {$/;"	f
+fcl_issue_pending_parent	src/disksim_fcl.c	/^void fcl_issue_pending_parent (){$/;"	f
+fcl_lookup_active_list	src/disksim_fcl.c	/^listnode *fcl_lookup_active_list ( int blkno ) {$/;"	f
 fcl_make_child_request	src/disksim_fcl.c	/^void fcl_make_child_request (ioreq_event *parent) {$/;"	f
 fcl_make_merge_next_request	src/disksim_fcl.c	/^void fcl_make_merge_next_request (ioreq_event **fcl_event_list, int *fcl_event_count) {$/;"	f
+fcl_make_pending_list	src/disksim_fcl.c	/^void fcl_make_pending_list ( ioreq_event *parent ) {$/;"	f
+fcl_move_pending_list	src/disksim_fcl.c	/^void fcl_move_pending_list ( listnode *inactive_list ){$/;"	f
 fcl_opid	src/disksim_fcl.c	/^int 				 fcl_opid = 0;$/;"	v
 fcl_parent	src/disksim_global.h	/^   void  	*fcl_parent; $/;"	m	struct:ioreq_ev
 fcl_parent_init	src/disksim_fcl.c	/^void fcl_parent_init (ioreq_event *parent) {$/;"	f
+fcl_pending_list	src/disksim_global.h	/^   void	 	*fcl_pending_list;$/;"	m	struct:ioreq_ev
+fcl_pending_manager	src/disksim_fcl.c	/^listnode			 *fcl_pending_manager; $/;"	v
+fcl_remove_active_list	src/disksim_fcl.c	/^void fcl_remove_active_list ( ioreq_event *parent ) {$/;"	f
+fcl_remove_complete_list	src/disksim_fcl.c	/^void fcl_remove_complete_list ( ioreq_event *parent ) {$/;"	f
+fcl_remove_empty_node	src/disksim_fcl.c	/^void fcl_remove_empty_node ( ioreq_event *parent ) {$/;"	f
+fcl_remove_inactive_list	src/disksim_fcl.c	/^void fcl_remove_inactive_list ( ioreq_event *parent, ioreq_event *child) {$/;"	f
 fcl_req_is_consecutive	src/disksim_fcl.c	/^int fcl_req_is_consecutive( ioreq_event *req1, ioreq_event *req2 ){$/;"	f
 fcl_request_arrive	src/disksim_fcl.c	/^void fcl_request_arrive (ioreq_event *parent){$/;"	f
 fcl_request_complete	src/disksim_fcl.c	/^void fcl_request_complete (ioreq_event *child){$/;"	f
@@ -6904,6 +6925,7 @@ print_dirty_rate	src/disksim_fcl_rw_cache.c	/^void print_dirty_rate(struct cache
 print_extent_info	memsmodel/mems_event.c	/^print_extent_info(mems_reqinfo_t *reqinfo)$/;"	f
 print_hit_ratio	src/disksim_fcl_rw_cache.c	/^void print_hit_ratio(struct cache_manager **lru_manager,int lru_num,int is_read){$/;"	f
 print_hit_ratio_curve	src/disksim_fcl_rw_cache.c	/^void print_hit_ratio_curve(struct cache_manager **lru_manager, int ref, int lru_num, FILE *fp){$/;"	f
+print_parent_child_state	src/disksim_fcl.c	/^void print_parent_child_state ( ioreq_event *parent ) {$/;"	f
 print_statistic_information	src/disksim_fcl_rw_cache.c	/^void print_statistic_information(FILE *output){$/;"	f
 print_statistics	src/disksim_fcl_wow_driver.c	/^print_statistics(Stat *s, const char *title)$/;"	f
 print_statistics	src/syssim_driver.c	/^print_statistics(Stat *s, const char *title)$/;"	f

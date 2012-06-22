@@ -18,12 +18,6 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 		ll_create(&c->cm_hash[i]);
 	}
 
-/*	ll_create(&c->cm_hddrq);
-	ll_create(&c->cm_hddwq);
-	ll_create(&c->cm_ssdrq);
-	ll_create(&c->cm_ssdwq);*/
-
-
 	c->cm_destage_ptr = c->cm_head;
 	c->cm_ref = 0;
 	c->cm_hit = 0;
@@ -77,19 +71,6 @@ void lru_close(struct cache_manager *c, int print){
 		ll_release(c->cm_hash[i]);
 	}
 
-
-	/*ll_release(c->cm_hddwq);
-	ll_release(c->cm_hddrq);
-	ll_release(c->cm_ssdwq);
-	ll_release(c->cm_ssdrq);
-	*/
-
-	//rb_free_tree(c->cm_hddrbrq);
-	//rb_free_tree(c->cm_hddrbwq);
-	//rb_free_tree(c->cm_ssdrbrq);
-	//rb_free_tree(c->cm_ssdrbwq);
-
-
 }
 
 static int compare_blkno(const void *a,const void *b){
@@ -100,15 +81,6 @@ static int compare_blkno(const void *a,const void *b){
 	return 0;
 }
 
-#if 0
-void lru_make_reqlist(struct cache_manager *c, listnode *req_list, Rb_node *rbtree, int blk){
-	//ll_insert_at_sort(req_list,(void *)blk, compare_blkno);
-	ll_insert_at_tail(req_list, (void *)blk);
-	//RBTreeInsert(rbtree, blk, 0);
-	//rb_insert_a()
-}
-#endif 
-
 void lru_release_reqlist(struct cache_manager *c, listnode *req_list){
 
 	while(ll_get_size(req_list)){
@@ -116,14 +88,11 @@ void lru_release_reqlist(struct cache_manager *c, listnode *req_list){
 	}
 }
 
-
-
 static int lru_compare_page(const void *a,const void *b){
 	if((unsigned int)(((struct lru_node *)a)->cn_blkno) == (unsigned int)b)
 		return 1;	
 	return 0;
 }
-
 
 listnode *lru_presearch(struct cache_manager *c, unsigned int blkno){
 	listnode *node;
@@ -164,25 +133,6 @@ listnode *lru_search(struct cache_manager *c,unsigned int blkno){
 	return NULL;
 }
 
-//listnode *lru_select_victim(struct cache_manager *c, listnode *destage_ptr){
-//	struct lru_node *ln;
-//
-//	while(1){
-//
-//		if(destage_ptr == c->cm_head)
-//			destage_ptr = destage_ptr->prev;
-//
-//		ln = (struct lru_node *)(destage_ptr->data);
-//		if(!ln->cn_recency){				
-//			break;
-//		}
-//		ln->cn_recency = 0;
-//		destage_ptr = destage_ptr->prev;
-//	}
-//
-//	return destage_ptr;
-//}
-
 
 void *lru_remove(struct cache_manager *c, listnode *remove_ptr){
 	struct lru_node *ln;
@@ -190,8 +140,8 @@ void *lru_remove(struct cache_manager *c, listnode *remove_ptr){
 
 	ln = (struct lru_node *)remove_ptr->data;
 	
-	if(ln->cn_frequency)
-		ln = ln;
+	//if(ln->cn_frequency)
+	//	ln = ln;
 
 	// Release Node 
 	ll_release_node(c->cm_head, ln->cn_node);
@@ -285,9 +235,6 @@ int lru_dec(struct cache_manager *c, int dec_val){
 	}else{
 		return 0;
 	}
-
-
-
 }
 
 void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,int low){
@@ -308,13 +255,6 @@ void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,
 	(*c)->cache_inc = lru_inc;
 	(*c)->cache_dec = lru_dec;
 	(*c)->cache_alloc = lru_alloc;
-	//(*c)->cache_makerq = lru_make_reqlist;
-	//(*c)->cache_releaserq = lru_release_reqlist;
-	//(*c)->cache_flushrq  = lru_flush_reqlist;
-
-	//CACHE_MAKERQ((*c), NULL, 10);
-	//CACHE_RELEASERQ((*c), NULL);
-
 
 	CACHE_OPEN((*c), size, max_sz);
 
