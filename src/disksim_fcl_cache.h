@@ -46,6 +46,8 @@ struct cache_manager{
  int cm_min;
  char *cm_name;
 
+ int cm_dirty_count;
+
  int cm_destage_count;
  int cm_stage_count;
 
@@ -82,6 +84,7 @@ struct lru_node{
 	void *cn_temp1;
 	void *cn_temp2;
 };
+
 
 #if 0 
 struct ghost_node{

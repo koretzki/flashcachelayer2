@@ -10,6 +10,15 @@ fi
 echo "---Running tests with the real traces---"
 echo ""
 
+echo "Postmark: average SSD response time should be around 4.140330 ms"
+$PREFIX/disksim hybrid.parv hybrid-postmark.outv ascii ssd-postmark-aligned2.trace 0 
+grep "FCL : Response time average:" hybrid-postmark.outv | grep -v "#"
+
+echo "IOzone: average SSD response time should be around 6.394276 ms"
+$PREFIX/disksim hybrid.parv hybrid-iozone.outv ascii ssd-iozone-aligned2-100K.trace 0 
+grep "FCL : Response time average:" hybrid-iozone.outv | grep -v "#"
+
+
 
 echo "Financial trace: average SSD response time should be around 4.140330 ms"
 $PREFIX/disksim hybrid.parv hybrid-financial.outv ascii financial_trace.txt 0 
@@ -19,13 +28,5 @@ echo "Home trace: average SSD response time should be around 4.140330 ms"
 $PREFIX/disksim hybrid.parv hybrid-home.outv ascii home.trace 0 
 grep "FCL : Response time average:" hybrid-home.outv | grep -v "#"
 
-
-echo "Postmark: average SSD response time should be around 4.140330 ms"
-$PREFIX/disksim hybrid.parv hybrid-postmark.outv ascii ssd-postmark-aligned2.trace 0 
-grep "FCL : Response time average:" hybrid-postmark.outv | grep -v "#"
-
-echo "IOzone: average SSD response time should be around 6.394276 ms"
-$PREFIX/disksim hybrid.parv hybrid-iozone.outv ascii ssd-iozone-aligned2-100K.trace 0 
-grep "FCL : Response time average:" hybrid-iozone.outv | grep -v "#"
 
 

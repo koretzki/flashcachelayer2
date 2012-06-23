@@ -16,12 +16,17 @@
 #include "disksim_fcl_map.h"
 
 /* Global variables */ 
+
 struct ioq			 *fcl_global_queue = NULL;
+struct ioq			 *fcl_background_queue = NULL;
 struct cache_manager *fcl_cache_manager;
 struct cache_manager *fcl_active_block_manager;
 listnode			 *fcl_pending_manager; 
+
 int 				 fcl_opid = 0;
+
 int					 fcl_outstanding = 10000;
+
 int 				 flash_max_pages = 50000;
 int 				 flash_max_sectors = 50000 * FCL_PAGE_SIZE;
 int 				 hdd_max_pages = 50000;
@@ -65,12 +70,11 @@ void fcl_attach_child (ioreq_event **fcl_event_list, int *fcl_event_count, int l
 			last = last->fcl_event_next;
 		}	
 
-		if (!(child->devno == last->devno && child->flags == last->flags)) {
 
+		if (!(child->devno == last->devno && child->flags == last->flags)) {
 			printf(" list index = %d, dev = %d, flags = %d, %d %d \n", list_index,
 					child->devno, child->flags, last->devno, last->flags);
-		}
-
+		} 
 
 		ASSERT ( child->devno == last->devno && child->flags == last->flags );
 
@@ -106,6 +110,9 @@ void fcl_parent_init (ioreq_event *parent) {
 	parent->opid = fcl_opid;
 	parent->fcl_event_ptr = 0;
 	parent->fcl_event_num = 0;
+
+	//parent->tempint1 = 0;
+	//parent->tempint2 = 0;
 
 	for ( i = 0; i < FCL_EVENT_MAX; i++) {
 		parent->fcl_event_count[i] = 0;
@@ -185,7 +192,7 @@ void fcl_generate_child_request ( ioreq_event *parent, int devno, int blkno, int
 						child ); 
 }
 
-void fcl_distribute_request (ioreq_event *parent, int blkno) {
+void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 	int	list_index = 0;
 	int	devno = 0;
 	int filling = 0;
@@ -218,8 +225,72 @@ void fcl_distribute_request (ioreq_event *parent, int blkno) {
 		if ( ln && ln->cn_ssd_blk > 0 ) {
 			// move dirty data from SSD to HDD
 			if ( ln->cn_dirty ) {
-				fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, 0);
-				fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, 1);
+				printf ( " The page %d should go to active list ... \n", reverse_get_blk(ln->cn_ssd_blk) );
+				ASSERT (0);
+				fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, list_index++);
+				fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, list_index++);
+				fcl_cache_manager->cm_destage_count++;
+				fcl_cache_manager->cm_dirty_count--;
+				ASSERT ( fcl_cache_manager->cm_dirty_count >= 0 );
+			}
+			reverse_map_release_blk ( ln->cn_ssd_blk );
+		}
+
+		ln = CACHE_ALLOC(fcl_cache_manager, ln, blkno);
+		ln->cn_flag = FCL_CACHE_FLAG_FILLING;
+		ln->cn_ssd_blk = reverse_map_alloc_blk( blkno );
+
+		// miss penalty request  
+		if ( parent->flags & READ ) { // read clean data 
+			fcl_generate_child_request ( parent, HDD, blkno, READ, list_index++);
+			fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, list_index++);
+			fcl_cache_manager->cm_stage_count++;
+		} else {
+			if ( ln->cn_dirty == 0 ) {
+				ln->cn_dirty = 1;
+				fcl_cache_manager->cm_dirty_count++;
+			}
+		}
+
+	}
+
+	if ( parent->flags & READ ) 
+		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, FCL_EVENT_MAX - 2 );
+	else
+		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, FCL_EVENT_MAX - 1 );
+
+
+	CACHE_INSERT(fcl_cache_manager, ln);
+
+}
+
+void fcl_make_stage_req (ioreq_event *parent, int blkno) {
+	int	list_index = 0;
+	int	devno = 0;
+	int filling = 0;
+	struct lru_node *ln = NULL;
+	listnode *node;
+
+	node = CACHE_PRESEARCH(fcl_cache_manager, blkno);
+
+	// hit case  
+	if(node){
+		printf ( " Stagine Hit .. blkno = %d \n", blkno );
+		ASSERT ( node == NULL );	
+
+	}else{ // miss case 
+		// evict the LRU position node from the LRU list
+		ln = CACHE_REPLACE(fcl_cache_manager, 0);
+		
+		if ( ln ) {
+			ASSERT ( ln->cn_flag == FCL_CACHE_FLAG_SEALED );
+		}
+
+		if ( ln && ln->cn_ssd_blk > 0 ) {
+			// move dirty data from SSD to HDD
+			if ( ln->cn_dirty ) {
+				fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, list_index++);
+				fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, list_index++);
 				fcl_cache_manager->cm_destage_count++;
 			}
 			reverse_map_release_blk ( ln->cn_ssd_blk );
@@ -231,23 +302,46 @@ void fcl_distribute_request (ioreq_event *parent, int blkno) {
 
 		// miss penalty request  
 		if ( parent->flags & READ ) { // read clean data 
-			fcl_generate_child_request ( parent, HDD, blkno, READ, 2);
-			fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, 3);
+			fcl_generate_child_request ( parent, HDD, blkno, READ, list_index++);
+			fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, list_index++);
 			fcl_cache_manager->cm_stage_count++;
 		} else {
-			ln->cn_dirty = 1;
+			ASSERT (0);
 		}
-
 	}
-	if ( parent->flags & READ ) 
-		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, FCL_EVENT_MAX-2);
-	else
-		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, FCL_EVENT_MAX-1);
-
-	//if ( !filling )
-
+	
 	CACHE_INSERT(fcl_cache_manager, ln);
+}
 
+
+void fcl_make_destage_req (ioreq_event *parent, int blkno) {
+	int	list_index = 0;
+	struct lru_node *ln = NULL;
+	listnode *node;
+
+	node = CACHE_SEARCH(fcl_cache_manager, blkno);
+
+	// miss  case  
+	ASSERT ( node != NULL );
+	
+	// remove this node to move the MRU position
+	ln = CACHE_REMOVE(fcl_cache_manager, node);
+
+	// TODO: this child request must be blocked  
+	if ( ln->cn_flag == FCL_CACHE_FLAG_FILLING ) {
+		ASSERT ( ln->cn_flag == FCL_CACHE_FLAG_SEALED );	
+	}
+
+	ASSERT ( ln->cn_dirty ) ;
+
+	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, list_index++);
+	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, list_index++);
+
+	reverse_map_release_blk ( ln->cn_ssd_blk );
+
+	fcl_cache_manager->cm_destage_count++;
+
+	free ( ln );
 }
 
 
@@ -288,11 +382,11 @@ void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int b
 	node = fcl_lookup_active_list ( blkno );
 
 	if ( !node ) { // insert active list 
-		printf ( " %f insert active list blkno = %d, %d \n", simtime, blkno, child->blkno );
+		//printf ( " %f insert active list blkno = %d, %d \n", simtime, blkno, child->blkno );
 		fcl_insert_active_list ( child );
 		ll_insert_at_tail ( parent->fcl_active_list, child );
 	} else { // insert inactive list 
-		printf ( " %f insert inactive list blkno = %d, %d \n", simtime, blkno, child->blkno );
+		//printf ( " %f insert inactive list blkno = %d, %d \n", simtime, blkno, child->blkno );
 		fcl_insert_inactive_list ( child );
 		ll_insert_at_tail ( parent->fcl_inactive_list, child );
 	}
@@ -300,7 +394,7 @@ void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int b
 }
 
 
-void fcl_make_pending_list ( ioreq_event *parent ) {
+void fcl_make_pending_list ( ioreq_event *parent, int op_type ) {
 	int page_count = parent->bcount / FCL_PAGE_SIZE;
 	int devno = parent->devno;
 	int flags = parent->flags;
@@ -309,6 +403,21 @@ void fcl_make_pending_list ( ioreq_event *parent ) {
 
 	ioreq_event *child;
 	listnode *node;
+
+	parent->tempint1 = op_type;
+
+	switch ( op_type ) {
+		case FCL_OPERATION_NORMAL:
+			break;
+		case FCL_OPERATION_DESTAGING:
+			parent->flags = WRITE;
+			break;
+		case FCL_OPERATION_STAGING:
+			parent->flags = READ;
+			break;
+	}
+
+	flags = parent->flags; 
 
 	for (i = 0; i < page_count; i++){
 		blkno = parent->blkno + i * FCL_PAGE_SIZE;
@@ -341,9 +450,7 @@ void fcl_split_parent_request (ioreq_event *parent) {
 		ASSERT ( parent->fcl_event_list[i] == NULL );
 	}
 
-
 	ASSERT ( total_req == 0 );
-
 	ASSERT ( parent->bcount % FCL_PAGE_SIZE == 0 );
 	ASSERT ( ll_get_size ( parent->fcl_active_list ) != 0 );
 
@@ -356,8 +463,27 @@ void fcl_split_parent_request (ioreq_event *parent) {
 		child = (ioreq_event *)node->data;
 		blkno = child->blkno;
 
-		printf (" blkno = %d \n", blkno );
-		fcl_distribute_request ( parent, blkno ); 
+		switch ( parent->tempint1 ) {
+			// child req => Hit: SSD Req
+			//		   Read Miss: HDD Read, SSD Write, SSD Read(Can be ommited)
+			//		   Write Miss : SSD Read, HDD Write, HDD Write 
+			case FCL_OPERATION_NORMAL:
+				printf (" Normal Req blkno = %d \n", blkno);
+				fcl_make_normal_req ( parent, blkno ); 
+				break;
+				// child req => Move SSD data to HDD 
+			case FCL_OPERATION_DESTAGING:
+				printf (" Destage Req blkno = %d \n", blkno);
+				fcl_make_destage_req ( parent, blkno );
+				break;
+				// child req => Move HDD data to SSD
+			case FCL_OPERATION_STAGING:
+				printf (" Stage Req blkno = %d \n", blkno);
+				fcl_make_stage_req ( parent, blkno );
+				break;
+		}
+
+
 		node = node->next;
 	} 
 }
@@ -450,11 +576,8 @@ void fcl_make_child_request (ioreq_event *parent) {
 
 	int i, j;
 	
-	print_parent_child_state ( parent );
 	// pending requests go to Active or Inactive 
 	fcl_issue_pending_child ( parent );
-
-	print_parent_child_state ( parent );
 
 	//ASSERT ( ll_get_size ( parent->fcl_active_list ) != 0 );
 	if ( ll_get_size ( parent->fcl_active_list ) ) {
@@ -469,21 +592,23 @@ void fcl_make_child_request (ioreq_event *parent) {
 		// consecutive requests will be merged 
 		// [blkno: 1],[blkno: 2] => [blkno: 1-2]
 		fcl_make_merge_next_request ( parent->fcl_event_list, parent->fcl_event_count );
-	} else {
+	} 
 
-		printf ( " Pending requests go to inactive list .. \n" );
+/*else {
+
+		//printf ( " Pending requests go to inactive list .. \n" );
 		//ASSERT ( 0 );
-	}
+	} */
 
 	
 }
 
-void fcl_request_arrive (ioreq_event *parent){
-	ioreq_event *child = NULL;
-	ioreq_event *temp = NULL;
+int test_blk = 0;
 
-	fprintf ( stdout, " FCL Req Arrive time = %f, blkno = %d, bcount = %d \n", 
-										simtime, parent->blkno, parent->bcount);
+void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {
+
+	//ioreq_event *child = NULL;
+	ioreq_event *temp = NULL;
 
 	parent->blkno = parent->blkno % (flash_max_sectors);
 
@@ -498,8 +623,16 @@ void fcl_request_arrive (ioreq_event *parent){
 			 parent->bcount % FCL_PAGE_SIZE == 0 );
 
 	fcl_parent_init ( parent );
-	
-	fcl_make_pending_list ( parent );
+
+#if 0 	
+	parent->blkno = test_blk;
+	parent->bcount = FCL_PAGE_SIZE; 
+	test_blk += FCL_PAGE_SIZE;
+
+	fcl_make_pending_list ( parent, FCL_OPERATION_STAGING );
+#endif 
+
+	fcl_make_pending_list ( parent, op_type );
 
 	// parent request will be splited and distributed into SSD and HDD 
 	fcl_make_child_request ( parent );
@@ -512,22 +645,28 @@ void fcl_request_arrive (ioreq_event *parent){
 	}
 
 	// insert parent req into FCL Overall Queue 
-	ioqueue_add_new_request ( fcl_global_queue, parent );
-/* 
-	printf ( " %f add new req .. \n", simtime );
-	printf ( " Queue # of reqs = %d \n", ioqueue_get_number_of_requests ( fcl_global_queue ));
-	printf ( " Queue # of outstanding reqs = %d \n", ioqueue_get_reqoutstanding ( fcl_global_queue ));
-	printf ( " Queue # of reqs in queue = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ));
-	printf ( " Queue # of pending reqs = %d \n", ioqueue_get_number_pending ( fcl_global_queue ));
-	printf ( " Cost int arr time = %f \n", constintarrtime );
-*/
+	if ( op_type == FCL_OPERATION_NORMAL ) {
+		ioqueue_add_new_request ( fcl_global_queue, parent );
 
-	printf ( " Queue # of reqs in queue = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ));
+		if ( ioqueue_get_number_in_queue ( fcl_global_queue ) > 100 )
+			printf ( " Queue # of reqs in queue = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ));
 
-	ASSERT ( ioqueue_get_number_in_queue ( fcl_global_queue ) < fcl_outstanding);
+		ASSERT ( ioqueue_get_number_in_queue ( fcl_global_queue ) < fcl_outstanding);
 
-	temp = ioqueue_get_next_request ( fcl_global_queue );
-	ASSERT ( temp == parent );
+		temp = ioqueue_get_next_request ( fcl_global_queue );
+		ASSERT ( temp == parent );
+	} else {
+		ioqueue_add_new_request ( fcl_background_queue, parent );
+
+		temp = ioqueue_get_next_request ( fcl_background_queue );
+		ASSERT ( temp == parent );
+
+		//if ( ioqueue_get_number_in_queue ( fcl_background_queue ) > 100 )
+		//	printf ( " Queue # of reqs in queue = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ));
+
+		//ASSERT ( ioqueue_get_number_in_queue ( fcl_background_queue ) < fcl_outstanding);
+
+	}
 
 /*
 	printf ( " get next .. \n" );
@@ -536,6 +675,14 @@ void fcl_request_arrive (ioreq_event *parent){
 	printf ( " Queue # of reqs in queue = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ));
 	printf ( " Queue # of pending reqs = %d \n", ioqueue_get_number_pending ( fcl_global_queue ));
 */
+
+}
+void fcl_request_arrive (ioreq_event *parent){
+
+	fprintf ( stdout, " FCL Req Arrive time = %f, blkno = %d, bcount = %d \n", 
+										simtime, parent->blkno, parent->bcount);
+
+	_fcl_request_arrive ( parent, FCL_OPERATION_NORMAL );
 
 
 	//fflush ( stdout );
@@ -630,11 +777,8 @@ void fcl_insert_pending_manager ( ioreq_event * parent) {
 		ll_insert_at_tail ( fcl_pending_manager, parent ) ;
 	}
 
-	printf (" *fcl_pending_manager: pending I/Os = %d \n", ll_get_size ( fcl_pending_manager ) );
+	//printf (" *fcl_pending_manager: pending I/Os = %d \n", ll_get_size ( fcl_pending_manager ) );
 
-	if ( exist ) { 
-		//ASSERT ( 0 );
-	}
 }
 
 void fcl_remove_inactive_list ( ioreq_event *parent, ioreq_event *child) {
@@ -661,6 +805,7 @@ void fcl_remove_inactive_list ( ioreq_event *parent, ioreq_event *child) {
 	}
 
 }
+
 void fcl_move_pending_list ( listnode *inactive_list ){
 
 	listnode *inactive_node = inactive_list->next;
@@ -691,7 +836,7 @@ void fcl_move_pending_list ( listnode *inactive_list ){
 		inactive_node = inactive_node->next;
 	}
 
-	printf (" inactive size = %d \n", ll_get_size ( inactive_list ) );
+	//printf (" inactive size = %d \n", ll_get_size ( inactive_list ) );
 	ll_release ( inactive_list );
 }
 
@@ -741,7 +886,7 @@ void fcl_remove_active_list ( ioreq_event *parent ) {
 
 		blkno = (int)complete_node->data;
 
-		printf (" remove active blk = %d in active block manager \n", blkno );
+		//printf (" remove active blk = %d in active block manager \n", blkno );
 		lru_node = CACHE_PRESEARCH(fcl_active_block_manager, blkno);
 
 		ASSERT ( lru_node != NULL );
@@ -769,7 +914,7 @@ void fcl_remove_active_list ( ioreq_event *parent ) {
 
 	ll_release ( curr_complete_list );
 
-	print_parent_child_state ( parent );
+	//print_parent_child_state ( parent );
 
 }
 
@@ -783,7 +928,7 @@ void fcl_remove_complete_list ( ioreq_event *parent ) {
 	int i;
 
 	complete_node = ((listnode *)parent->fcl_complete_list)->next;
-	printf (" Remove complete list \n");
+	//printf (" Remove complete list \n");
 	for (i = 0; i < complete_page_count; i++){
 
 		ASSERT ( complete_node != NULL );
@@ -827,7 +972,7 @@ void fcl_issue_pending_child ( ioreq_event *parent ) {
 
 	ASSERT ( ll_get_size ( parent->fcl_pending_list ) == 0 );
 
-	print_parent_child_state ( parent );
+	//print_parent_child_state ( parent );
 
 //	ASSERT (0);
 }
@@ -844,7 +989,7 @@ void fcl_issue_pending_parent (){
 
 	for ( i = 0; i < pending_count; i++ ) {
 		parent = pending_next->data;
-		print_parent_child_state ( parent );
+		//print_parent_child_state ( parent );
 		
 		pending_del = pending_next;
 		pending_next = pending_next->next;
@@ -865,12 +1010,117 @@ void fcl_issue_pending_parent (){
 	}
 
 	if ( debug_count ) {
-		printf ( " > %d of %d pending I/Os have been issued \n", debug_count, pending_count );
+		//printf ( " > %d of %d pending I/Os have been issued \n", debug_count, pending_count );
 		//ASSERT ( 0);
 	}
 
 
 }	
+
+#define MAX_DIRTY 4
+#define MAX_STAGE 1
+
+void fcl_stage_request () {
+	ioreq_event *parent;
+	listnode *stage_list;
+	int i;
+	int req_count = 0;
+
+	int list_count = flash_max_pages;
+
+	ll_create ( &stage_list );
+
+	for ( i = 0; i < list_count; i++ ) {
+		int blkno = i * FCL_PAGE_SIZE;
+
+		if ( CACHE_PRESEARCH ( fcl_cache_manager, blkno ) == NULL ) {
+			ll_insert_at_tail ( stage_list, (void *) blkno );
+			//printf ( " stage blk = %d \n", blkno ); 
+			req_count++;
+		}
+
+		if ( ll_get_size ( stage_list ) >= MAX_STAGE ) 
+			break;
+
+	}
+
+
+	for ( i = 0; i < req_count; i++ ) {
+
+		//parent  = (ioreq_event *) getfromextraq(); 	
+		parent  = (ioreq_event *) ioreq_copy ( (ioreq_event *) io_extq );  	
+
+		//printf (" simtime = %f, parent time = %f \n", simtime, parent->time );
+
+		parent->time = simtime;
+		parent->blkno = ll_get_tail ( stage_list );
+		parent->bcount = FCL_PAGE_SIZE;
+		parent->flags = 0;
+		parent->devno = 0;
+	 	parent->tempint1 = FCL_OPERATION_STAGING;	
+
+		_fcl_request_arrive ( parent, FCL_OPERATION_STAGING );
+
+		ll_release_tail ( stage_list );
+	}
+
+	ll_release ( stage_list );
+}
+void fcl_destage_request () {
+	ioreq_event *parent;
+	listnode *dirty_list;
+	listnode *dirty_node;
+	struct lru_node *ln;
+	int i;
+	int req_count = 0;
+
+	int dirty_count = fcl_cache_manager->cm_dirty_count;
+	int list_count = ll_get_size ( fcl_cache_manager->cm_head );
+
+	if ( dirty_count < MAX_DIRTY ) 
+		return;
+
+
+	ll_create ( &dirty_list );
+
+	dirty_node = fcl_cache_manager->cm_head->prev;
+	for ( i = 0; i < list_count; i++ ) {
+		ln = (struct lru_node *) dirty_node->data;	
+		
+		if ( ln->cn_dirty ) {
+			ll_insert_at_tail ( dirty_list, (void *) ln->cn_blkno );
+			printf ( " dirty blk = %d \n", ln->cn_blkno ); 
+			req_count++;
+		}
+
+		if ( ll_get_size ( dirty_list ) >= MAX_DIRTY ) 
+			break;
+
+		dirty_node = dirty_node->prev;
+	}
+
+	for ( i = 0; i < req_count; i++ ) {
+
+		//parent  = (ioreq_event *) getfromextraq(); 	
+		parent  = (ioreq_event *) ioreq_copy ( (ioreq_event *) io_extq );  	
+
+		//printf (" simtime = %f, parent time = %f \n", simtime, parent->time );
+
+		parent->time = simtime;
+		parent->blkno = ll_get_tail ( dirty_list );
+		parent->bcount = FCL_PAGE_SIZE;
+		parent->flags = 0;
+		parent->devno = 0;
+	 	parent->tempint1 = FCL_OPERATION_DESTAGING;	
+		printf (" blkno = %d \n", parent->blkno);
+
+		_fcl_request_arrive ( parent, FCL_OPERATION_DESTAGING );
+
+		ll_release_tail ( dirty_list );
+	}
+
+	ll_release ( dirty_list );
+}
 
 void fcl_request_complete (ioreq_event *child){
 	ioreq_event *parent, *req2;
@@ -878,8 +1128,6 @@ void fcl_request_complete (ioreq_event *child){
 	int i;
 
 	parent = (ioreq_event *)child->fcl_parent;
-
-
 
 	parent->fcl_event_count[parent->fcl_event_ptr-1] -- ;
 
@@ -901,11 +1149,17 @@ void fcl_request_complete (ioreq_event *child){
 	if ( total_req  == 0 ) { 
 
 		//ASSERT ( ll_get_size ( parent->fcl_inactive_list ) == 0 );
-		fcl_seal_complete_request ( parent );
+		if ( parent->tempint1 == FCL_OPERATION_NORMAL ||
+				parent->tempint1 == FCL_OPERATION_STAGING ) {
+			fcl_seal_complete_request ( parent );
+		}
+		//else
+		//	ASSERT ( 0 );
+
 		fcl_remove_active_list ( parent );
 		
-		printf (" * %d all active childs are completed \n", parent->opid);
-		print_parent_child_state ( parent );
+		//printf (" * %d all active childs are completed \n", parent->opid);
+		//print_parent_child_state ( parent );
 
 		// active request exist
 		ASSERT ( ll_get_size ( parent->fcl_active_list ) == 0 );
@@ -913,9 +1167,10 @@ void fcl_request_complete (ioreq_event *child){
 	}
 
 	// issue pending I/Os 
-	if ( ll_get_size ( fcl_pending_manager ) ){
+	if ( ll_get_size ( fcl_pending_manager )  &&
+		 ioqueue_get_number_in_queue ( fcl_background_queue ) == 0 ) {
 
-		printf (" Try to issue pending I/Os \n" );
+		//printf (" Try to issue pending I/Os \n" );
 
 		fcl_issue_pending_parent ();
 
@@ -934,13 +1189,41 @@ void fcl_request_complete (ioreq_event *child){
 		ll_release ( parent->fcl_inactive_list );
 		ll_release ( parent->fcl_pending_list );
 
-		req2 = ioqueue_physical_access_done (fcl_global_queue, parent);
+		if ( parent->tempint1 == FCL_OPERATION_NORMAL ) {
+			req2 = ioqueue_physical_access_done (fcl_global_queue, parent);
+		} else {
+			req2 = ioqueue_physical_access_done (fcl_background_queue, parent);
+		}
 		ASSERT (req2 != NULL);
-		addtoextraq ((event *) parent);
+	
+		if ( addtoextraq_check((event *) parent )) 
+			addtoextraq ((event *) parent);
 
-		fprintf ( stdout, " ** Complete parent req ... %d %d %d \n", parent->blkno, parent->bcount, parent->flags);
+		if ( parent->tempint1 == FCL_OPERATION_DESTAGING ) {
+			printf ( " $ Request  Destaging Complete = %d, %f \n", parent->blkno, simtime );
+		}
+
+		if ( parent->tempint1 == FCL_OPERATION_STAGING ) {
+			printf ( " $ Request  Staging Complete = %d, %f \n", parent->blkno, simtime );
+		}
+
+		if ( parent->tempint1 == FCL_OPERATION_NORMAL ) {
+			printf ( " $ Request  Normal  Complete = %d, %f \n", parent->blkno, simtime );
+		}
+
+		fprintf ( stdout, " ** %f %f  Complete parent req ... %d %d %d \n", simtime, parent->time,  parent->blkno, parent->bcount, parent->flags);
+		//printf ( " ** %f %f  Complete parent req ... %d %d %d \n", simtime, parent->time,  parent->blkno, parent->bcount, parent->flags);
+		//ASSERT (0);
 	}
+	
 
+	if ( ioqueue_get_number_in_queue ( fcl_global_queue )  == 0 && 
+		 ioqueue_get_number_in_queue ( fcl_background_queue ) == 0 ) 
+	{
+		printf ( " FCL Queue Length = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ) );
+		//fcl_destage_request ();
+		fcl_stage_request ();
+	}
 
 }
 
@@ -954,7 +1237,7 @@ void fcl_init () {
 	flash_max_pages = ssd_elem_export_size2 ( ssd );
 	flash_max_sectors = flash_max_pages * FCL_PAGE_SIZE;
 
-	lru_size = flash_max_pages;
+	lru_size = flash_max_pages-1;
 
 	printf (" FCL: Flash Cache Usable Size = %.2fGB \n", (double)flash_max_pages / 256 / 1024);
 
@@ -973,7 +1256,11 @@ void fcl_init () {
 	fcl_global_queue = ioqueue_createdefaultqueue();
 	ioqueue_initialize (fcl_global_queue, 0);
 
-	constintarrtime = 5.0;
+	fcl_background_queue = ioqueue_createdefaultqueue();
+	ioqueue_initialize (fcl_background_queue, 0);
+
+	//constintarrtime = 5.0;
+	constintarrtime = 0.0;
 
 	ll_create ( &fcl_pending_manager );
 
@@ -990,10 +1277,14 @@ void fcl_exit () {
 
 	fcl_global_queue->printqueuestats = TRUE;
 	ioqueue_printstats( &fcl_global_queue, 1, " FCL : ");
+	free (fcl_global_queue);
+
+	fcl_background_queue->printqueuestats = TRUE;
+	ioqueue_printstats( &fcl_background_queue, 1, " FCL : ");
+	free (fcl_background_queue);
 
 	ll_release ( fcl_pending_manager );
 	// free queue memory
-	free (fcl_global_queue);
 
 }
 

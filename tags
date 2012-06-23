@@ -1939,6 +1939,9 @@ FCFS	src/disksim_ioqueue.h	/^#define FCFS /;"	d
 FCL_CACHE_FLAG_FILLING	src/disksim_fcl_cache.h	/^#define FCL_CACHE_FLAG_FILLING /;"	d
 FCL_CACHE_FLAG_SEALED	src/disksim_fcl_cache.h	/^#define FCL_CACHE_FLAG_SEALED /;"	d
 FCL_EVENT_MAX	src/disksim_global.h	/^#define FCL_EVENT_MAX /;"	d
+FCL_OPERATION_DESTAGING	src/disksim_fcl.h	/^#define FCL_OPERATION_DESTAGING /;"	d
+FCL_OPERATION_NORMAL	src/disksim_fcl.h	/^#define FCL_OPERATION_NORMAL /;"	d
+FCL_OPERATION_STAGING	src/disksim_fcl.h	/^#define FCL_OPERATION_STAGING /;"	d
 FCL_PAGE_SIZE	src/disksim_fcl.h	/^#define FCL_PAGE_SIZE /;"	d
 FIFO_ARB	src/disksim_bus.c	/^#define FIFO_ARB	/;"	d	file:
 FINAL_WRITE_RECONNECTION_1	src/disksim_disk.h	/^#define FINAL_WRITE_RECONNECTION_1 /;"	d
@@ -2202,6 +2205,7 @@ MAXSPARESCHEME	src/disksim_diskmap.h	/^#define MAXSPARESCHEME /;"	d
 MAXSTATS	src/disksim_disk.h	/^#define MAXSTATS /;"	d
 MAX_DESTAGE_COUNT	src/disksim_fcl_wow_driver.h	/^#define MAX_DESTAGE_COUNT /;"	d
 MAX_DIRECTION	src/disksim_fcl_rw_cache.c	/^#define MAX_DIRECTION /;"	d	file:
+MAX_DIRTY	src/disksim_fcl.c	/^#define MAX_DIRTY /;"	d	file:
 MAX_INPUT_FILES	libparam/lex.libparam.c	/^#define MAX_INPUT_FILES /;"	d	file:
 MAX_OUT	diskmodel/layout_g4_tools/g4_skews.c	/^#define MAX_OUT /;"	d	file:
 MAX_PARAM_LEN	libparam/include/libparam/libparam.h	/^#define MAX_PARAM_LEN /;"	d
@@ -3247,6 +3251,7 @@ _block_metadata	ssdmodel/include/ssdmodel/ssd.h	/^typedef struct _block_metadata
 _block_metadata	ssdmodel/ssd.h	/^typedef struct _block_metadata {$/;"	s
 _depend	src/modules/disksim_logorg_param.c	/^_depend(char *bv)$/;"	f	file:
 _depend	src/modules/disksim_syncset_param.c	/^_depend(char *bv)$/;"	f	file:
+_fcl_request_arrive	src/disksim_fcl.c	/^void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {$/;"	f
 _gang_metadata	ssdmodel/include/ssdmodel/ssd.h	/^typedef struct _gang_metadata {$/;"	s
 _gang_metadata	ssdmodel/ssd.h	/^typedef struct _gang_metadata {$/;"	s
 _header_data	ssdmodel/ssd_utils.h	/^typedef struct _header_data {$/;"	s
@@ -3810,6 +3815,7 @@ closedthinktime	src/disksim_global.h	/^   double closedthinktime;$/;"	m	struct:d
 cm_count	src/disksim_fcl_cache.h	/^ int cm_count;$/;"	m	struct:cache_manager
 cm_destage_count	src/disksim_fcl_cache.h	/^ int cm_destage_count;$/;"	m	struct:cache_manager
 cm_destage_ptr	src/disksim_fcl_cache.h	/^ listnode *cm_destage_ptr;$/;"	m	struct:cache_manager
+cm_dirty_count	src/disksim_fcl_cache.h	/^ int cm_dirty_count;$/;"	m	struct:cache_manager
 cm_free	src/disksim_fcl_cache.h	/^ int cm_free;$/;"	m	struct:cache_manager
 cm_groupcount	src/disksim_fcl_cache.h	/^ int cm_groupcount;$/;"	m	struct:cache_manager
 cm_hash	src/disksim_fcl_cache.h	/^ listnode **cm_hash;$/;"	m	struct:cache_manager
@@ -4983,11 +4989,12 @@ fastwrites	src/disksim_disk.h	/^  int		fastwrites;$/;"	m	struct:disk
 fcl_active_block_manager	src/disksim_fcl.c	/^struct cache_manager *fcl_active_block_manager;$/;"	v	typeref:struct:cache_manager
 fcl_active_list	src/disksim_global.h	/^   void	 	*fcl_active_list;$/;"	m	struct:ioreq_ev
 fcl_attach_child	src/disksim_fcl.c	/^void fcl_attach_child (ioreq_event **fcl_event_list, int *fcl_event_count, int list_index,  ioreq_event *child){$/;"	f
+fcl_background_queue	src/disksim_fcl.c	/^struct ioq			 *fcl_background_queue = NULL;$/;"	v	typeref:struct:ioq
 fcl_cache_manager	src/disksim_fcl.c	/^struct cache_manager *fcl_cache_manager;$/;"	v	typeref:struct:cache_manager
 fcl_classify_child_request	src/disksim_fcl.c	/^void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int blkno ) {$/;"	f
 fcl_complete_list	src/disksim_global.h	/^   void 	*fcl_complete_list;$/;"	m	struct:ioreq_ev
 fcl_create_child	src/disksim_fcl.c	/^ioreq_event *fcl_create_child (ioreq_event *parent, int devno, int blkno, int bcount, unsigned int flags){$/;"	f
-fcl_distribute_request	src/disksim_fcl.c	/^void fcl_distribute_request (ioreq_event *parent, int blkno) {$/;"	f
+fcl_destage_request	src/disksim_fcl.c	/^void fcl_destage_request () {$/;"	f
 fcl_event_count	src/disksim_global.h	/^   int		 fcl_event_count[FCL_EVENT_MAX];$/;"	m	struct:ioreq_ev
 fcl_event_list	src/disksim_global.h	/^   struct 	 ioreq_ev *fcl_event_list[FCL_EVENT_MAX];$/;"	m	struct:ioreq_ev	typeref:struct:ioreq_ev::ioreq_ev
 fcl_event_next	src/disksim_global.h	/^   struct	 ioreq_ev *fcl_event_next;$/;"	m	struct:ioreq_ev	typeref:struct:ioreq_ev::ioreq_ev
@@ -5006,10 +5013,14 @@ fcl_issue_pending_child	src/disksim_fcl.c	/^void fcl_issue_pending_child ( ioreq
 fcl_issue_pending_parent	src/disksim_fcl.c	/^void fcl_issue_pending_parent (){$/;"	f
 fcl_lookup_active_list	src/disksim_fcl.c	/^listnode *fcl_lookup_active_list ( int blkno ) {$/;"	f
 fcl_make_child_request	src/disksim_fcl.c	/^void fcl_make_child_request (ioreq_event *parent) {$/;"	f
+fcl_make_destage_req	src/disksim_fcl.c	/^void fcl_make_destage_req (ioreq_event *parent, int blkno) {$/;"	f
 fcl_make_merge_next_request	src/disksim_fcl.c	/^void fcl_make_merge_next_request (ioreq_event **fcl_event_list, int *fcl_event_count) {$/;"	f
-fcl_make_pending_list	src/disksim_fcl.c	/^void fcl_make_pending_list ( ioreq_event *parent ) {$/;"	f
+fcl_make_normal_req	src/disksim_fcl.c	/^void fcl_make_normal_req (ioreq_event *parent, int blkno) {$/;"	f
+fcl_make_pending_list	src/disksim_fcl.c	/^void fcl_make_pending_list ( ioreq_event *parent, int op_type ) {$/;"	f
+fcl_make_stage_req	src/disksim_fcl.c	/^void fcl_make_stage_req (ioreq_event *parent, int blkno) {$/;"	f
 fcl_move_pending_list	src/disksim_fcl.c	/^void fcl_move_pending_list ( listnode *inactive_list ){$/;"	f
 fcl_opid	src/disksim_fcl.c	/^int 				 fcl_opid = 0;$/;"	v
+fcl_outstanding	src/disksim_fcl.c	/^int					 fcl_outstanding = 10000;$/;"	v
 fcl_parent	src/disksim_global.h	/^   void  	*fcl_parent; $/;"	m	struct:ioreq_ev
 fcl_parent_init	src/disksim_fcl.c	/^void fcl_parent_init (ioreq_event *parent) {$/;"	f
 fcl_pending_list	src/disksim_global.h	/^   void	 	*fcl_pending_list;$/;"	m	struct:ioreq_ev
@@ -7872,6 +7883,7 @@ tempptr1	src/disksim_global.h	/^   void  *tempptr1;$/;"	m	struct:ioreq_ev
 tempptr2	src/disksim_global.h	/^   void  *tempptr2;$/;"	m	struct:ioreq_ev
 test_0t	diskmodel/dm_testsuite.c	/^void test_0t(struct dm_disk_if *d) {$/;"	f
 test_1track	diskmodel/dm_testsuite.c	/^void test_1track(struct dm_disk_if *d) {$/;"	f
+test_blk	src/disksim_fcl.c	/^int test_blk = 0;$/;"	v
 test_breakdown	diskmodel/dm_testsuite.c	/^void test_breakdown(struct dm_disk_if *d) {$/;"	f
 test_g2_skew	diskmodel/dm_testsuite.c	/^void test_g2_skew(struct dm_disk_if *d) {$/;"	f
 test_lbn_offset	diskmodel/dm_testsuite.c	/^void test_lbn_offset(struct dm_disk_if *d) {$/;"	f

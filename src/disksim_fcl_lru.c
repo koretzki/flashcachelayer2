@@ -27,6 +27,8 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 	c->cm_count = 0;
 	c->cm_max =  cache_max;
 
+	c->cm_dirty_count = 0;
+
 }
 
 void lru_close(struct cache_manager *c, int print){
@@ -39,6 +41,7 @@ void lru_close(struct cache_manager *c, int print){
 
 	if ( print ) {
 		fprintf(stdout, " %s hit ratio = %f\n",c->cm_name, (float)c->cm_hit/c->cm_ref);
+		fprintf(stdout, " %s Destage Count = %d\n",c->cm_name, c->cm_destage_count);
 	}
 
 	while(node != c->cm_head && node){		
