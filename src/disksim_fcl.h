@@ -8,6 +8,7 @@
 *
 */
 
+#include "disksim_global.h"
 
 #ifndef _DISKSIM_FCL_H
 #define _DISKSIM_FCL_H
@@ -21,8 +22,14 @@
 #define FCL_OPERATION_DESTAGING 2 
 #define FCL_OPERATION_STAGING 3
 
-void fcl_request_arrive (ioreq_event *curr) ;
-void fcl_request_complete (ioreq_event *curr) ;
+struct fcl_parameters {
+	int fpa_max_pages;
+	int fpa_cache_policy;
+	int fpa_background_activity;
+};
+
+void fcl_request_arrive (ioreq_event *);
+void fcl_request_complete (ioreq_event *);
 void fcl_init () ;
 void fcl_exit () ;
 

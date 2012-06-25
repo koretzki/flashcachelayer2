@@ -14,6 +14,10 @@ disksim_iosim Sim {
 I/O Trace Time Scale = 1.000000
 } # end of Sim spec
 
+disksim_fcl Fcl {
+Max Pages = 1000
+} # end of Fcl spec
+
 disksim_stats Stats {
 iodriver stats = disksim_iodriver_stats {
 Print driver size stats = 1,
@@ -168,6 +172,10 @@ instantiate [
 instantiate [ 
    statfoo
 ] as Stats
+
+instantiate [ 
+   fclFoo
+] as Fcl
 
 instantiate [ 
    ssd0x0

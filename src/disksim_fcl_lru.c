@@ -42,6 +42,7 @@ void lru_close(struct cache_manager *c, int print){
 	if ( print ) {
 		fprintf(stdout, " %s hit ratio = %f\n",c->cm_name, (float)c->cm_hit/c->cm_ref);
 		fprintf(stdout, " %s Destage Count = %d\n",c->cm_name, c->cm_destage_count);
+		fprintf(stdout, " %s Stage Count = %d\n",c->cm_name, c->cm_stage_count);
 	}
 
 	while(node != c->cm_head && node){		

@@ -1,0 +1,12 @@
+# careful:  this file doesn't like CRLF, and must contain TAB separators
+
+PARAM	MODULE	fcl
+HEADER \#include "../disksim_fcl.h"
+RESTYPE struct fcl_parameters * 
+PROTO int disksim_fcl_loadparams(struct lp_block *b, int *num);
+
+PARAM Max Pages		I	1
+TEST (i >= 0)
+INIT result->fpa_max_pages = i;
+
+

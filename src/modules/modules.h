@@ -12,6 +12,7 @@
 #include "disksim_device_param.h"
 #include "disksim_device_stats_param.h"
 #include "disksim_disk_param.h"
+#include "disksim_fcl_param.h"
 #include "disksim_global_param.h"
 #include "disksim_iodriver_param.h"
 #include "disksim_iodriver_stats_param.h"
@@ -38,6 +39,7 @@ static struct lp_mod *disksim_mods[] = {
  &disksim_device_mod ,
  &disksim_device_stats_mod ,
  &disksim_disk_mod ,
+ &disksim_fcl_mod ,
  &disksim_global_mod ,
  &disksim_iodriver_mod ,
  &disksim_iodriver_stats_mod ,
@@ -64,6 +66,7 @@ typedef enum {
   DISKSIM_MOD_DEVICE,
   DISKSIM_MOD_DEVICE_STATS,
   DISKSIM_MOD_DISK,
+  DISKSIM_MOD_FCL,
   DISKSIM_MOD_GLOBAL,
   DISKSIM_MOD_IODRIVER,
   DISKSIM_MOD_IODRIVER_STATS,
@@ -80,5 +83,5 @@ typedef enum {
   DISKSIM_MOD_SYNTHIO
 } disksim_mod_t;
 
-#define DISKSIM_MAX_MODULE 22
+#define DISKSIM_MAX_MODULE 23
 #endif // _DISKSIM_MODULES_H

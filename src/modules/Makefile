@@ -48,7 +48,7 @@ PARAM_PROTO = bus.modspec ctlr.modspec iodriver.modspec\
 	stats.modspec syncset.modspec synthgen.modspec synthio.modspec\
 	logorg.modspec pf.modspec\
 	cachemem.modspec cachedev.modspec device.modspec\
-	iosim.modspec iomap.modspec
+	iosim.modspec iomap.modspec fcl.modspec
 
 PARAM_CODE = $(PARAM_PROTO:%.modspec=$(PACKAGE)_%_param.c)
 

@@ -9,6 +9,10 @@ disksim_iosim Sim {
    I/O Trace Time Scale = 1.0
 }
 
+disksim_fcl Fcl {
+  Max Pages = 1000
+}
+
 disksim_stats Stats {
 iodriver stats = disksim_iodriver_stats {
 Print driver size stats = 1,
@@ -116,6 +120,7 @@ Maximum queue length = 100,
 Print stats =  1
 } # end of CTLR0 spec
 
+
 # don't change the order of the following parameters.
 # we use Flash chip elements and Elements per gang to
 # find number of gang -- we need this info before initializing
@@ -219,6 +224,8 @@ ssdmodel_ssd SSD {
 # component instantiation
 instantiate [ simfoo ]         as  Sim
 instantiate [ statfoo ]         as  Stats
+
+instantiate [ fclFoo ]			as Fcl
 
 # vp - adding another ssd 
 instantiate [ ssd0x0 ] as  SSD

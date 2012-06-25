@@ -2217,6 +2217,7 @@ MAX_REQS	ssdmodel/ssd.h	/^#define MAX_REQS /;"	d
 MAX_REQS_ELEM_QUEUE	ssdmodel/include/ssdmodel/ssd.h	/^#define MAX_REQS_ELEM_QUEUE /;"	d
 MAX_REQS_ELEM_QUEUE	ssdmodel/ssd.h	/^#define MAX_REQS_ELEM_QUEUE /;"	d
 MAX_REQ_BYTES	src/disksim_fcl_wow_driver.h	/^#define MAX_REQ_BYTES /;"	d
+MAX_STAGE	src/disksim_fcl.c	/^#define MAX_STAGE /;"	d	file:
 MAX_STAGE_COUNT	src/disksim_fcl_wow_driver.h	/^#define MAX_STAGE_COUNT /;"	d
 MAX_TSPS	src/disksim_ioqueue.c	/^#define MAX_TSPS /;"	d	file:
 MEMSMODEL_MAX_MODULE	memsmodel/include/memsmodel/modules/modules.h	/^#define MEMSMODEL_MAX_MODULE /;"	d
@@ -5034,6 +5035,9 @@ fcl_request_arrive	src/disksim_fcl.c	/^void fcl_request_arrive (ioreq_event *par
 fcl_request_complete	src/disksim_fcl.c	/^void fcl_request_complete (ioreq_event *child){$/;"	f
 fcl_seal_complete_request	src/disksim_fcl.c	/^void fcl_seal_complete_request ( ioreq_event *parent ) {$/;"	f
 fcl_split_parent_request	src/disksim_fcl.c	/^void fcl_split_parent_request (ioreq_event *parent) {$/;"	f
+fcl_stage_request	src/disksim_fcl.c	/^void fcl_stage_request () {$/;"	f
+fcl_timer_event	src/disksim_fcl.c	/^void fcl_timer_event ( timer_event *timereq) {$/;"	f
+fcl_timer_func	src/disksim_fcl.c	/^void (*fcl_timer_func)(struct timer_ev *);$/;"	v
 fields	diskmodel/layout_g4_tools/pass0.py	/^    fields = map(fuxor, fields)$/;"	v
 fields	diskmodel/layout_g4_tools/pass0.py	/^    fields = re.split('\\s+', l)$/;"	v
 filename	libparam/include/libparam/libparam.h	/^    char *filename;$/;"	m	struct:lp_input_file
@@ -6943,6 +6947,7 @@ print_statistics	src/syssim_driver.c	/^print_statistics(Stat *s, const char *tit
 print_tracefile_header	src/hplcomb.c	/^int print_tracefile_header = FALSE;$/;"	v
 printblockingstats	src/disksim_logorg.h	/^   int    printblockingstats;$/;"	m	struct:logorg
 printcritstats	src/disksim_ioqueue.h	/^   int		printcritstats;$/;"	m	struct:ioq
+printf	src/disksim_fcl.c	/^#define printf$/;"	d	file:
 printf_cost_table	src/disksim_fcl_rw_cache.c	/^static int printf_cost_table(struct cache_manager **w_tracker,$/;"	f	file:
 printf_readonly_cost_table	src/disksim_fcl_rw_cache.c	/^static int printf_readonly_cost_table(struct cache_manager **w_tracker,$/;"	f	file:
 printf_writeonly_cost_table	src/disksim_fcl_rw_cache.c	/^static int printf_writeonly_cost_table(struct cache_manager **w_tracker,$/;"	f	file:

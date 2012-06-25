@@ -71,6 +71,7 @@
 /Users/ysoh/disksim-4.0-fcl/include/disksim/modules/disksim_device_param.h
 /Users/ysoh/disksim-4.0-fcl/include/disksim/modules/disksim_device_stats_param.h
 /Users/ysoh/disksim-4.0-fcl/include/disksim/modules/disksim_disk_param.h
+/Users/ysoh/disksim-4.0-fcl/include/disksim/modules/disksim_fcl_param.h
 /Users/ysoh/disksim-4.0-fcl/include/disksim/modules/disksim_global_param.h
 /Users/ysoh/disksim-4.0-fcl/include/disksim/modules/disksim_iodriver_param.h
 /Users/ysoh/disksim-4.0-fcl/include/disksim/modules/disksim_iodriver_stats_param.h
@@ -223,6 +224,8 @@
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_device_stats_param.h
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_disk_param.c
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_disk_param.h
+/Users/ysoh/disksim-4.0-fcl/src/modules/disksim_fcl_param.c
+/Users/ysoh/disksim-4.0-fcl/src/modules/disksim_fcl_param.h
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_global_param.c
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_global_param.h
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_iodriver_param.c

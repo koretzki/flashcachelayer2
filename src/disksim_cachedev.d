@@ -10,20 +10,20 @@ disksim_cachedev.o: disksim_cachedev.c modules/modules.h \
   modules/disksim_cachedev_param.h modules/disksim_cachemem_param.h \
   modules/disksim_ctlr_param.h modules/disksim_ctlr_stats_param.h \
   modules/disksim_device_param.h modules/disksim_device_stats_param.h \
-  modules/disksim_disk_param.h modules/disksim_global_param.h \
-  modules/disksim_iodriver_param.h modules/disksim_iodriver_stats_param.h \
-  modules/disksim_iomap_param.h modules/disksim_ioqueue_param.h \
-  modules/disksim_iosim_param.h modules/disksim_logorg_param.h \
-  modules/disksim_pf_param.h modules/disksim_pf_stats_param.h \
-  modules/disksim_simpledisk_param.h modules/disksim_stats_param.h \
-  modules/disksim_syncset_param.h modules/disksim_synthgen_param.h \
-  modules/disksim_synthio_param.h disksim_cachedev.h disksim_global.h \
-  disksim_rand48.h disksim_malloc.h disksim_bitstring.h inline.h \
-  /usr/include/sys/types.h /usr/include/sys/appleapiopts.h \
-  /usr/include/machine/types.h /usr/include/i386/types.h \
-  /usr/include/i386/_types.h /usr/include/machine/endian.h \
-  /usr/include/i386/endian.h /usr/include/sys/_endian.h \
-  /usr/include/libkern/_OSByteOrder.h \
+  modules/disksim_disk_param.h modules/disksim_fcl_param.h \
+  modules/disksim_global_param.h modules/disksim_iodriver_param.h \
+  modules/disksim_iodriver_stats_param.h modules/disksim_iomap_param.h \
+  modules/disksim_ioqueue_param.h modules/disksim_iosim_param.h \
+  modules/disksim_logorg_param.h modules/disksim_pf_param.h \
+  modules/disksim_pf_stats_param.h modules/disksim_simpledisk_param.h \
+  modules/disksim_stats_param.h modules/disksim_syncset_param.h \
+  modules/disksim_synthgen_param.h modules/disksim_synthio_param.h \
+  disksim_cachedev.h disksim_global.h disksim_rand48.h disksim_malloc.h \
+  disksim_bitstring.h inline.h /usr/include/sys/types.h \
+  /usr/include/sys/appleapiopts.h /usr/include/machine/types.h \
+  /usr/include/i386/types.h /usr/include/i386/_types.h \
+  /usr/include/machine/endian.h /usr/include/i386/endian.h \
+  /usr/include/sys/_endian.h /usr/include/libkern/_OSByteOrder.h \
   /usr/include/libkern/i386/_OSByteOrder.h /usr/include/sys/_structs.h \
   /usr/include/stdlib.h /usr/include/sys/wait.h /usr/include/sys/signal.h \
   /usr/include/machine/signal.h /usr/include/i386/signal.h \
