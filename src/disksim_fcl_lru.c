@@ -144,9 +144,6 @@ void *lru_remove(struct cache_manager *c, listnode *remove_ptr){
 
 	ln = (struct lru_node *)remove_ptr->data;
 	
-	//if(ln->cn_frequency)
-	//	ln = ln;
-
 	// Release Node 
 	ll_release_node(c->cm_head, ln->cn_node);
 
@@ -201,7 +198,8 @@ void lru_insert(struct cache_manager *c,struct lru_node *ln){
 
 
 
-listnode *lru_replace(struct cache_manager *c, int watermark){	
+//listnode *lru_replace(struct cache_manager *c, int watermark){	
+void *lru_replace(struct cache_manager *c, int watermark){	
 	//listnode *destage_ptr;
 	listnode *remove_ptr;
 	listnode *victim = NULL;
@@ -373,7 +371,7 @@ void mlru_exit(struct cache_manager **lru_manager,int lru_num){
 
 
 void mlru_remove(struct cache_manager **lru_manager,int lru_num, int blkno){
-	struct listnode *node = NULL;
+	listnode *node = NULL;
 	struct lru_node *ln;	
 	int j;
 
@@ -395,7 +393,7 @@ void mlru_remove(struct cache_manager **lru_manager,int lru_num, int blkno){
 
 
 
-struct listnode *mlru_search(struct cache_manager **lru_manager,int lru_num, int blkno, int insert,int hit, int *hit_position){
+listnode *mlru_search(struct cache_manager **lru_manager,int lru_num, int blkno, int insert,int hit, int *hit_position){
 	listnode *node = NULL;
 	struct lru_node *ln;	
 	int j;

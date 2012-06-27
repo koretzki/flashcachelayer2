@@ -5,8 +5,19 @@ HEADER \#include "../disksim_fcl.h"
 RESTYPE struct fcl_parameters * 
 PROTO int disksim_fcl_loadparams(struct lp_block *b, int *num);
 
+PARAM Page Size		I	1
+TEST (i >= 0)
+INIT result->fpa_page_size = i;
+
 PARAM Max Pages		I	1
 TEST (i >= 0)
 INIT result->fpa_max_pages = i;
 
+PARAM Bypass Cache		I	1
+TEST (i >= 0)
+INIT result->fpa_bypass_cache = i;
 
+
+PARAM Idle Detect Time		D	1
+TEST (d >= 0)
+INIT result->fpa_idle_detect_time = d;

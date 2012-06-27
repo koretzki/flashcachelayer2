@@ -15,7 +15,10 @@ I/O Trace Time Scale = 1.000000
 } # end of Sim spec
 
 disksim_fcl Fcl {
-Max Pages = 1000
+Page Size = 8,
+Max Pages = 100000,
+Bypass Cache = 1,
+Idle Detect Time = 5.000000
 } # end of Fcl spec
 
 disksim_stats Stats {

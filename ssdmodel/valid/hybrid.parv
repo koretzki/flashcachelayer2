@@ -10,7 +10,10 @@ disksim_iosim Sim {
 }
 
 disksim_fcl Fcl {
-  Max Pages = 1000
+  Page Size = 8,
+  Max Pages = 100000,
+  Bypass Cache = 1,
+  Idle Detect Time = 5.0 #ms
 }
 
 disksim_stats Stats {

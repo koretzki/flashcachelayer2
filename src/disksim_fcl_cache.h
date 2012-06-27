@@ -20,6 +20,20 @@
 #define FCL_CACHE_FLAG_FILLING 1 
 #define FCL_CACHE_FLAG_SEALED 2  
 
+struct lru_node{
+	listnode *cn_node;
+	listnode *cn_hash;
+	unsigned int cn_blkno;
+	int cn_ssd_blk;
+	int cn_dirty;
+	int cn_read;
+	int cn_flag;
+	unsigned int cn_recency;
+	unsigned int cn_frequency;
+	void *cn_temp1;
+	void *cn_temp2;
+};
+
 struct cache_manager{
 
  listnode *cm_head;
@@ -61,29 +75,13 @@ struct cache_manager{
  listnode *(*cache_presearch)(struct cache_manager *cache, unsigned int blkno);
  listnode *(*cache_search)(struct cache_manager *cache,unsigned int blkno);
  void *(*cache_replace)(struct cache_manager *cache,int w); 
- void *(*cache_remove)(struct cache_manager *cache, void *node); 
- void (*cache_insert)(struct cache_manager *cache, void * node);
- void *(*cache_alloc)(void *node, unsigned int blkno);
+ void *(*cache_remove)(struct cache_manager *cache, listnode *node); 
+ void (*cache_insert)(struct cache_manager *cache, struct lru_node *node);
+ void *(*cache_alloc)(struct lru_node *node, unsigned int blkno);
  int (*cache_inc)(struct cache_manager *cache, int i);
  int (*cache_dec)(struct cache_manager *cache, int i);
- //int (*cache_makerq) (struct cache_manager *cache, listnode *rqlist, Rb_node *tree, int blkno);
- //void (*cache_flushrq) (struct cache_manager *cache, int dev, int rw, listnode *Qlist);
- //int (*cache_releaserq) (struct cache_manager *cache, listnode *rqlist);
 };
 
-struct lru_node{
-	listnode *cn_node;
-	listnode *cn_hash;
-	unsigned int cn_blkno;
-	int cn_ssd_blk;
-	int cn_dirty;
-	int cn_read;
-	int cn_flag;
-	unsigned int cn_recency;
-	unsigned int cn_frequency;
-	void *cn_temp1;
-	void *cn_temp2;
-};
 
 
 #if 0 
@@ -171,7 +169,7 @@ listnode *lru_search(struct cache_manager *c,unsigned int blkno);
 void *lru_remove(struct cache_manager *c, listnode *remove_ptr);
 void *lru_alloc(struct lru_node *ln, unsigned int blkno);
 void lru_insert(struct cache_manager *c,struct lru_node *ln);
-listnode *lru_replace(struct cache_manager *c, int watermark);	
+void *lru_replace(struct cache_manager *c, int watermark);	
 int lru_inc(struct cache_manager *c, int inc_val);
 int lru_dec(struct cache_manager *c, int dec_val);
 void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,int low);

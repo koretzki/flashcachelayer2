@@ -14,6 +14,10 @@
 #include "disksim_ioqueue.h"
 #include "disksim_fcl_cache.h"
 #include "disksim_fcl_map.h"
+#include "../ssdmodel/ssd_clean.h"
+
+#define MAX_DIRTY 8
+#define MAX_STAGE 1
 
 /* Global variables */ 
 
@@ -22,6 +26,7 @@ struct ioq			 *fcl_background_queue = NULL;
 struct cache_manager *fcl_cache_manager;
 struct cache_manager *fcl_active_block_manager;
 listnode			 *fcl_pending_manager; 
+
 struct fcl_parameters 	 *fcl_params;
 
 void (*fcl_timer_func)(struct timer_ev *);
@@ -31,11 +36,11 @@ int 				 fcl_opid = 0;
 int					 fcl_outstanding = 10000;
 
 int 				 flash_max_pages = 50000;
-int 				 flash_max_sectors = 50000 * FCL_PAGE_SIZE;
+int 				 flash_max_sectors = 50000;
 int 				 hdd_max_pages = 50000;
-int 				 hdd_max_sectors = 50000 * FCL_PAGE_SIZE;
+int 				 hdd_max_sectors = 50000;
 
-double					 fcl_idle_time = 100000.0;
+double				 fcl_idle_time = 100000.0;
 
 #define fprintf 
 //#define printf
@@ -71,15 +76,16 @@ void fcl_attach_child (ioreq_event **fcl_event_list, int *fcl_event_count, int l
 	if ( last == NULL ) {
 		fcl_event_list[list_index]= child;
 	}else{
+
 		while ( last->fcl_event_next != NULL ){
 			last = last->fcl_event_next;
 		}	
 
 
-		if (!(child->devno == last->devno && child->flags == last->flags)) {
-			printf(" list index = %d, dev = %d, flags = %d, %d %d \n", list_index,
-					child->devno, child->flags, last->devno, last->flags);
-		} 
+		//if (!(child->devno == last->devno && child->flags == last->flags)) {
+		//	printf(" list index = %d, dev = %d, flags = %d, %d %d \n", list_index,
+		//			child->devno, child->flags, last->devno, last->flags);
+		//} 
 
 		ASSERT ( child->devno == last->devno && child->flags == last->flags );
 
@@ -129,16 +135,25 @@ void fcl_parent_init (ioreq_event *parent) {
 	ll_create ( (listnode **) &parent->fcl_inactive_list );
 	ll_create ( (listnode **) &parent->fcl_pending_list );
 
-
 }
 
+void fcl_parent_release ( ioreq_event *parent ) {
+
+	fcl_remove_complete_list ( parent );
+
+	ll_release ( parent->fcl_complete_list );
+	ll_release ( parent->fcl_active_list );
+	ll_release ( parent->fcl_inactive_list );
+	ll_release ( parent->fcl_pending_list );
+
+
+}
 void fcl_issue_next_child ( ioreq_event *parent ){
 	ioreq_event *req;
 	int flags = -1;
 	int devno = -1;
 
 	fprintf ( stdout, " issue next = %d \n", parent->fcl_event_ptr );
-
 
 	ASSERT ( parent->fcl_event_count[parent->fcl_event_ptr] != 0 );
 
@@ -165,7 +180,6 @@ void fcl_issue_next_child ( ioreq_event *parent ){
 	}
 
 	parent->fcl_event_list[parent->fcl_event_ptr] = NULL;
-
 	parent->fcl_event_ptr++;
 
 }
@@ -197,10 +211,46 @@ void fcl_generate_child_request ( ioreq_event *parent, int devno, int blkno, int
 						child ); 
 }
 
+struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno) { 	
+	struct lru_node *ln;
+
+	// evict the LRU position node from the LRU list
+	ln = CACHE_REPLACE(fcl_cache_manager, 0);
+
+	if ( ln ) {
+		ASSERT ( ln->cn_flag == FCL_CACHE_FLAG_SEALED );
+	}
+
+	if ( ln && ln->cn_ssd_blk > 0 ) {
+
+		//ASSERT ( 0) ;
+		ASSERT ( CACHE_PRESEARCH ( fcl_active_block_manager, ln->cn_blkno) == NULL );
+
+		// move dirty data from SSD to HDD
+		if ( ln->cn_dirty ) {
+			_fcl_make_destage_req ( parent, ln, 0 );
+			ASSERT ( fcl_cache_manager->cm_dirty_count >= 0 );
+		}
+		reverse_map_release_blk ( ln->cn_ssd_blk );
+	}
+
+	ln = CACHE_ALLOC(fcl_cache_manager, ln, blkno);
+	ln->cn_flag = FCL_CACHE_FLAG_FILLING;
+	ln->cn_ssd_blk = reverse_map_alloc_blk( blkno );
+	ln->cn_dirty = 0;
+
+	// miss penalty request  
+	if ( parent->flags & READ ) { // read clean data 
+		_fcl_make_stage_req ( parent, ln, 2);
+	}
+
+	return ln;
+}
+
 void fcl_make_normal_req (ioreq_event *parent, int blkno) {
-	int	list_index = 0;
-	int	devno = 0;
-	int filling = 0;
+//	int	list_index = 0;
+//	int	devno = 0;
+//	int filling = 0;
 	struct lru_node *ln = NULL;
 	listnode *node;
 
@@ -212,62 +262,30 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 		ln = CACHE_REMOVE(fcl_cache_manager, node);
 
 		// TODO: this child request must be blocked  
-
 		if ( ln->cn_flag == FCL_CACHE_FLAG_FILLING ) {
-			filling = 1;
 			ASSERT ( ln->cn_flag == FCL_CACHE_FLAG_SEALED );	
 		}
 
-
 	}else{ // miss case 
-		// evict the LRU position node from the LRU list
-		ln = CACHE_REPLACE(fcl_cache_manager, 0);
-		
-		if ( ln ) {
-			ASSERT ( ln->cn_flag == FCL_CACHE_FLAG_SEALED );
-		}
-
-		if ( ln && ln->cn_ssd_blk > 0 ) {
-			// move dirty data from SSD to HDD
-			if ( ln->cn_dirty ) {
-				printf ( " The page %d should go to active list ... \n", reverse_get_blk(ln->cn_ssd_blk) );
-				ASSERT (0);
-				fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, list_index++);
-				fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, list_index++);
-				fcl_cache_manager->cm_destage_count++;
-				fcl_cache_manager->cm_dirty_count--;
-				ASSERT ( fcl_cache_manager->cm_dirty_count >= 0 );
-			}
-			reverse_map_release_blk ( ln->cn_ssd_blk );
-		}
-
-		ln = CACHE_ALLOC(fcl_cache_manager, ln, blkno);
-		ln->cn_flag = FCL_CACHE_FLAG_FILLING;
-		ln->cn_ssd_blk = reverse_map_alloc_blk( blkno );
-
-		// miss penalty request  
-		if ( parent->flags & READ ) { // read clean data 
-			fcl_generate_child_request ( parent, HDD, blkno, READ, list_index++);
-			fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, list_index++);
-			fcl_cache_manager->cm_stage_count++;
-		} else {
-			if ( ln->cn_dirty == 0 ) {
-				ln->cn_dirty = 1;
-				fcl_cache_manager->cm_dirty_count++;
-			}
-		}
-
+		ln = fcl_replace_cache ( parent, blkno );
+		ASSERT ( ln );
 	}
 
-	if ( parent->flags & READ ) 
+	if ( parent->flags & READ ) {
 		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, FCL_EVENT_MAX - 2 );
-	else
+	} else {
 		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, FCL_EVENT_MAX - 1 );
 
+		if ( ln->cn_dirty == 0 ) {
+			ln->cn_dirty = 1;
+			fcl_cache_manager->cm_dirty_count++;
+		}
+	}
 
 	CACHE_INSERT(fcl_cache_manager, ln);
 
 }
+
 
 void fcl_make_stage_req (ioreq_event *parent, int blkno) {
 	int	list_index = 0;
@@ -284,40 +302,30 @@ void fcl_make_stage_req (ioreq_event *parent, int blkno) {
 		ASSERT ( node == NULL );	
 
 	}else{ // miss case 
-		// evict the LRU position node from the LRU list
-		ln = CACHE_REPLACE(fcl_cache_manager, 0);
-		
-		if ( ln ) {
-			ASSERT ( ln->cn_flag == FCL_CACHE_FLAG_SEALED );
-		}
-
-		if ( ln && ln->cn_ssd_blk > 0 ) {
-			// move dirty data from SSD to HDD
-			if ( ln->cn_dirty ) {
-				fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, list_index++);
-				fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, list_index++);
-				fcl_cache_manager->cm_destage_count++;
-			}
-			reverse_map_release_blk ( ln->cn_ssd_blk );
-		}
-
-		ln = CACHE_ALLOC(fcl_cache_manager, ln, blkno);
-		ln->cn_flag = FCL_CACHE_FLAG_FILLING;
-		ln->cn_ssd_blk = reverse_map_alloc_blk( blkno );
-
-		// miss penalty request  
-		if ( parent->flags & READ ) { // read clean data 
-			fcl_generate_child_request ( parent, HDD, blkno, READ, list_index++);
-			fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, list_index++);
-			fcl_cache_manager->cm_stage_count++;
-		} else {
-			ASSERT (0);
-		}
+		ln = fcl_replace_cache( parent, blkno );
 	}
 	
 	CACHE_INSERT(fcl_cache_manager, ln);
 }
 
+void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) {
+
+	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), READ, list_index++);
+	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, list_index++);
+
+	fcl_cache_manager->cm_stage_count++;
+
+}
+
+void _fcl_make_destage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) {
+
+	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, list_index++);
+	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, list_index++);
+
+	fcl_cache_manager->cm_destage_count++;
+	fcl_cache_manager->cm_dirty_count--;
+
+}
 
 void fcl_make_destage_req (ioreq_event *parent, int blkno) {
 	int	list_index = 0;
@@ -336,15 +344,10 @@ void fcl_make_destage_req (ioreq_event *parent, int blkno) {
 	if ( ln->cn_flag == FCL_CACHE_FLAG_FILLING ) {
 		ASSERT ( ln->cn_flag == FCL_CACHE_FLAG_SEALED );	
 	}
-
 	ASSERT ( ln->cn_dirty ) ;
 
-	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, list_index++);
-	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, list_index++);
-
+	_fcl_make_destage_req ( parent, ln, 0 );
 	reverse_map_release_blk ( ln->cn_ssd_blk );
-
-	fcl_cache_manager->cm_destage_count++;
 
 	free ( ln );
 }
@@ -437,6 +440,28 @@ void fcl_make_pending_list ( ioreq_event *parent, int op_type ) {
 
 }
 
+void fcl_make_request ( ioreq_event *parent, int blkno ) {
+	switch ( parent->tempint1 ) {
+		// child req => Hit: SSD Req
+		//		   Read Miss: HDD Read, SSD Write, SSD Read(Can be ommited)
+		//		   Write Miss : SSD Read, HDD Write, HDD Write 
+		case FCL_OPERATION_NORMAL:
+			//printf (" Normal Req blkno = %d \n", blkno);
+			fcl_make_normal_req ( parent, blkno ); 
+			break;
+			// child req => Move SSD data to HDD 
+		case FCL_OPERATION_DESTAGING:
+			//printf (" Destage Req blkno = %d \n", blkno);
+			fcl_make_destage_req ( parent, blkno );
+			break;
+			// child req => Move HDD data to SSD
+		case FCL_OPERATION_STAGING:
+			//printf (" Stage Req blkno = %d \n", blkno);
+			fcl_make_stage_req ( parent, blkno );
+			break;
+	}
+
+}
 void fcl_split_parent_request (ioreq_event *parent) {
 	
 	int i;
@@ -464,30 +489,13 @@ void fcl_split_parent_request (ioreq_event *parent) {
 	node = ((listnode *)parent->fcl_active_list)->next ;
 
 	for (i = 0; i < active_page_count; i++){
+
 		ASSERT ( node != NULL );
+
 		child = (ioreq_event *)node->data;
 		blkno = child->blkno;
 
-		switch ( parent->tempint1 ) {
-			// child req => Hit: SSD Req
-			//		   Read Miss: HDD Read, SSD Write, SSD Read(Can be ommited)
-			//		   Write Miss : SSD Read, HDD Write, HDD Write 
-			case FCL_OPERATION_NORMAL:
-				//printf (" Normal Req blkno = %d \n", blkno);
-				fcl_make_normal_req ( parent, blkno ); 
-				break;
-				// child req => Move SSD data to HDD 
-			case FCL_OPERATION_DESTAGING:
-				//printf (" Destage Req blkno = %d \n", blkno);
-				fcl_make_destage_req ( parent, blkno );
-				break;
-				// child req => Move HDD data to SSD
-			case FCL_OPERATION_STAGING:
-				//printf (" Stage Req blkno = %d \n", blkno);
-				fcl_make_stage_req ( parent, blkno );
-				break;
-		}
-
+		fcl_make_request ( parent, blkno );
 
 		node = node->next;
 	} 
@@ -1022,18 +1030,40 @@ void fcl_issue_pending_parent (){
 
 }	
 
-#define MAX_DIRTY 4
-#define MAX_STAGE 1
+
+static int fcl_compare_blkno(const void *a,const void *b){
+	if(((ioreq_event *)a)->blkno < ((ioreq_event *)b)->blkno)
+		return 1;
+	else if(((ioreq_event *)a)->blkno > ((ioreq_event *)b)->blkno)
+		return -1;
+	return 0;
+}
+
+ioreq_event *fcl_create_parent (int blkno,int bcount, double time, int flags, int devno) {
+	ioreq_event * parent;
+
+	parent  = (ioreq_event *) ioreq_copy ( (ioreq_event *) io_extq );  	
+
+	parent->blkno = blkno;
+	parent->bcount = bcount;
+	parent->time = time;
+	parent->flags = flags;
+	parent->devno = devno;
+
+
+	return parent;
+
+}
 
 void fcl_stage_request () {
 	ioreq_event *parent;
 	listnode *stage_list;
+	listnode *stage_node;
+
 	int i;
 	int req_count = 0;
 
 	int list_count = flash_max_pages;
-
-	//ASSERT (0);
 
 	ll_create ( &stage_list );
 
@@ -1041,42 +1071,72 @@ void fcl_stage_request () {
 		int blkno = i * FCL_PAGE_SIZE;
 
 		if ( CACHE_PRESEARCH ( fcl_cache_manager, blkno ) == NULL ) {
-			ll_insert_at_tail ( stage_list, (void *) blkno );
-			//printf ( " stage blk = %d \n", blkno ); 
+			parent = fcl_create_parent ( blkno, FCL_PAGE_SIZE, simtime, 0, 0 );
+			parent->tempint1 = FCL_OPERATION_STAGING;
+			
+			ll_insert_at_sort ( stage_list, (void *) parent, fcl_compare_blkno );
 			req_count++;
 		}
 
 		if ( ll_get_size ( stage_list ) >= MAX_STAGE ) 
 			break;
-
 	}
 
 
-	for ( i = 0; i < req_count; i++ ) {
+	fcl_merge_list ( stage_list );
 
-		//parent  = (ioreq_event *) getfromextraq(); 	
-		parent  = (ioreq_event *) ioreq_copy ( (ioreq_event *) io_extq );  	
+	stage_node = stage_list->next;
 
-		//printf (" simtime = %f, parent time = %f \n", simtime, parent->time );
+	for ( i = 0; i < ll_get_size ( stage_list) ; i++ ) {
 
-		parent->time = simtime;
-		parent->blkno = (int) ll_get_tail ( stage_list );
-		parent->bcount = FCL_PAGE_SIZE;
-		parent->flags = 0;
-		parent->devno = 0;
-	 	parent->tempint1 = FCL_OPERATION_STAGING;	
-
+		parent = stage_node;
 		_fcl_request_arrive ( parent, FCL_OPERATION_STAGING );
 
-		ll_release_tail ( stage_list );
+		stage_node = stage_node->next;
+
 	}
 
 	ll_release ( stage_list );
 }
+
+
+
+void fcl_merge_list ( listnode *dirty_list ) {
+	listnode *dirty_node;
+	int i;
+	int req_count = ll_get_size ( dirty_list );
+
+	dirty_node = dirty_list->next;
+
+	for ( i = 0; i < req_count; i++ ) {
+		listnode *dirty_next;
+		ioreq_event *req1, *req2;
+	
+		dirty_next = dirty_node->next;
+		req1 = dirty_node->data;
+		req2 = dirty_next->data;
+
+		if ( dirty_next != dirty_list &&
+				fcl_req_is_consecutive ( req1, req2)) {
+			
+			req1->bcount += req2->bcount;				
+			addtoextraq((event *) req2);
+			ll_release_node ( dirty_list, dirty_next );
+
+		} else {
+			dirty_node = dirty_node->next;
+
+		}
+
+	}
+
+}
 void fcl_destage_request () {
 	ioreq_event *parent;
+
 	listnode *dirty_list;
 	listnode *dirty_node;
+
 	struct lru_node *ln;
 	int i;
 	int req_count = 0;
@@ -1095,8 +1155,10 @@ void fcl_destage_request () {
 		ln = (struct lru_node *) dirty_node->data;	
 		
 		if ( ln->cn_dirty ) {
-			ll_insert_at_tail ( dirty_list, (void *) ln->cn_blkno );
-			printf ( " dirty blk = %d \n", ln->cn_blkno ); 
+			parent = fcl_create_parent ( ln->cn_blkno, FCL_PAGE_SIZE, simtime, 0, 0 );
+			parent->tempint1 = FCL_OPERATION_DESTAGING;	
+
+			ll_insert_at_sort ( dirty_list, (void *) parent, fcl_compare_blkno ); 
 			req_count++;
 		}
 
@@ -1106,24 +1168,17 @@ void fcl_destage_request () {
 		dirty_node = dirty_node->prev;
 	}
 
-	for ( i = 0; i < req_count; i++ ) {
 
-		//parent  = (ioreq_event *) getfromextraq(); 	
-		parent  = (ioreq_event *) ioreq_copy ( (ioreq_event *) io_extq );  	
+	fcl_merge_list ( dirty_list );
 
-		//printf (" simtime = %f, parent time = %f \n", simtime, parent->time );
+	dirty_node = dirty_list->next;
 
-		parent->time = simtime;
-		parent->blkno = ll_get_tail ( dirty_list );
-		parent->bcount = FCL_PAGE_SIZE;
-		parent->flags = 0;
-		parent->devno = 0;
-	 	parent->tempint1 = FCL_OPERATION_DESTAGING;	
-		printf (" blkno = %d \n", parent->blkno);
+	for ( i = 0; i < ll_get_size ( dirty_list ); i++ ) {
 
+		parent = dirty_node->data;	
 		_fcl_request_arrive ( parent, FCL_OPERATION_DESTAGING );
 
-		ll_release_tail ( dirty_list );
+		dirty_node = dirty_node->next;
 	}
 
 	ll_release ( dirty_list );
@@ -1138,12 +1193,32 @@ void fcl_timer_event ( timer_event *timereq) {
 		 ioqueue_get_number_in_queue ( fcl_background_queue ) == 0 ) 
 	{
 	//	printf (" stage event ... \n" );
-		fcl_stage_request ();
+		//fcl_stage_request ();
+		fcl_destage_request ();
 	}
 
 	fcl_timer_func = NULL;
-	addtoextraq ( timereq ); 
+	addtoextraq ( (event *) timereq ); 
 }
+
+void fcl_make_timer () {
+	timer_event *timereq = (timer_event *)getfromextraq();
+
+	fcl_timer_func = fcl_timer_event;
+
+	timereq->func = &fcl_timer_func ;
+	timereq->type = TIMER_EXPIRED;
+	timereq->time = simtime + (double) fcl_idle_time;
+	timereq->ptr = NULL;
+
+	addtointq ( (event *) timereq );
+
+	//printf ( " Issue Timer = %f, %f, %f \n", simtime, timereq->time,
+	//		simtime + 5000);
+
+}
+
+
 void fcl_request_complete (ioreq_event *child){
 	ioreq_event *parent, *req2;
 	int total_req = 0;	
@@ -1204,12 +1279,7 @@ void fcl_request_complete (ioreq_event *child){
 		ASSERT ( ll_get_size ( parent->fcl_active_list ) == 0 && 
 				ll_get_size ( parent->fcl_inactive_list ) == 0 );
 
-		fcl_remove_complete_list ( parent );
-
-		ll_release ( parent->fcl_complete_list );
-		ll_release ( parent->fcl_active_list );
-		ll_release ( parent->fcl_inactive_list );
-		ll_release ( parent->fcl_pending_list );
+		fcl_parent_release ( parent );
 
 		if ( parent->tempint1 == FCL_OPERATION_NORMAL ) {
 			req2 = ioqueue_physical_access_done (fcl_global_queue, parent);
@@ -1218,6 +1288,7 @@ void fcl_request_complete (ioreq_event *child){
 		}
 		ASSERT (req2 != NULL);
 	
+
 		//if ( addtoextraq_check((event *) parent )) 
 		addtoextraq ((event *) parent);
 
@@ -1253,20 +1324,7 @@ void fcl_request_complete (ioreq_event *child){
 		 !feof ( disksim->iotracefile) )
 	{
 		//printf ( " FCL Queue Length = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ) );
-		timer_event *timereq = (timer_event *)getfromextraq();
-
-		timereq->type = TIMER_EXPIRED;
-
-		fcl_timer_func = fcl_timer_event;
-		timereq->func = &fcl_timer_func ;
-
-		timereq->time = simtime + (double) fcl_idle_time;
-		timereq->ptr = NULL;
-
-		//printf ( " Issue Timer = %f, %f, %f \n", simtime, timereq->time,
-		//		simtime + 5000);
-
-		addtointq ( (event *) timereq );
+		fcl_make_timer ();
 	}
 
 }
@@ -1277,13 +1335,26 @@ int disksim_fcl_loadparams ( struct lp_block *b, int *num) {
 	fcl_params = malloc ( sizeof(struct fcl_parameters) );
 	memset ( fcl_params, 0x00, sizeof(struct fcl_parameters) );
 	lp_loadparams ( fcl_params, b, &disksim_fcl_mod);
+
+	return 0;
 }
+
+void fcl_print_parameters () {
+	printf ( " page size = %d sectors \n", fcl_params->fpa_page_size );
+	printf ( " max pages = %d, %.2f MB  \n", fcl_params->fpa_max_pages, (double) fcl_params->fpa_max_pages/256 );
+	printf ( " bypass cache = %d \n", fcl_params->fpa_bypass_cache );
+	printf ( " idle detect time= %d ms \n", fcl_params->fpa_idle_detect_time );
+	printf ( "\n");
+}
+
 
 void fcl_init () {
 	int lru_size = 50000;
 	ssd_t *ssd = getssd ( SSD );
 	ssd_t *hdd = getssd ( HDD );
 
+
+	fcl_print_parameters () ;
 	//printf (" max_pages = %d \n", fcl_params->fpa_max_pages);
 
 	fprintf ( stdout, " Flash Cache Layer is initializing ... \n");
@@ -1291,7 +1362,8 @@ void fcl_init () {
 	flash_max_pages = ssd_elem_export_size2 ( ssd );
 	flash_max_sectors = flash_max_pages * FCL_PAGE_SIZE;
 
-	lru_size = flash_max_pages-1;
+	//lru_size = flash_max_pages-1;
+	lru_size = fcl_params->fpa_max_pages;
 
 	printf (" FCL: Flash Cache Usable Size = %.2fGB \n", (double)flash_max_pages / 256 / 1024);
 
@@ -1299,6 +1371,8 @@ void fcl_init () {
 	hdd_max_sectors = hdd_max_pages * FCL_PAGE_SIZE;
 
 	printf (" FCL: Hard Disk Usable Size = %.2fGB \n", (double)hdd_max_pages / 256 / 1024);
+
+	printf (" FCL Effective Cache Size = %.2fMB \n", (double) lru_size / 256 );
 
 	lru_init ( &fcl_cache_manager, "LRU", lru_size, lru_size, 1, 0);
 	lru_init ( &fcl_active_block_manager, "AtiveBlockManager", lru_size, lru_size, 1, 0);
@@ -1330,11 +1404,11 @@ void fcl_exit () {
 	CACHE_CLOSE(fcl_active_block_manager, 0);
 
 	fcl_global_queue->printqueuestats = TRUE;
-	ioqueue_printstats( &fcl_global_queue, 1, " FCL : ");
+	ioqueue_printstats( &fcl_global_queue, 1, " FCL Forground: ");
 	free (fcl_global_queue);
 
 	fcl_background_queue->printqueuestats = TRUE;
-	ioqueue_printstats( &fcl_background_queue, 1, " FCL : ");
+	ioqueue_printstats( &fcl_background_queue, 1, " FCL Background: ");
 	free (fcl_background_queue);
 
 	ll_release ( fcl_pending_manager );

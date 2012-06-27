@@ -9,11 +9,13 @@
 */
 
 #include "disksim_global.h"
+#include "disksim_fcl_cache.h"
+
 
 #ifndef _DISKSIM_FCL_H
 #define _DISKSIM_FCL_H
 
-#define FCL_PAGE_SIZE 8
+#define FCL_PAGE_SIZE (fcl_params->fpa_page_size)
 
 #define SSD 0
 #define HDD 1
@@ -23,7 +25,10 @@
 #define FCL_OPERATION_STAGING 3
 
 struct fcl_parameters {
+	int fpa_page_size;
 	int fpa_max_pages;
+	int fpa_bypass_cache;
+	int fpa_idle_detect_time;
 	int fpa_cache_policy;
 	int fpa_background_activity;
 };
@@ -32,5 +37,12 @@ void fcl_request_arrive (ioreq_event *);
 void fcl_request_complete (ioreq_event *);
 void fcl_init () ;
 void fcl_exit () ;
+
+void fcl_remove_complete_list ( ioreq_event *);
+void fcl_make_stage_req (ioreq_event *parent, int blkno);
+void fcl_make_destage_req (ioreq_event *parent, int blkno);
+void _fcl_make_destage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) ;
+void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) ;
+void fcl_issue_pending_child ( ioreq_event *parent ) ;
 
 #endif // ifndef _DISKSIM_FCL_H 

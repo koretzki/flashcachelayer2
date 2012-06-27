@@ -22,7 +22,15 @@ disksim.o: disksim.c disksim_global.h disksim_rand48.h disksim_malloc.h \
   disksim_reqflags.h disksim_ioface.h disksim_pfface.h disksim_iotrace.h \
   config.h ../libparam/include/libparam/libparam.h \
   ../libparam/include/libparam/bitvector.h \
-  ../libddbg/include/libddbg/libddbg.h disksim_fcl.h \
+  ../libddbg/include/libddbg/libddbg.h disksim_fcl.h disksim_fcl_cache.h \
+  ../ssdmodel/ssd_utils.h ../ssdmodel/ssd.h disksim_global.h \
+  disksim_iosim.h disksim_ioface.h disksim_device.h disksim_iosim.h \
+  disksim_global.h disksim_orgface.h disksim_iotrace.h disksim_stat.h \
+  disksim_iodriver.h config.h inline.h disksim_bus.h disksim_controller.h \
+  disksim_stat.h disksim_ioqueue.h disksim_disk.h disksim_ioqueue.h \
+  ../diskmodel/include/diskmodel/dm.h \
+  ../diskmodel/include/diskmodel/dm_types.h /usr/include/inttypes.h \
+  /usr/include/stdint.h disksim_bus.h config.h \
   modules/disksim_global_param.h /usr/include/signal.h \
   /usr/llvm-gcc-4.2/bin/../lib/gcc/i686-apple-darwin11/4.2.1/include/stdarg.h \
   /usr/include/unistd.h /usr/include/sys/unistd.h \
