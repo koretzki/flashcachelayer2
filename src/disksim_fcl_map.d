@@ -42,5 +42,5 @@ disksim_fcl_map.o: disksim_fcl_map.c disksim_iosim.h disksim_ioface.h \
   disksim_iosim.h disksim_stat.h disksim_disk.h disksim_ioqueue.h \
   config.h inline.h ../diskmodel/include/diskmodel/dm.h \
   ../diskmodel/include/diskmodel/dm_types.h /usr/include/inttypes.h \
-  /usr/include/stdint.h disksim_bus.h config.h disksim_ioqueue.h \
-  disksim_fcl_map.h
+  /usr/include/stdint.h disksim_bus.h config.h list.h poison.h \
+  disksim_ioqueue.h disksim_fcl_map.h

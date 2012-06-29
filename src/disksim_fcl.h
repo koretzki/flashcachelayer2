@@ -17,8 +17,8 @@
 
 #define FCL_PAGE_SIZE (fcl_params->fpa_page_size)
 
-#define SSD 0
-#define HDD 1
+#define SSD 1 
+#define HDD 0
 
 #define FCL_OPERATION_NORMAL 1
 #define FCL_OPERATION_DESTAGING 2 

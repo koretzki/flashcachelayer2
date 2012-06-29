@@ -132,8 +132,8 @@ disksim : $(MODULEDEPS) libdisksim.a disksim_main.o
 syssim: syssim_driver.o libdisksim.a
 	$(CC) $(CFLAGS) -o $@ syssim_driver.o disksim_interface.o $(LDFLAGS)
 
-#lru:	disksim_fcl_lru.o libdisksim.a
-#	$(CC) $(CFLAGS) -o $@ disksim_fcl_lru.o $(LDFLAGS)
+lru:	lru_test.o libdisksim.a
+	$(CC) $(CFLAGS) -o $@ lru_test.o $(LDFLAGS)
 
 ########################################################################
 

@@ -529,8 +529,9 @@ void iodriver_access_complete (int iodriverno, intr_event *intrp)
 		   ioreq_event *temp2 = ioqueue_physical_access_done (overallqueue, temp);
 		   ASSERT (temp2 != NULL);
 
-		   //fprintf ( stdout, " remove queue = blkno = %d, %p \n", temp->blkno, temp);
-		   //fprintf ( stderr, " Remove req in overall queue blkno = %d, %.2f, %p\n", temp->blkno, temp->time, temp);
+		   //if ( temp->devno == 0 ) {
+			//   fprintf ( stdout, " Remove queue = blkno = %d, %p \n", temp->blkno, temp);
+		  // }
 
 		   // ysoh 
 #if 1 
@@ -666,6 +667,10 @@ void iodriver_interrupt_complete (int iodriverno, intr_event *intrp)
 /*
 fprintf (outputfile, "%f, Interrupt completing - cause = %d, blkno %d\n", simtime, ((ioreq_event *) intrp->infoptr)->cause, ((ioreq_event *) intrp->infoptr)->blkno);
 */
+
+	//if ( ((ioreq_event *) intrp->infoptr)->devno == 0 )
+	//	fprintf ( stderr , "%f, Interrupt completing - cause = %d, blkno %d, dev = %d \n", simtime, ((ioreq_event *) intrp->infoptr)->cause, ((ioreq_event *) intrp->infoptr)->blkno, ((ioreq_event *) intrp->infoptr)->devno);
+
    if (iodrivers[iodriverno]->type == STANDALONE) {
       if (((ioreq_event *) intrp->infoptr)->cause == COMPLETION) {
          iodriver_access_complete(iodriverno, intrp);
@@ -734,7 +739,11 @@ fprintf (outputfile, "%f, Interrupt arriving - cause = %d, blkno %d\n", simtime,
       if (infoptr->cause == COMPLETION) {
          tmp = getfromextraq();
          tmp->time = 0.0;
-         tmp->type = IO_ACCESS_COMPLETE;
+
+         //tmp->type = IO_ACCESS_COMPLETE;
+		 // ysoh
+         tmp->type = IO_ACCESS_COMPLETE2;
+		 printf (" IO ACCESS Complete .. \n");
          tmp->next = intrp->eventlist;
          ((ioreq_event *)tmp)->tempptr1 = intrp;
          intrp->eventlist = tmp;
@@ -786,7 +795,8 @@ event * iodriver_request (int iodriverno, ioreq_event *curr)
    ret = ioreq_copy (curr);
    ioqueue_add_new_request (overallqueue, ret);
 
-   //fprintf ( stdout, " blkno %d, %p \n", ret->blkno, ret);
+   //if ( ret->devno == 0 )
+	//   fprintf ( stdout, " Arrive  blkno %d, devno = %d \n", ret->blkno, ret->devno);
    ret = NULL;
  
    disksim->totalreqs++;
@@ -797,6 +807,7 @@ event * iodriver_request (int iodriverno, ioreq_event *curr)
       warmuptime = simtime;
       resetstats();
    }
+
    numreqs = logorg_maprequest(sysorgs, numsysorgs, curr);
    temp = curr->next;
    for (; numreqs>0; numreqs--) {

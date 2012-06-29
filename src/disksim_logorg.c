@@ -806,6 +806,8 @@ fprintf (outputfile, "flags %x, opid %d\n", curr->flags, curr->opid);
 /*
 fprintf (outputfile, "back from logorging: numreqs %d\n", numreqs);
 */
+   //printf ( " logorg dev = %d, curr->devno = %d \n", logorgno, curr->devno ) ;
+   
    orgdevno = curr->devno;
    req->depend = (depends *) curr->prev;
    curr->blkno += logorgs[logorgno]->devs[orgdevno].startblkno;

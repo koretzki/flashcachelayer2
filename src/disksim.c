@@ -786,6 +786,8 @@ void disksim_simulate_event (int num)
 
     simtime = curr->time;
     
+	//printf(" disksim_simulate event, type = %d, devno = %d \n", curr->type, curr->devno);
+
     if (curr->type == INTR_EVENT) 
     {
       intr_acknowledge (curr);

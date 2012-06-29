@@ -162,11 +162,12 @@ main(int argc, char *argv[])
 
   for (i=0; i < 1000; i++) {
     r.start = now;
-    r.flags = DISKSIM_READ;
+    r.flags = DISKSIM_WRITE;
     r.devno = 0;
 
     /* NOTE: it is bad to use this internal disksim call from external... */
     r.blkno = BLOCK2SECTOR*(DISKSIM_lrand48()%(nsectors/BLOCK2SECTOR));
+	r.blkno = (i * 1000) * BLOCK2SECTOR ;
     r.bytecount = BLOCK;
     completed = 0;
     disksim_interface_request_arrive(disksim, now, &r);

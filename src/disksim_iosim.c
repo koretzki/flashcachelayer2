@@ -228,6 +228,7 @@ void io_internal_event(ioreq_event *curr)
 /*
 fprintf (outputfile, "%f: io_internal_event entered with event type %d, %f\n", curr->time, curr->type, simtime);
 */
+   
    switch (curr->type) {
 
 	   // ysoh	
@@ -255,7 +256,7 @@ fprintf (outputfile, "%f: io_internal_event entered with event type %d, %f\n", c
 
 	   case IO_ACCESS_COMPLETE:
 
-		   //fprintf ( stderr, " IO ACCESS COMPLETE = %f, %f, %p \n", curr->time, simtime, curr);
+		   //fprintf ( stderr, " 1. IO ACCESS COMPLETE = %f, %f, %p \n", curr->time, simtime, curr);
 
 		   iodriver_access_complete(0, (intr_event *) curr->tempptr1);
 		   addtoextraq((event *) curr);
@@ -264,7 +265,7 @@ fprintf (outputfile, "%f: io_internal_event entered with event type %d, %f\n", c
 		   // ysoh 
 	   case IO_ACCESS_COMPLETE2:
 
-		   //fprintf ( stderr, " IO Access Complete = %.2f, %.2f, %p, blkno = %d \n", curr->time, simtime, curr, curr->blkno);
+		   //fprintf ( stderr, " 2. IO Access Complete = %.2f, %.2f, %p, blkno = %d, devno = %d \n", curr->time, simtime, curr, curr->blkno, curr->devno);
 
 		   //addtoextraq((event *) curr);
 		   fcl_request_complete (curr);
@@ -292,11 +293,15 @@ fprintf (outputfile, "%f: io_internal_event entered with event type %d, %f\n", c
 	   case MEMS_BUS_INITIATE:
 	   case MEMS_BUS_TRANSFER:
 	   case MEMS_BUS_UPDATE:
-	   case SSD_CLEAN_ELEMENT:
-	   case SSD_CLEAN_GANG:
 		   device_event_arrive(curr);
 		   break;
-
+	   // ysoh HACK: when SSD coducts cleaning, it issue cleaning req with devno = 0;
+  	   case SSD_CLEAN_ELEMENT:
+	   case SSD_CLEAN_GANG:
+		  // ((ioreq_event *)curr)->devno = 1;
+		   device_event_arrive(curr);
+		   break;
+	
 	   case BUS_OWNERSHIP_GRANTED:
 	   case BUS_DELAY_COMPLETE:
 		   bus_event_arrive(curr);
@@ -647,9 +652,10 @@ event * io_get_next_external_event (FILE *iotracefile)
 		        break;
       }
       temp->type = IO_REQUEST_ARRIVE;
+
       if (constintarrtime > 0.0) {
-	 temp->time = last_request_arrive + constintarrtime;
-	 last_request_arrive = temp->time;
+	 	temp->time = last_request_arrive + constintarrtime;
+	 	last_request_arrive = temp->time;
       }
       temp->time = (temp->time * ioscale) + tracebasetime;
       if ((temp->time < simtime) && (!disksim->closedios)) {

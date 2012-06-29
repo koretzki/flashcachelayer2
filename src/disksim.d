@@ -30,7 +30,7 @@ disksim.o: disksim.c disksim_global.h disksim_rand48.h disksim_malloc.h \
   disksim_stat.h disksim_ioqueue.h disksim_disk.h disksim_ioqueue.h \
   ../diskmodel/include/diskmodel/dm.h \
   ../diskmodel/include/diskmodel/dm_types.h /usr/include/inttypes.h \
-  /usr/include/stdint.h disksim_bus.h config.h \
+  /usr/include/stdint.h disksim_bus.h config.h list.h poison.h \
   modules/disksim_global_param.h /usr/include/signal.h \
   /usr/llvm-gcc-4.2/bin/../lib/gcc/i686-apple-darwin11/4.2.1/include/stdarg.h \
   /usr/include/unistd.h /usr/include/sys/unistd.h \

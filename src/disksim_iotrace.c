@@ -601,6 +601,10 @@ static ioreq_event * iotrace_ascii_get_ioreq_event (FILE *tracefile, ioreq_event
       new->flags |= TIME_CRITICAL;
    }
 
+   //new->flags = READ;
+   //new->devno = 1;
+   new->flags = WRITE;
+
    new->buf = 0;
    new->opid = 0;
    new->busno = 0;

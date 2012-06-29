@@ -102,6 +102,12 @@
 /Users/ysoh/disksim-4.0-fcl/libparam/libparam.tab.h
 /Users/ysoh/disksim-4.0-fcl/libparam/myutil.c
 /Users/ysoh/disksim-4.0-fcl/libparam/util.c
+/Users/ysoh/disksim-4.0-fcl/list/hash.c
+/Users/ysoh/disksim-4.0-fcl/list/list.h
+/Users/ysoh/disksim-4.0-fcl/list/list_sort.c
+/Users/ysoh/disksim-4.0-fcl/list/list_sort.h
+/Users/ysoh/disksim-4.0-fcl/list/test_list.c
+/Users/ysoh/disksim-4.0-fcl/list/types.h
 /Users/ysoh/disksim-4.0-fcl/memsmodel/include/memsmodel/mems_buffer.h
 /Users/ysoh/disksim-4.0-fcl/memsmodel/include/memsmodel/mems_disksim.h
 /Users/ysoh/disksim-4.0-fcl/memsmodel/include/memsmodel/mems_global.h
@@ -206,6 +212,8 @@
 /Users/ysoh/disksim-4.0-fcl/src/hplcomb.c
 /Users/ysoh/disksim-4.0-fcl/src/inline.h
 /Users/ysoh/disksim-4.0-fcl/src/inst.h
+/Users/ysoh/disksim-4.0-fcl/src/list.h
+/Users/ysoh/disksim-4.0-fcl/src/lru_test.c
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_bus_param.c
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_bus_param.h
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_bus_stats_param.c
@@ -255,6 +263,7 @@
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_synthio_param.c
 /Users/ysoh/disksim-4.0-fcl/src/modules/disksim_synthio_param.h
 /Users/ysoh/disksim-4.0-fcl/src/modules/modules.h
+/Users/ysoh/disksim-4.0-fcl/src/poison.h
 /Users/ysoh/disksim-4.0-fcl/src/raw_layout.c
 /Users/ysoh/disksim-4.0-fcl/src/rms.c
 /Users/ysoh/disksim-4.0-fcl/src/syssim_driver.c

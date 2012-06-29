@@ -2963,6 +2963,7 @@ static void disk_interrupt_complete (ioreq_event *curr)
 
 
 
+static int debug_count = 0;
 
 void disk_event_arrive (ioreq_event *curr)
 {
@@ -2970,6 +2971,11 @@ void disk_event_arrive (ioreq_event *curr)
 
   disksim_inst_enter();
 
+  debug_count ++;
+
+  //printf (" %d *disk event arrive: type = %d, time = %2.f, blkno = %d \n", debug_count, curr->type, simtime, curr->blkno);
+  
+  //ASSERT ( debug_count != 500 ); 
 
   switch (curr->type) {
 
@@ -3024,6 +3030,7 @@ void disk_event_arrive (ioreq_event *curr)
     break;
 
   default:
+	printf ( " type = %d \n", curr->type);
     ddbg_assert2(0, "Unrecognized event type");
   }
 #if DEBUG >= 1

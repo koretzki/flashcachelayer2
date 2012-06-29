@@ -8,10 +8,12 @@
 *
 */
 
+#include "../ssdmodel/ssd_utils.h"
+#include "list.h"
+
 #ifndef _FCL_CACHE_H
 #define _FCL_CACHE_H  
 
-#include "../ssdmodel/ssd_utils.h"
 
 #define HASH_NUM (16*1024)
 #define BG_HASH_NUM (1024)
@@ -21,32 +23,38 @@
 #define FCL_CACHE_FLAG_SEALED 2  
 
 struct lru_node{
-	listnode *cn_node;
-	listnode *cn_hash;
+	
+	struct list_head cn_list;
+	struct list_head cn_dirty_list;
+	struct hlist_node cn_hash;
+
 	unsigned int cn_blkno;
 	int cn_ssd_blk;
+
 	int cn_dirty;
 	int cn_read;
 	int cn_flag;
 	unsigned int cn_recency;
 	unsigned int cn_frequency;
+
 	void *cn_temp1;
 	void *cn_temp2;
+
+	double cn_time;
+
 };
 
 struct cache_manager{
 
- listnode *cm_head;
- listnode **cm_hash;
+ //listnode *cm_head;
+ //listnode **cm_hash;
 
-/* 
- listnode *cm_hddrq;
- listnode *cm_hddwq;
- listnode *cm_ssdrq;
- listnode *cm_ssdwq;
-*/ 
+ struct list_head cm_head;
+ struct list_head cm_dirty_head;
+ struct hlist_head *cm_hash;
 
- listnode *cm_destage_ptr;
+ //listnode *cm_destage_ptr;
+ struct list_head *cm_destage_ptr;
  unsigned int cm_hit;
  unsigned int cm_miss;
  unsigned int cm_ref;
@@ -72,10 +80,10 @@ struct cache_manager{
 
  void (*cache_open)(struct cache_manager *cache,int cache_size, int cache_max);
  void (*cache_close)(struct cache_manager *cache, int print);
- listnode *(*cache_presearch)(struct cache_manager *cache, unsigned int blkno);
- listnode *(*cache_search)(struct cache_manager *cache,unsigned int blkno);
+ struct lru_node *(*cache_presearch)(struct cache_manager *cache, unsigned int blkno);
+ struct lru_node *(*cache_search)(struct cache_manager *cache,unsigned int blkno);
  void *(*cache_replace)(struct cache_manager *cache,int w); 
- void *(*cache_remove)(struct cache_manager *cache, listnode *node); 
+ void *(*cache_remove)(struct cache_manager *cache, struct lru_node *ln); 
  void (*cache_insert)(struct cache_manager *cache, struct lru_node *node);
  void *(*cache_alloc)(struct lru_node *node, unsigned int blkno);
  int (*cache_inc)(struct cache_manager *cache, int i);
@@ -164,9 +172,9 @@ struct seq_node{
 
 void lru_open(struct cache_manager *c,int cache_size, int cache_max);
 void lru_close(struct cache_manager *c, int print);
-listnode *lru_presearch(struct cache_manager *c, unsigned int blkno);
-listnode *lru_search(struct cache_manager *c,unsigned int blkno);
-void *lru_remove(struct cache_manager *c, listnode *remove_ptr);
+struct lru_node *lru_presearch(struct cache_manager *c, unsigned int blkno);
+struct lru_node *lru_search(struct cache_manager *c,unsigned int blkno);
+void *lru_remove(struct cache_manager *c, struct lru_node *ln);
 void *lru_alloc(struct lru_node *ln, unsigned int blkno);
 void lru_insert(struct cache_manager *c,struct lru_node *ln);
 void *lru_replace(struct cache_manager *c, int watermark);	

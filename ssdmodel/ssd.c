@@ -25,13 +25,20 @@
 static void ssd_request_complete(ioreq_event *curr);
 static void ssd_media_access_request(ioreq_event *curr);
 
+#define devicenos                   (disksim->deviceinfo->devicenos)
 struct ssd *getssd (int devno)
 {
    struct ssd *s;
    ASSERT1((devno >= 0) && (devno < MAXDEVICES), "devno", devno);
 
-   s = disksim->ssdinfo->ssds[devno];
-   return (disksim->ssdinfo->ssds[devno]);
+   if(devno < 0 || devno >= MAXDEVICES){
+	   fprintf(" invalid devno = %d \n", devno);
+   }
+	//ysoh
+   if(devno >= disksim->diskinfo->numdisks)
+	   return (disksim->ssdinfo->ssds[devno-disksim->diskinfo->numdisks]);
+   else
+	   return disksim->ssdinfo->ssds[devno];
 }
 
 int ssd_set_depth (int devno, int inbusno, int depth, int slotno)
@@ -56,28 +63,28 @@ int ssd_set_depth (int devno, int inbusno, int depth, int slotno)
 int ssd_get_depth (int devno)
 {
    ssd_t *currdisk;
-   currdisk = getssd (devno);
+   currdisk = getssd (devicenos[devno]);
    return(currdisk->depth[0]);
 }
 
 int ssd_get_slotno (int devno)
 {
    ssd_t *currdisk;
-   currdisk = getssd (devno);
+   currdisk = getssd (devicenos[devno]);
    return(currdisk->slotno[0]);
 }
 
 int ssd_get_inbus (int devno)
 {
    ssd_t *currdisk;
-   currdisk = getssd (devno);
+   currdisk = getssd (devicenos[devno]);
    return(currdisk->inbuses[0]);
 }
 
 int ssd_get_maxoutstanding (int devno)
 {
    ssd_t *currdisk;
-   currdisk = getssd (devno);
+   currdisk = getssd (devicenos[devno]);
    return(currdisk->maxqlen);
 }
 
@@ -86,7 +93,7 @@ double ssd_get_blktranstime (ioreq_event *curr)
    ssd_t *currdisk;
    double tmptime;
 
-   currdisk = getssd (curr->devno);
+   currdisk = getssd (devicenos[curr->devno]);
    tmptime = bus_get_transfer_time(ssd_get_busno(curr), 1, (curr->flags & READ));
    if (tmptime < currdisk->blktranstime) {
       tmptime = currdisk->blktranstime;
@@ -100,7 +107,7 @@ int ssd_get_busno (ioreq_event *curr)
    intchar busno;
    int depth;
 
-   currdisk = getssd (curr->devno);
+   currdisk = getssd (devicenos[curr->devno]);
    busno.value = curr->busno;
    depth = currdisk->depth[0];
    return(busno.byte[depth]);
@@ -132,7 +139,7 @@ static void ssd_send_event_up_path (ioreq_event *curr, double delay)
 
    // fprintf (outputfile, "ssd_send_event_up_path - devno %d, type %d, cause %d, blkno %d\n", curr->devno, curr->type, curr->cause, curr->blkno);
 
-   currdisk = getssd (curr->devno);
+   currdisk = getssd (devicenos[curr->devno]);
 
    ssd_assert_current_activity(currdisk, curr);
 
@@ -267,7 +274,7 @@ void ssd_bus_delay_complete (int devno, ioreq_event *curr, int sentbusno)
    intchar busno;
    int depth;
 
-   currdisk = getssd (devno);
+   currdisk = getssd (devicenos[devno]);
    ssd_assert_current_activity(currdisk, curr);
 
    // fprintf (outputfile, "Entered ssd_bus_delay_complete\n");
@@ -312,7 +319,7 @@ static void ssd_request_complete(ioreq_event *curr)
 
    // fprintf (outputfile, "Entering ssd_request_complete: %12.6f\n", simtime);
 
-   currdisk = getssd (curr->devno);
+   currdisk = getssd (devicenos[curr->devno]);
    ssd_assert_current_activity(currdisk, curr);
 
    if ((x = ioqueue_physical_access_done(currdisk->queue,curr)) == NULL) {
@@ -333,7 +340,7 @@ static void ssd_bustransfer_complete (ioreq_event *curr)
    if (curr->flags & READ) {
       ssd_request_complete (curr);
    } else {
-      ssd_t *currdisk = getssd (curr->devno);
+      ssd_t *currdisk = getssd (devicenos[curr->devno]);
       ssd_assert_current_activity(currdisk, curr);
       if (currdisk->neverdisconnect == FALSE) {
           /* disconnect from bus */
@@ -395,7 +402,7 @@ double _ssd_invoke_element_cleaning(int elem_num, ssd_t *s)
     return clean_cost;
 }
 
-static int ssd_invoke_element_cleaning(int elem_num, ssd_t *s)
+static int ssd_invoke_element_cleaning(int elem_num, ssd_t *s, ioreq_event *curr )
 {
     double max_cost = 0;
     int cleaning_invoked = 0;
@@ -417,7 +424,9 @@ static int ssd_invoke_element_cleaning(int elem_num, ssd_t *s)
 
         // we use the 'blkno' field to store the element number
         tmp = (ioreq_event *)getfromextraq();
-        tmp->devno = s->devno;
+		// ysoh 
+       // tmp->devno = s->devno;
+        tmp->devno = curr->devno;
         tmp->time = simtime + max_cost;
         tmp->blkno = elem_num;
         tmp->ssd_elem_num = elem_num;
@@ -435,7 +444,7 @@ static int ssd_invoke_element_cleaning(int elem_num, ssd_t *s)
     return cleaning_invoked;
 }
 
-static void ssd_activate_elem(ssd_t *currdisk, int elem_num)
+static void ssd_activate_elem(ssd_t *currdisk, int elem_num, ioreq_event *curr )
 {
     ioreq_event *req;
     ssd_req **read_reqs;
@@ -463,7 +472,7 @@ static void ssd_activate_elem(ssd_t *currdisk, int elem_num)
     if (currdisk->params.cleaning_in_background) {
         // if cleaning was invoked, wait until
         // it is over ...
-        if (ssd_invoke_element_cleaning(elem_num, currdisk)) {
+        if (ssd_invoke_element_cleaning(elem_num, currdisk, curr)) {
             return;
         }
     }
@@ -476,7 +485,7 @@ static void ssd_activate_elem(ssd_t *currdisk, int elem_num)
         if (!currdisk->params.cleaning_in_background) {
             // if cleaning was invoked, wait until
             // it is over ...
-            if (ssd_invoke_element_cleaning(elem_num, currdisk)) {
+            if (ssd_invoke_element_cleaning(elem_num, currdisk, curr)) {
                 return;
             }
         }
@@ -619,7 +628,7 @@ static void ssd_activate_elem(ssd_t *currdisk, int elem_num)
 
 static void ssd_media_access_request_element (ioreq_event *curr)
 {
-   ssd_t *currdisk = getssd(curr->devno);
+   ssd_t *currdisk = getssd(devicenos[curr->devno]);
    int blkno = curr->blkno;
    int count = curr->bcount;
 
@@ -648,13 +657,13 @@ static void ssd_media_access_request_element (ioreq_event *curr)
 
        // add the request to the corresponding element's queue
        ioqueue_add_new_request(elem->queue, (ioreq_event *)tmp);
-       ssd_activate_elem(currdisk, elem_num);
+       ssd_activate_elem(currdisk, elem_num, curr);
    }
 }
 
 static void ssd_media_access_request (ioreq_event *curr)
 {
-    ssd_t *currdisk = getssd(curr->devno);
+    ssd_t *currdisk = getssd(devicenos[curr->devno]);
 
     switch(currdisk->params.alloc_pool_logic) {
         case SSD_ALLOC_POOL_PLANE:
@@ -682,7 +691,7 @@ static void ssd_reconnect_done (ioreq_event *curr)
 
    // fprintf (outputfile, "Entering ssd_reconnect_done for disk %d: %12.6f\n", curr->devno, simtime);
 
-   currdisk = getssd (curr->devno);
+   currdisk = getssd (devicenos[curr->devno]);
    ssd_assert_current_activity(currdisk, curr);
 
    if (curr->flags & READ) {
@@ -718,7 +727,7 @@ static void ssd_request_arrive (ioreq_event *curr)
    // fprintf (outputfile, "Entering ssd_request_arrive: %12.6f\n", simtime);
    // fprintf (outputfile, "ssd = %d, blkno = %d, bcount = %d, read = %d\n",curr->devno, curr->blkno, curr->bcount, (READ & curr->flags));
 
-   currdisk = getssd(curr->devno);
+   currdisk = getssd(devicenos[curr->devno]);
 
    /* verify that request is valid. */
    if ((curr->blkno < 0) || (curr->bcount <= 0) ||
@@ -762,7 +771,7 @@ static void ssd_clean_element_complete(ioreq_event *curr)
    ssd_t *currdisk;
    int elem_num;
 
-   currdisk = getssd (curr->devno);
+   currdisk = getssd (devicenos[curr->devno]);
    elem_num = curr->ssd_elem_num;
    ASSERT(currdisk->elements[elem_num].media_busy == TRUE);
 
@@ -771,7 +780,7 @@ static void ssd_clean_element_complete(ioreq_event *curr)
 
    // activate the gang to serve the next set of requests
    currdisk->elements[elem_num].media_busy = 0;
-   ssd_activate_elem(currdisk, elem_num);
+   ssd_activate_elem(currdisk, elem_num, curr);
 }
 
 void ssd_complete_parent(ioreq_event *curr, ssd_t *currdisk)
@@ -809,7 +818,7 @@ static void ssd_access_complete_element(ioreq_event *curr)
    ssd_element  *elem;
    ioreq_event *x;
 
-   currdisk = getssd (curr->devno);
+   currdisk = getssd (devicenos[curr->devno]);
    elem_num = currdisk->timing_t->choose_element(currdisk->timing_t, curr->blkno);
    ASSERT(elem_num == curr->ssd_elem_num);
    elem = &currdisk->elements[elem_num];
@@ -826,12 +835,12 @@ static void ssd_access_complete_element(ioreq_event *curr)
 
    ssd_complete_parent(curr, currdisk);
    addtoextraq((event *) curr);
-   ssd_activate_elem(currdisk, elem_num);
+   ssd_activate_elem(currdisk, elem_num, curr);
 }
 
 static void ssd_access_complete(ioreq_event *curr)
 {
-    ssd_t *currdisk = getssd (curr->devno);;
+    ssd_t *currdisk = getssd (devicenos[curr->devno]);;
 
     switch(currdisk->params.alloc_pool_logic) {
         case SSD_ALLOC_POOL_PLANE:
@@ -875,7 +884,7 @@ static void ssd_disconnect_done (ioreq_event *curr)
 /* completion disconnect done */
 static void ssd_completion_done (ioreq_event *curr)
 {
-   ssd_t *currdisk = getssd (curr->devno);
+   ssd_t *currdisk = getssd (devicenos[curr->devno]);
    ssd_assert_current_activity(currdisk, curr);
 
    // fprintf (outputfile, "Entering ssd_completion for disk %d: %12.6f\n", currdisk->devno, simtime);
@@ -921,7 +930,7 @@ void ssd_event_arrive (ioreq_event *curr)
    // fprintf (outputfile, "Entered ssd_event_arrive: time %f (simtime %f)\n", curr->time, simtime);
    // fprintf (outputfile, " - devno %d, blkno %d, type %d, cause %d, read = %d\n", curr->devno, curr->blkno, curr->type, curr->cause, curr->flags & READ);
 
-   currdisk = getssd (curr->devno);
+   currdisk = getssd (devicenos[curr->devno]);
 
    switch (curr->type) {
 
@@ -973,7 +982,7 @@ void ssd_event_arrive (ioreq_event *curr)
 
 int ssd_get_number_of_blocks (int devno)
 {
-   ssd_t *currdisk = getssd (devno);
+   ssd_t *currdisk = getssd (devicenos[devno]);
    return (currdisk->numblocks);
 }
 
@@ -987,7 +996,7 @@ int ssd_get_numcyls (int devno)
 
 void ssd_get_mapping (int maptype, int devno, int blkno, int *cylptr, int *surfaceptr, int *blkptr)
 {
-   ssd_t *currdisk = getssd (devno);
+   ssd_t *currdisk = getssd (devicenos[devno]);
 
    if ((blkno < 0) || (blkno >= currdisk->numblocks)) {
       fprintf(stderr, "Invalid blkno at ssd_get_mapping: %d\n", blkno);
@@ -1110,7 +1119,8 @@ struct ssd *ssdmodel_ssd_loadparams(struct lp_block *b, int *num)
 
   lp_loadparams(result, b, &ssdmodel_ssd_mod);
 
-  device_add((struct device_header *)result, n);
+  device_add((struct device_header *)result,disksim->diskinfo->numdisks+n);
+
   if (num != NULL)
 	  *num = n;
   return result;
@@ -1140,7 +1150,7 @@ static void ssd_acctime_printstats (int *set, int setsize, char *prefix)
 
    if (device_printacctimestats) {
       for (i=0; i<setsize; i++) {
-         ssd_t *currdisk = getssd (set[i]);
+         ssd_t *currdisk = getssd (devicenos[set[i]]);
          statset[i] = &currdisk->stat.acctimestats;
       }
       stat_print_set(statset, setsize, prefix);
@@ -1155,7 +1165,7 @@ static void ssd_other_printstats (int *set, int setsize, char *prefix)
    double waitingforbus = 0.0;
 
    for (i=0; i<setsize; i++) {
-      ssd_t *currdisk = getssd (set[i]);
+      ssd_t *currdisk = getssd (devicenos[set[i]]);
       numbuswaits += currdisk->stat.numbuswaits;
       waitingforbus += currdisk->stat.waitingforbus;
    }
@@ -1255,7 +1265,7 @@ void ssd_printcleanstats(int *set, int setsize, char *sourcestr)
     for (i = 0; i < setsize; i ++) {
         int j;
         int tot_elts = 0;
-        ssd_t *s = getssd(set[i]);
+        ssd_t *s = getssd(devicenos[set[i]]);
 
         if (s->params.write_policy == DISKSIM_SSD_WRITE_POLICY_OSR) {
 
@@ -1367,7 +1377,7 @@ void ssd_printsetstats (int *set, int setsize, char *sourcestr)
    //using more secure functions
    sprintf_s4(prefix, 80, "%sssd ", sourcestr);
    for (i=0; i<setsize; i++) {
-      ssd_t *currdisk = getssd (set[i]);
+      ssd_t *currdisk = getssd (devicenos[set[i]]);
       struct ioq *q = currdisk->queue;
       queueset[queuecnt] = q;
       queuecnt++;
@@ -1401,7 +1411,8 @@ void ssd_printstats (void)
 
    diskcnt = 0;
    queuecnt = 0;
-   for (i=0; i<MAXDEVICES; i++) {
+   //for (i=0; i<MAXDEVICES-1; i++) {
+   for (i=0; i< numssds; i++) {
       ssd_t *currdisk = getssd (i);
       if (currdisk) {
          struct ioq *q = currdisk->queue;
@@ -1421,7 +1432,8 @@ void ssd_printstats (void)
    ioqueue_printstats(queueset, queuecnt, prefix);
 
    diskcnt = 0;
-   for (i=0; i<MAXDEVICES; i++) {
+   //for (i=0; i<MAXDEVICES; i++) {
+   for (i=0; i< numssds; i++) {
       ssd_t *currdisk = getssd (i);
       if (currdisk) {
          set[diskcnt] = i;
@@ -1438,7 +1450,8 @@ void ssd_printstats (void)
    fprintf (outputfile, "\n\n");
 
    for (i=0; i<numssds; i++) {
-      ssd_t *currdisk = getssd (set[i]);
+      //ssd_t *currdisk = getssd (set[i]);
+	   ssd_t *currdisk = getssd (i);
       if (currdisk->printstats == FALSE) {
           continue;
       }
