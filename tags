@@ -155,6 +155,7 @@ CACHE_LRU_SELECTIVE	src/disksim_fcl_cache.h	/^#define CACHE_LRU_SELECTIVE /;"	d
 CACHE_MAKERQ	src/disksim_fcl_cache.h	/^#define CACHE_MAKERQ(/;"	d
 CACHE_MAXSEGMENTS	src/disksim_cachemem.h	/^#define CACHE_MAXSEGMENTS	/;"	d
 CACHE_MEMORY	src/disksim_cachemem.c	/^#define CACHE_MEMORY /;"	d	file:
+CACHE_MOVEMRU	src/disksim_fcl_cache.h	/^#define CACHE_MOVEMRU(/;"	d
 CACHE_OPEN	src/disksim_fcl_cache.h	/^#define CACHE_OPEN(/;"	d
 CACHE_POLICY_NUM	src/disksim_fcl_cache.h	/^#define CACHE_POLICY_NUM /;"	d
 CACHE_PREFETCH_ALLOFLINE	src/disksim_cachemem.h	/^#define CACHE_PREFETCH_ALLOFLINE	/;"	d
@@ -2077,7 +2078,6 @@ IDX_FIELDS	diskmodel/layout_g4_load.c	/^#define IDX_FIELDS /;"	d	file:
 INITIAL	libparam/lex.libparam.c	/^#define INITIAL /;"	d	file:
 INIT_HLIST_HEAD	list/list.h	/^#define INIT_HLIST_HEAD(/;"	d
 INIT_HLIST_HEAD	src/list.h	/^#define INIT_HLIST_HEAD(/;"	d
-INIT_HLIST_NODE	list/list.h	/^static inline void INIT_HLIST_NODE(struct hlist_node *h)$/;"	f
 INIT_HLIST_NODE	src/list.h	/^static inline void INIT_HLIST_NODE(struct hlist_node *h)$/;"	f
 INIT_LIST_HEAD	list/list.h	/^static inline void INIT_LIST_HEAD(struct list_head *list)$/;"	f
 INIT_LIST_HEAD	src/list.h	/^static inline void INIT_LIST_HEAD(struct list_head *list)$/;"	f
@@ -3371,6 +3371,7 @@ _depend	src/modules/disksim_syncset_param.c	/^_depend(char *bv)$/;"	f	file:
 _fcl_make_destage_req	src/disksim_fcl.c	/^void _fcl_make_destage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) {$/;"	f
 _fcl_make_stage_req	src/disksim_fcl.c	/^void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) {$/;"	f
 _fcl_request_arrive	src/disksim_fcl.c	/^void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {$/;"	f
+_fcl_request_complete	src/disksim_fcl.c	/^void _fcl_request_complete ( ioreq_event *child ) {$/;"	f
 _gang_metadata	ssdmodel/include/ssdmodel/ssd.h	/^typedef struct _gang_metadata {$/;"	s
 _gang_metadata	ssdmodel/ssd.h	/^typedef struct _gang_metadata {$/;"	s
 _header_data	ssdmodel/ssd_utils.h	/^typedef struct _header_data {$/;"	s
@@ -3805,6 +3806,7 @@ cache_mapentry	src/disksim_cachemem.h	/^} cache_mapentry;$/;"	t	typeref:struct:_
 cache_mem	src/disksim_cachemem.h	/^struct cache_mem {$/;"	s
 cache_mem_event	src/disksim_cachemem.h	/^struct cache_mem_event {$/;"	s
 cache_mem_stats	src/disksim_cachemem.h	/^struct cache_mem_stats { $/;"	s
+cache_move_mru	src/disksim_fcl_cache.h	/^ void (*cache_move_mru)(struct cache_manager *cache, struct lru_node *ln); $/;"	m	struct:cache_manager
 cache_open	src/disksim_fcl_cache.h	/^ void (*cache_open)(struct cache_manager *cache,int cache_size, int cache_max);$/;"	m	struct:cache_manager
 cache_periodic_flush	src/disksim_cachemem.c	/^static void cache_periodic_flush (timer_event *timereq)$/;"	f	file:
 cache_policy	src/disksim_fcl_wow_driver.c	/^int cache_policy;$/;"	v
@@ -3978,6 +3980,7 @@ cn_recency	src/disksim_fcl_cache.h	/^	unsigned int cn_recency;$/;"	m	struct:lru_
 cn_ssd_blk	src/disksim_fcl_cache.h	/^	int cn_ssd_blk;$/;"	m	struct:lru_node
 cn_temp1	src/disksim_fcl_cache.h	/^	void *cn_temp1;$/;"	m	struct:lru_node
 cn_temp2	src/disksim_fcl_cache.h	/^	void *cn_temp2;$/;"	m	struct:lru_node
+cn_time	src/disksim_fcl_cache.h	/^	double cn_time;$/;"	m	struct:lru_node
 cname	diskmodel/layout_g4_tools/g4_analysis.py	/^cname = sys.argv[4]$/;"	v
 coalesceok	src/disksim_ioqueue.h	/^   int		(**coalesceok)(void *,int,int,int,int);$/;"	m	struct:ioq
 coalesceokparam	src/disksim_ioqueue.h	/^   void *	coalesceokparam;$/;"	m	struct:ioq
@@ -4249,6 +4252,8 @@ ddbg_setfile	libddbg/ddbg_trace.c	/^void ddbg_setfile(FILE *f) {$/;"	f
 ddbg_trace	libddbg/ddbg_trace.c	/^void ddbg_trace(int class, int instance, char *fmt, ...)$/;"	f
 ddbg_tracefile	libddbg/ddbg_trace.c	/^static FILE *ddbg_tracefile = 0;$/;"	v	file:
 deadspace	diskmodel/layout_g1.h	/^  int    deadspace;$/;"	m	struct:dm_layout_g1_band
+debug_arrive	src/disksim_fcl.c	/^int debug_arrive = 0;$/;"	v
+debug_count	src/disksim_diskctlr.c	/^static int debug_count = 0;$/;"	v	file:
 debug_el	list/list_sort.c	/^struct debug_el {$/;"	s	file:
 decay_hit_tracker	src/disksim_fcl_rw_cache.c	/^void decay_hit_tracker(struct cache_manager **lru_manager,int lru_num){$/;"	f
 dedicatedwriteseg	src/disksim_disk.h	/^  segment *	dedicatedwriteseg;$/;"	m	struct:disk
@@ -4358,6 +4363,7 @@ deviceinfo	src/disksim_global.h	/^   struct device_info *deviceinfo;$/;"	m	struc
 devicenames	src/disksim_device.h	/^   char **devicenames;  \/* pointers to name fields in actual$/;"	m	struct:device_info
 devicenos	src/disksim_device.c	/^#define devicenos /;"	d	file:
 devicenos	src/disksim_device.h	/^   int *devicenos;	\/* number among devices of that device type *\/$/;"	m	struct:device_info
+devicenos	ssdmodel/ssd.c	/^#define devicenos /;"	d	file:
 devices	memsmodel/include/memsmodel/mems_global.h	/^  mems_t **devices;	\/* Array of all mems devices in simulator *\/$/;"	m	struct:mems_info
 devices	memsmodel/mems_global.h	/^  mems_t **devices;	\/* Array of all mems devices in simulator *\/$/;"	m	struct:mems_info
 devices	src/disksim_ctlr.h	/^   device *	devices;$/;"	m	struct:controller
@@ -5141,6 +5147,7 @@ fcl_active_block_manager	src/disksim_fcl.c	/^struct cache_manager *fcl_active_bl
 fcl_active_list	src/disksim_global.h	/^   void	 	*fcl_active_list;$/;"	m	struct:ioreq_ev
 fcl_attach_child	src/disksim_fcl.c	/^void fcl_attach_child (ioreq_event **fcl_event_list, int *fcl_event_count, int list_index,  ioreq_event *child){$/;"	f
 fcl_background_queue	src/disksim_fcl.c	/^struct ioq			 *fcl_background_queue = NULL;$/;"	v	typeref:struct:ioq
+fcl_cache_bypass	src/disksim_fcl.c	/^int 				 fcl_cache_bypass = 0;$/;"	v
 fcl_cache_manager	src/disksim_fcl.c	/^struct cache_manager *fcl_cache_manager;$/;"	v	typeref:struct:cache_manager
 fcl_classify_child_request	src/disksim_fcl.c	/^void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int blkno ) {$/;"	f
 fcl_compare_blkno	src/disksim_fcl.c	/^static int fcl_compare_blkno(const void *a,const void *b){$/;"	f	file:
@@ -5177,7 +5184,7 @@ fcl_make_timer	src/disksim_fcl.c	/^void fcl_make_timer () {$/;"	f
 fcl_merge_list	src/disksim_fcl.c	/^void fcl_merge_list ( listnode *dirty_list ) {$/;"	f
 fcl_move_pending_list	src/disksim_fcl.c	/^void fcl_move_pending_list ( listnode *inactive_list ){$/;"	f
 fcl_opid	src/disksim_fcl.c	/^int 				 fcl_opid = 0;$/;"	v
-fcl_outstanding	src/disksim_fcl.c	/^int					 fcl_outstanding = 10000;$/;"	v
+fcl_outstanding	src/disksim_fcl.c	/^int					 fcl_outstanding = 1000000;$/;"	v
 fcl_parameters	src/disksim_fcl.h	/^struct fcl_parameters {$/;"	s
 fcl_params	src/disksim_fcl.c	/^struct fcl_parameters 	 *fcl_params;$/;"	v	typeref:struct:fcl_parameters
 fcl_parent	src/disksim_global.h	/^   void  	*fcl_parent; $/;"	m	struct:ioreq_ev
@@ -6433,11 +6440,13 @@ lru_inc	src/disksim_fcl_lru.c	/^int lru_inc(struct cache_manager *c, int inc_val
 lru_init	src/disksim_fcl_lru.c	/^void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,int low){$/;"	f
 lru_insert	src/disksim_fcl_lru.c	/^void lru_insert(struct cache_manager *c,struct lru_node *ln){$/;"	f
 lru_main2	src/disksim_fcl_lru.c	/^int lru_main2(){	$/;"	f
+lru_move_to_mru	src/disksim_fcl_lru.c	/^void lru_move_to_mru(struct cache_manager *c, struct lru_node *ln ) {$/;"	f
 lru_next	src/disksim_cachemem.h	/^   struct cacheatom *lru_next;$/;"	m	struct:cacheatom	typeref:struct:cacheatom::cacheatom
 lru_node	src/disksim_fcl_cache.h	/^struct lru_node{$/;"	s
 lru_open	src/disksim_fcl_lru.c	/^void lru_open(struct cache_manager *c,int cache_size, int cache_max){$/;"	f
 lru_presearch	src/disksim_fcl_lru.c	/^struct lru_node *lru_presearch(struct cache_manager *c, unsigned int blkno){$/;"	f
 lru_prev	src/disksim_cachemem.h	/^   struct cacheatom *lru_prev;$/;"	m	struct:cacheatom	typeref:struct:cacheatom::cacheatom
+lru_print	src/disksim_fcl_lru.c	/^void lru_print ( struct cache_manager *c ) {$/;"	f
 lru_remove	src/disksim_fcl_lru.c	/^void *lru_remove(struct cache_manager *c, struct lru_node *ln ) {$/;"	f
 lru_replace	src/disksim_fcl_lru.c	/^void *lru_replace(struct cache_manager *c, int watermark){	$/;"	f
 lru_search	src/disksim_fcl_lru.c	/^struct lru_node *lru_search(struct cache_manager *c,unsigned int blkno){$/;"	f
@@ -6740,6 +6749,7 @@ multi_disk_last_xfertime	src/disksim_disk.h	/^#define multi_disk_last_xfertime /
 my_timing_t	ssdmodel/ssd_timing.c	/^struct my_timing_t {$/;"	s	file:
 n	diskmodel/layout_g4_private.h	/^  union g4_node n;$/;"	m	struct:g4_path_node	typeref:union:g4_path_node::g4_node
 n	diskmodel/tests/driver.c	/^  int n;$/;"	m	struct:timingbucket	file:
+n	list/list.h	/^ * @n:		another &struct list_head to use as temporary storage$/;"	s
 n	src/disksim_fcl_wow_driver.h	/^	int n;$/;"	m	struct:__anon95
 n	src/syssim_driver.c	/^  int n;$/;"	m	struct:__anon142	file:
 name	diskmodel/tests/driver.c	/^  char *name;$/;"	m	struct:timingbucket	file:
@@ -7806,7 +7816,7 @@ ssd_access_complete_element	ssdmodel/ssd.c	/^static void ssd_access_complete_ele
 ssd_access_complete_gang	ssdmodel/ssd_gang.c	/^void ssd_access_complete_gang (ioreq_event *curr)$/;"	f
 ssd_access_complete_gang_sync	ssdmodel/ssd_gang.c	/^void ssd_access_complete_gang_sync(ioreq_event *curr)$/;"	f
 ssd_acctime_printstats	ssdmodel/ssd.c	/^static void ssd_acctime_printstats (int *set, int setsize, char *prefix)$/;"	f	file:
-ssd_activate_elem	ssdmodel/ssd.c	/^static void ssd_activate_elem(ssd_t *currdisk, int elem_num)$/;"	f	file:
+ssd_activate_elem	ssdmodel/ssd.c	/^static void ssd_activate_elem(ssd_t *currdisk, int elem_num, ioreq_event *curr )$/;"	f	file:
 ssd_activate_gang	ssdmodel/ssd_gang.c	/^static void ssd_activate_gang(ssd_t *s, int gang_num)$/;"	f	file:
 ssd_activate_gang_sync	ssdmodel/ssd_gang.c	/^static void ssd_activate_gang_sync(int gang_num, ssd_t *s)$/;"	f	file:
 ssd_add	ssdmodel/ssd.c	/^int ssd_add(struct ssd *d) {$/;"	f
@@ -7895,7 +7905,7 @@ ssd_info	ssdmodel/ssd.h	/^typedef struct ssd_info {$/;"	s
 ssd_initialize	ssdmodel/ssd_init.c	/^void ssd_initialize (void)$/;"	f
 ssd_initialize_diskinfo	ssdmodel/ssd_init.c	/^void ssd_initialize_diskinfo ()$/;"	f
 ssd_interrupt_complete	ssdmodel/ssd.c	/^static void ssd_interrupt_complete (ioreq_event *curr)$/;"	f	file:
-ssd_invoke_element_cleaning	ssdmodel/ssd.c	/^static int ssd_invoke_element_cleaning(int elem_num, ssd_t *s)$/;"	f	file:
+ssd_invoke_element_cleaning	ssdmodel/ssd.c	/^static int ssd_invoke_element_cleaning(int elem_num, ssd_t *s, ioreq_event *curr )$/;"	f	file:
 ssd_invoke_gang_cleaning	ssdmodel/ssd_gang.c	/^static int ssd_invoke_gang_cleaning(int gang_num, ssd_t *s)$/;"	f	file:
 ssd_issue_overlapped_ios	ssdmodel/ssd_timing.c	/^static double ssd_issue_overlapped_ios(ssd_req **reqs, int total, int elem_num, ssd_t *s)$/;"	f	file:
 ssd_last_page_in_block	ssdmodel/ssd_timing.c	/^int ssd_last_page_in_block(int page_num, ssd_t *s)$/;"	f

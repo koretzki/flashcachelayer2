@@ -235,16 +235,20 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno) {
 
 	if ( ln && ln->cn_ssd_blk > 0 ) {
 
+		// XXX : active block would be replaced !! 
 		//ASSERT ( 0) ;
+
 		active_ln = CACHE_PRESEARCH ( fcl_active_block_manager, ln->cn_blkno );
 
-		if ( active_ln ) {
+		if ( active_ln && active_ln->cn_time != simtime ) {
 			lru_print ( fcl_active_block_manager );	
-			printf ( " %d block is active ..arrival time = %f, simtime = %f  \n", active_ln->cn_blkno, active_ln->cn_time, simtime ) ;
-			printf ( " parent blk = %d, bcount = %d \n", parent->blkno, parent->blkno );
+			printf ( " %d block %d is active ..arrival time = %f, simtime = %f  \n", active_ln->cn_blkno, blkno, active_ln->cn_time, simtime ) ;
+			printf ( " parent blk = %d, bcount = %d \n", parent->blkno, parent->bcount );
 			printf ( " Queue length = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue )) ; 
+			ASSERT ( 0 );
 		}			
-		ASSERT ( CACHE_PRESEARCH ( fcl_active_block_manager, ln->cn_blkno) == NULL );
+
+		ASSERT ( active_ln == NULL );
 
 		// move dirty data from SSD to HDD
 		if ( ln->cn_dirty ) {
@@ -504,8 +508,25 @@ void fcl_split_parent_request (ioreq_event *parent) {
 
 	active_page_count = ll_get_size ( parent->fcl_active_list );
 
-	node = ((listnode *)parent->fcl_active_list)->next ;
 
+	node = ((listnode *)parent->fcl_active_list)->next ;
+	for (i = 0; i < active_page_count; i++){
+		struct lru_node *ln;
+
+		ASSERT ( node != NULL );
+
+		child = (ioreq_event *)node->data;
+
+		ln = CACHE_PRESEARCH ( fcl_cache_manager, child->blkno);
+
+		if ( ln ) 
+			CACHE_MOVEMRU ( fcl_cache_manager, ln );
+
+		node = node->next;
+	} 
+
+
+	node = ((listnode *)parent->fcl_active_list)->next ;
 	for (i = 0; i < active_page_count; i++){
 
 		ASSERT ( node != NULL );

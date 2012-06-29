@@ -84,6 +84,7 @@ struct cache_manager{
  struct lru_node *(*cache_search)(struct cache_manager *cache,unsigned int blkno);
  void *(*cache_replace)(struct cache_manager *cache,int w); 
  void *(*cache_remove)(struct cache_manager *cache, struct lru_node *ln); 
+ void (*cache_move_mru)(struct cache_manager *cache, struct lru_node *ln); 
  void (*cache_insert)(struct cache_manager *cache, struct lru_node *node);
  void *(*cache_alloc)(struct lru_node *node, unsigned int blkno);
  int (*cache_inc)(struct cache_manager *cache, int i);
@@ -146,6 +147,7 @@ struct seq_node{
 #define CACHE_PRESEARCH(c, p) c->cache_presearch((struct cache_manager *)c, p)
 #define CACHE_SEARCH(c, p) c->cache_search((struct cache_manager *)c, p)
 #define CACHE_REPLACE(c, w) c->cache_replace((struct cache_manager *)c, w)
+#define CACHE_MOVEMRU(c, w) c->cache_move_mru((struct cache_manager *)c, w)
 #define CACHE_REMOVE(c, p) c->cache_remove((struct cache_manager *)c, p)
 #define CACHE_INSERT(c, p) c->cache_insert((struct cache_manager *)c, p)
 #define CACHE_ALLOC(c, n, p) c->cache_alloc(n, p)

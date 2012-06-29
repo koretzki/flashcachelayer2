@@ -176,6 +176,20 @@ struct lru_node *lru_search(struct cache_manager *c,unsigned int blkno){
 }
 
 
+void lru_movemru(struct cache_manager *c, struct lru_node *ln ) {
+
+	list_del ( &ln->cn_list );
+
+	if ( ln->cn_dirty ) 
+		list_del ( &ln->cn_dirty_list );
+
+
+	list_add( &ln->cn_list, &c->cm_head );
+
+	if ( ln->cn_dirty ) 
+		list_add( &ln->cn_dirty_list, &c->cm_dirty_head);
+
+}
 void *lru_remove(struct cache_manager *c, struct lru_node *ln ) {
 	
 	list_del ( &ln->cn_list );
@@ -292,6 +306,7 @@ void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,
 	(*c)->cache_search = lru_search;
 	(*c)->cache_replace = lru_replace;
 	(*c)->cache_remove = lru_remove;
+	(*c)->cache_move_mru = lru_movemru;
 	(*c)->cache_insert = lru_insert;
 	(*c)->cache_inc = lru_inc;
 	(*c)->cache_dec = lru_dec;
