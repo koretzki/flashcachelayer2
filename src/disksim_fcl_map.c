@@ -87,7 +87,7 @@ int reverse_map_alloc_blk(int hdd_blk){
 	ASSERT ( alloc_blk != -1 );
 
 	if(alloc_blk == -1){
-	//	fprintf(stderr, " Cannot allocate block .. \n");
+		fprintf(stderr, " Cannot allocate block .. \n");
 	//	fprintf(stderr, " SSD Usable Pages = %d \n", SSD_USABLE_PAGES);
 	//	fprintf(stderr, " Reverse max pages = %d\n", reverse_max_pages);
 	//	fprintf(stderr, " S_Read = %d, S_Write = %d, total = %d \n", S_READ, S_WRITE, S_READ + S_WRITE);
@@ -96,6 +96,7 @@ int reverse_map_alloc_blk(int hdd_blk){
 	//	fprintf(stderr, " R_CLOCK size = %d, W_CLOCK size = %d\n", R_CLOCK->cm_size, W_CLOCK->cm_size);
 	//	fprintf(stderr, " HDD WQ = %d, HDD RQ = %d\n", ll_get_size(W_CLOCK->cm_hddwq), ll_get_size(W_CLOCK->cm_hddrq));
 	//	fprintf(stderr, " SSD WQ = %d, SSD RQ = %d\n", ll_get_size(W_CLOCK->cm_ssdwq), ll_get_size(W_CLOCK->cm_ssdrq));
+		ASSERT ( 0 );
 
 		exit(0);
 	}

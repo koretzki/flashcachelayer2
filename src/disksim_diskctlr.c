@@ -1916,6 +1916,8 @@ static void disk_check_hda(disk *currdisk,
 
   // XXX set this dynamically according to the track bounds of the 
   // dest track.
+  //currdisk->fpcheck = 10000;
+
   currdisk->fpcheck = 6000;
   //      currdisk->model->layout->dm_get_sectors_lbn(currdisk->model, 
   //						  currdiskreq->inblkno);

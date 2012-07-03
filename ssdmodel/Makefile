@@ -3,7 +3,7 @@
 
 include .paths
 
-LDFLAGS = -lm -L. -ldisksim $(DISKMODEL_LDFLAGS) $(MEMSMODEL_LDFLAGS) \
+LDFLAGS = -g -lm -L. -ldisksim $(DISKMODEL_LDFLAGS) $(MEMSMODEL_LDFLAGS) \
                             $(LIBPARAM_LDFLAGS) $(LIBDDBG_LDFLAGS) 
 
 HP_FAST_OFLAGS = +O4

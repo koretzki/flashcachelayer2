@@ -235,6 +235,10 @@ typedef      unsigned u_int;
 #define SSD_MIN_EVENT		300
 #define SSD_MAX_EVENT		320
 
+#define FCL_MIN_EVENT		400
+#define FCL_MAX_EVENT		420
+
+
 /* Interrupt vector types */
 
 #define CLOCK_INTERRUPT		100
@@ -271,7 +275,8 @@ typedef struct foo {
 //#define DISKSIM_EVENT_SIZE	168 // ysoh 
 //#define DISKSIM_EVENT_SIZE	176 // ysoh 
 //#define DISKSIM_EVENT_SIZE	184 // ysoh 
-#define DISKSIM_EVENT_SIZE	200 // ysoh 
+//#define DISKSIM_EVENT_SIZE	200 // ysoh 
+#define DISKSIM_EVENT_SIZE	204 // ysoh 
 #define DISKSIM_EVENT_SPACESIZE	(DISKSIM_EVENT_SIZE - sizeof(struct foo))
 
 // ysoh
@@ -318,6 +323,8 @@ typedef struct ioreq_ev {
    void	 	*fcl_active_list;
    void	 	*fcl_inactive_list;
    void	 	*fcl_pending_list;
+
+   int		fcl_data_class; // Read or Write Data 
 
    void  *mems_sled;	 /* mems sled associated with a particular event */
    void  *mems_reqinfo; /* per-request info for mems subsystem */

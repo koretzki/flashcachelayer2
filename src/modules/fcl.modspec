@@ -9,9 +9,9 @@ PARAM Page Size		I	1
 TEST (i >= 0)
 INIT result->fpa_page_size = i;
 
-PARAM Max Pages		I	1
-TEST (i >= 0)
-INIT result->fpa_max_pages = i;
+PARAM Max Pages Percent		D	1
+TEST (d >= 0)
+INIT result->fpa_max_pages_percent = d;
 
 PARAM Bypass Cache		I	1
 TEST (i >= 0)

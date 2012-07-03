@@ -7,6 +7,9 @@
 #include "ssd_gang.h"
 #include "ssd_init.h"
 #include "modules/ssdmodel_ssd_param.h"
+#include "disksim_global.h"
+
+#include "disksim_simpledisk.h"
 
 #ifndef sprintf_s
 #define sprintf_s3(x,y,z) sprintf(x,z)
@@ -26,19 +29,30 @@ static void ssd_request_complete(ioreq_event *curr);
 static void ssd_media_access_request(ioreq_event *curr);
 
 #define devicenos                   (disksim->deviceinfo->devicenos)
+
 struct ssd *getssd (int devno)
 {
-   struct ssd *s;
+	struct ssd *s;
+   struct ssd **ssds;
+   int numdisks = 0;
    ASSERT1((devno >= 0) && (devno < MAXDEVICES), "devno", devno);
 
-   if(devno < 0 || devno >= MAXDEVICES){
-	   fprintf(" invalid devno = %d \n", devno);
-   }
-	//ysoh
-   if(devno >= disksim->diskinfo->numdisks)
-	   return (disksim->ssdinfo->ssds[devno-disksim->diskinfo->numdisks]);
-   else
+   
+   ssds = disksim->ssdinfo->ssds;
+   
+   if(disksim->diskinfo)
+	   numdisks = disk_get_numdisks();
+
+   if ( disksim->simplediskinfo && !numdisks )  
+	   numdisks = simpledisk_get_numdisks();	   
+
+   if(devno >= numdisks){
+	   s = (disksim->ssdinfo->ssds[devno-numdisks]);
+	   return s;
+   }else{
 	   return disksim->ssdinfo->ssds[devno];
+   }
+
 }
 
 int ssd_set_depth (int devno, int inbusno, int depth, int slotno)
@@ -930,6 +944,8 @@ void ssd_event_arrive (ioreq_event *curr)
    // fprintf (outputfile, "Entered ssd_event_arrive: time %f (simtime %f)\n", curr->time, simtime);
    // fprintf (outputfile, " - devno %d, blkno %d, type %d, cause %d, read = %d\n", curr->devno, curr->blkno, curr->type, curr->cause, curr->flags & READ);
 
+   //printf (" data class = %d \n", curr->fcl_data_class );
+
    currdisk = getssd (devicenos[curr->devno]);
 
    switch (curr->type) {
@@ -1119,7 +1135,15 @@ struct ssd *ssdmodel_ssd_loadparams(struct lp_block *b, int *num)
 
   lp_loadparams(result, b, &ssdmodel_ssd_mod);
 
-  device_add((struct device_header *)result,disksim->diskinfo->numdisks+n);
+  // ysoh 
+  
+  if( disksim->diskinfo )
+	device_add((struct device_header *)result,disksim->diskinfo->numdisks+ n);
+  else if ( disksim->simplediskinfo )
+	device_add((struct device_header *)result,disksim->simplediskinfo->numsimpledisks+ n);
+  else 
+	device_add((struct device_header *)result, n);
+
 
   if (num != NULL)
 	  *num = n;

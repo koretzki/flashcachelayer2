@@ -30,6 +30,7 @@ struct lru_node{
 
 	unsigned int cn_blkno;
 	int cn_ssd_blk;
+//	int cn_ssd_sector;
 
 	int cn_dirty;
 	int cn_read;

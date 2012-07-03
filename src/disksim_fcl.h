@@ -24,13 +24,17 @@
 #define FCL_OPERATION_DESTAGING 2 
 #define FCL_OPERATION_STAGING 3
 
+#define FCL_MAX_DESTAGE 128
+#define FCL_MAX_STAGE 1
+
 struct fcl_parameters {
 	int fpa_page_size;
-	int fpa_max_pages;
+	double fpa_max_pages_percent;
 	int fpa_bypass_cache;
-	int fpa_idle_detect_time;
+	double fpa_idle_detect_time;
 	int fpa_cache_policy;
 	int fpa_background_activity;
+	double	fpa_overhead;
 };
 
 void fcl_request_arrive (ioreq_event *);

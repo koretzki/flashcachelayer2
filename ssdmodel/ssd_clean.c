@@ -977,8 +977,42 @@ double ssd_clean_element_copyback(int elem_num, ssd_t *s)
         for (i = 0; i < SSD_PARUNITS_PER_ELEM(s); i ++) {
             double cleaning_cost = 0;
             int plane_num = plane_to_clean[i];
+			int loop_count = 0;
 
-            if (plane_num == -1) {
+			while(!ssd_stop_cleaning(i, elem_num,s)){
+				
+				int plane_num = plane_to_clean[i];
+
+				if (plane_num == -1) {
+					// don't force cleaning
+					continue;
+				}
+
+				if (metadata->plane_meta[plane_num].clean_in_progress) {
+					metadata->plane_meta[plane_num].clean_in_progress = 0;
+					metadata->plane_meta[plane_num].clean_in_block = -1;
+				}
+
+				metadata->active_page = metadata->plane_meta[plane_num].active_page;
+				cleaning_cost += ssd_clean_plane_copyback(plane_num, elem_num, s);
+
+				tot_cleans ++;
+
+				if (max_cleaning_cost < cleaning_cost) {
+					max_cleaning_cost = cleaning_cost;
+				}
+				loop_count ++;
+
+				if(loop_count >= 10000 && loop_count % 1000 == 0){
+					fprintf(stderr, " Infinite loop... %d, maxcost = %f\n",loop_count, max_cleaning_cost);
+					fprintf(stderr, " Num free blocks = %d, high %d \n", metadata->tot_free_blocks,  (int)HIGH_WATERMARK_PER_PLANE(s));
+					//print_block_usage_table(s, metadata);
+					//break;
+				}
+			}
+
+		/*	
+			if (plane_num == -1) {
                 // don't force cleaning
                 continue;
             }
@@ -996,6 +1030,8 @@ double ssd_clean_element_copyback(int elem_num, ssd_t *s)
             if (max_cleaning_cost < cleaning_cost) {
                 max_cleaning_cost = cleaning_cost;
             }
+		*/
+
         }
     }
 

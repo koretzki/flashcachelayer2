@@ -535,7 +535,8 @@ void iodriver_access_complete (int iodriverno, intr_event *intrp)
 
 		   // ysoh 
 #if 1 
-		   temp->type = IO_ACCESS_COMPLETE2;
+		   //temp->type = IO_ACCESS_COMPLETE2;
+		   temp->type = FCL_ACCESS_COMPLETE;
 		   addtointq((event *)temp);
 #else
 		   addtoextraq((event *)temp);
@@ -742,8 +743,10 @@ fprintf (outputfile, "%f, Interrupt arriving - cause = %d, blkno %d\n", simtime,
 
          //tmp->type = IO_ACCESS_COMPLETE;
 		 // ysoh
-         tmp->type = IO_ACCESS_COMPLETE2;
-		 printf (" IO ACCESS Complete .. \n");
+         tmp->type = FCL_ACCESS_COMPLETE;
+		 ASSERT ( 0 );
+		 //printf (" IO ACCESS Complete .. \n");
+
          tmp->next = intrp->eventlist;
          ((ioreq_event *)tmp)->tempptr1 = intrp;
          intrp->eventlist = tmp;

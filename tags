@@ -900,10 +900,10 @@ DISKSIM_FCL_IDLE_DETECT_TIME_depend	src/modules/disksim_fcl_param.c	/^DISKSIM_FC
 DISKSIM_FCL_IDLE_DETECT_TIME_loader	src/modules/disksim_fcl_param.c	/^DISKSIM_FCL_IDLE_DETECT_TIME_loader(struct fcl_parameters * result, double d)$/;"	f	file:
 DISKSIM_FCL_MAX	include/disksim/modules/disksim_fcl_param.h	/^#define DISKSIM_FCL_MAX /;"	d
 DISKSIM_FCL_MAX	src/modules/disksim_fcl_param.h	/^#define DISKSIM_FCL_MAX /;"	d
-DISKSIM_FCL_MAX_PAGES	include/disksim/modules/disksim_fcl_param.h	/^   DISKSIM_FCL_MAX_PAGES,$/;"	e	enum:__anon40
-DISKSIM_FCL_MAX_PAGES	src/modules/disksim_fcl_param.h	/^   DISKSIM_FCL_MAX_PAGES,$/;"	e	enum:__anon126
-DISKSIM_FCL_MAX_PAGES_depend	src/modules/disksim_fcl_param.c	/^DISKSIM_FCL_MAX_PAGES_depend(char *bv)$/;"	f	file:
-DISKSIM_FCL_MAX_PAGES_loader	src/modules/disksim_fcl_param.c	/^DISKSIM_FCL_MAX_PAGES_loader(struct fcl_parameters * result, int i)$/;"	f	file:
+DISKSIM_FCL_MAX_PAGES_PERCENT	include/disksim/modules/disksim_fcl_param.h	/^   DISKSIM_FCL_MAX_PAGES_PERCENT,$/;"	e	enum:__anon40
+DISKSIM_FCL_MAX_PAGES_PERCENT	src/modules/disksim_fcl_param.h	/^   DISKSIM_FCL_MAX_PAGES_PERCENT,$/;"	e	enum:__anon126
+DISKSIM_FCL_MAX_PAGES_PERCENT_depend	src/modules/disksim_fcl_param.c	/^DISKSIM_FCL_MAX_PAGES_PERCENT_depend(char *bv)$/;"	f	file:
+DISKSIM_FCL_MAX_PAGES_PERCENT_loader	src/modules/disksim_fcl_param.c	/^DISKSIM_FCL_MAX_PAGES_PERCENT_loader(struct fcl_parameters * result, double d)$/;"	f	file:
 DISKSIM_FCL_MAX_PARAM	include/disksim/modules/disksim_fcl_param.h	/^#define DISKSIM_FCL_MAX_PARAM	/;"	d
 DISKSIM_FCL_MAX_PARAM	src/modules/disksim_fcl_param.h	/^#define DISKSIM_FCL_MAX_PARAM	/;"	d
 DISKSIM_FCL_PAGE_SIZE	include/disksim/modules/disksim_fcl_param.h	/^   DISKSIM_FCL_PAGE_SIZE,$/;"	e	enum:__anon40
@@ -1964,13 +1964,20 @@ FALSE	src/disksim_global.h	/^#define FALSE	/;"	d
 FALSE	src/hplcomb.c	/^#define FALSE	/;"	d	file:
 FBSYSSIM_OFLAGS	src/Makefile	/^FBSYSSIM_OFLAGS = -O6 -fomit-frame-pointer -fexpensive-optimizations -fschedule-insns2$/;"	m
 FCFS	src/disksim_ioqueue.h	/^#define FCFS /;"	d
+FCL_ACCESS_COMPLETE	src/disksim_iosim.h	/^#define FCL_ACCESS_COMPLETE	/;"	d
 FCL_CACHE_FLAG_FILLING	src/disksim_fcl_cache.h	/^#define FCL_CACHE_FLAG_FILLING /;"	d
 FCL_CACHE_FLAG_SEALED	src/disksim_fcl_cache.h	/^#define FCL_CACHE_FLAG_SEALED /;"	d
 FCL_EVENT_MAX	src/disksim_global.h	/^#define FCL_EVENT_MAX /;"	d
+FCL_MAX_DESTAGE	src/disksim_fcl.h	/^#define FCL_MAX_DESTAGE /;"	d
+FCL_MAX_EVENT	src/disksim_global.h	/^#define FCL_MAX_EVENT	/;"	d
+FCL_MAX_STAGE	src/disksim_fcl.h	/^#define FCL_MAX_STAGE /;"	d
+FCL_MIN_EVENT	src/disksim_global.h	/^#define FCL_MIN_EVENT	/;"	d
 FCL_OPERATION_DESTAGING	src/disksim_fcl.h	/^#define FCL_OPERATION_DESTAGING /;"	d
 FCL_OPERATION_NORMAL	src/disksim_fcl.h	/^#define FCL_OPERATION_NORMAL /;"	d
 FCL_OPERATION_STAGING	src/disksim_fcl.h	/^#define FCL_OPERATION_STAGING /;"	d
+FCL_OVERHEAD_COMPLETE	src/disksim_iosim.h	/^#define FCL_OVERHEAD_COMPLETE /;"	d
 FCL_PAGE_SIZE	src/disksim_fcl.h	/^#define FCL_PAGE_SIZE /;"	d
+FCL_REQUEST_ARRIVE	src/disksim_iosim.h	/^#define FCL_REQUEST_ARRIVE	/;"	d
 FIFO_ARB	src/disksim_bus.c	/^#define FIFO_ARB	/;"	d	file:
 FINAL_WRITE_RECONNECTION_1	src/disksim_disk.h	/^#define FINAL_WRITE_RECONNECTION_1 /;"	d
 FINAL_WRITE_RECONNECTION_2	src/disksim_disk.h	/^#define FINAL_WRITE_RECONNECTION_2 /;"	d
@@ -2135,7 +2142,6 @@ IOREQ_EVENT	src/disksim_pfsim.h	/^#define IOREQ_EVENT /;"	d
 IOSIM	src/disksim_ioface.h	/^#define IOSIM	/;"	d
 IO_ACCESS_ARRIVE	src/disksim_iosim.h	/^#define IO_ACCESS_ARRIVE	/;"	d
 IO_ACCESS_COMPLETE	src/disksim_iosim.h	/^#define IO_ACCESS_COMPLETE	/;"	d
-IO_ACCESS_COMPLETE2	src/disksim_iosim.h	/^#define IO_ACCESS_COMPLETE2	/;"	d
 IO_FLAG_PAGEIO	src/disksim_global.h	/^#define IO_FLAG_PAGEIO	/;"	d
 IO_INTERRUPT	src/disksim_global.h	/^#define IO_INTERRUPT /;"	d
 IO_INTERRUPT_ARRIVE	src/disksim_iosim.h	/^#define IO_INTERRUPT_ARRIVE	/;"	d
@@ -2144,7 +2150,6 @@ IO_MAX_EVENT	src/disksim_global.h	/^#define IO_MAX_EVENT	/;"	d
 IO_MIN_EVENT	src/disksim_global.h	/^#define IO_MIN_EVENT	/;"	d
 IO_QLEN_MAXCHECK	src/disksim_iosim.h	/^#define IO_QLEN_MAXCHECK	/;"	d
 IO_REQUEST_ARRIVE	src/disksim_ioface.h	/^#define IO_REQUEST_ARRIVE	/;"	d
-IO_REQUEST_ARRIVE2	src/disksim_iosim.h	/^#define IO_REQUEST_ARRIVE2	/;"	d
 IO_RESPOND_TO_DEVICE	src/disksim_iosim.h	/^#define IO_RESPOND_TO_DEVICE	/;"	d
 IO_TRACE_REQUEST_START	src/disksim_iosim.h	/^#define IO_TRACE_REQUEST_START	/;"	d
 IOwaiters	src/disksim_cachemem.h	/^   struct cache_mem_event *IOwaiters;$/;"	m	struct:cache_mem	typeref:struct:cache_mem::cache_mem_event
@@ -2175,7 +2180,7 @@ LDFLAGS	diskmodel/layout_g4_tools/Makefile	/^LDFLAGS = $(DISKSIM_LDFLAGS)  $(MEM
 LDFLAGS	diskmodel/tests/Makefile	/^LDFLAGS = $(DISKMODEL_LDFLAGS) $(LIBPARAM_LDFLAGS) $(LIBDDBG_LDFLAGS)$/;"	m
 LDFLAGS	memsmodel/Makefile	/^LDFLAGS = -lm -L.$/;"	m
 LDFLAGS	src/Makefile	/^LDFLAGS = -lm -L. -ldisksim $(DISKMODEL_LDFLAGS) $(MEMSMODEL_LDFLAGS) \\$/;"	m
-LDFLAGS	ssdmodel/Makefile	/^LDFLAGS = -lm -L. -ldisksim $(DISKMODEL_LDFLAGS) $(MEMSMODEL_LDFLAGS) \\$/;"	m
+LDFLAGS	ssdmodel/Makefile	/^LDFLAGS = -g -lm -L. -ldisksim $(DISKMODEL_LDFLAGS) $(MEMSMODEL_LDFLAGS) \\$/;"	m
 LDFLAGS	utils/params/Makefile	/^LDFLAGS = $(DISKSIM_LDFLAGS) \\$/;"	m
 LIBPARAM	diskmodel/modules/Makefile	/^LIBPARAM=$(LIBPARAM_PREFIX)$/;"	m
 LIBPARAM	memsmodel/modules/Makefile	/^LIBPARAM=$(LIBPARAM_PREFIX)$/;"	m
@@ -2253,7 +2258,6 @@ MAXSPARESCHEME	src/disksim_diskmap.h	/^#define MAXSPARESCHEME /;"	d
 MAXSTATS	src/disksim_disk.h	/^#define MAXSTATS /;"	d
 MAX_DESTAGE_COUNT	src/disksim_fcl_wow_driver.h	/^#define MAX_DESTAGE_COUNT /;"	d
 MAX_DIRECTION	src/disksim_fcl_rw_cache.c	/^#define MAX_DIRECTION /;"	d	file:
-MAX_DIRTY	src/disksim_fcl.c	/^#define MAX_DIRTY /;"	d	file:
 MAX_INPUT_FILES	libparam/lex.libparam.c	/^#define MAX_INPUT_FILES /;"	d	file:
 MAX_LIST_LENGTH_BITS	list/list_sort.c	/^#define MAX_LIST_LENGTH_BITS /;"	d	file:
 MAX_OUT	diskmodel/layout_g4_tools/g4_skews.c	/^#define MAX_OUT /;"	d	file:
@@ -2266,7 +2270,6 @@ MAX_REQS	ssdmodel/ssd.h	/^#define MAX_REQS /;"	d
 MAX_REQS_ELEM_QUEUE	ssdmodel/include/ssdmodel/ssd.h	/^#define MAX_REQS_ELEM_QUEUE /;"	d
 MAX_REQS_ELEM_QUEUE	ssdmodel/ssd.h	/^#define MAX_REQS_ELEM_QUEUE /;"	d
 MAX_REQ_BYTES	src/disksim_fcl_wow_driver.h	/^#define MAX_REQ_BYTES /;"	d
-MAX_STAGE	src/disksim_fcl.c	/^#define MAX_STAGE /;"	d	file:
 MAX_STAGE_COUNT	src/disksim_fcl_wow_driver.h	/^#define MAX_STAGE_COUNT /;"	d
 MAX_TSPS	src/disksim_ioqueue.c	/^#define MAX_TSPS /;"	d	file:
 MEMSMODEL_MAX_MODULE	memsmodel/include/memsmodel/modules/modules.h	/^#define MEMSMODEL_MAX_MODULE /;"	d
@@ -5145,16 +5148,22 @@ falseidletime	src/disksim_pfsim.h	/^   double falseidletime;$/;"	m	struct:proces
 fastwrites	src/disksim_disk.h	/^  int		fastwrites;$/;"	m	struct:disk
 fcl_active_block_manager	src/disksim_fcl.c	/^struct cache_manager *fcl_active_block_manager;$/;"	v	typeref:struct:cache_manager
 fcl_active_list	src/disksim_global.h	/^   void	 	*fcl_active_list;$/;"	m	struct:ioreq_ev
+fcl_add_new_request	src/disksim_fcl.c	/^void fcl_add_new_request ( ioreq_event *parent, int op_type ) {$/;"	f
+fcl_arrive_count	src/disksim_fcl.c	/^int					 fcl_arrive_count = 0;$/;"	v
 fcl_attach_child	src/disksim_fcl.c	/^void fcl_attach_child (ioreq_event **fcl_event_list, int *fcl_event_count, int list_index,  ioreq_event *child){$/;"	f
 fcl_background_queue	src/disksim_fcl.c	/^struct ioq			 *fcl_background_queue = NULL;$/;"	v	typeref:struct:ioq
 fcl_cache_bypass	src/disksim_fcl.c	/^int 				 fcl_cache_bypass = 0;$/;"	v
 fcl_cache_manager	src/disksim_fcl.c	/^struct cache_manager *fcl_cache_manager;$/;"	v	typeref:struct:cache_manager
 fcl_classify_child_request	src/disksim_fcl.c	/^void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int blkno ) {$/;"	f
 fcl_compare_blkno	src/disksim_fcl.c	/^static int fcl_compare_blkno(const void *a,const void *b){$/;"	f	file:
+fcl_complete_count	src/disksim_fcl.c	/^int					 fcl_complete_count = 0;$/;"	v
 fcl_complete_list	src/disksim_global.h	/^   void 	*fcl_complete_list;$/;"	m	struct:ioreq_ev
 fcl_create_child	src/disksim_fcl.c	/^ioreq_event *fcl_create_child (ioreq_event *parent, int devno, int blkno, int bcount, unsigned int flags){$/;"	f
 fcl_create_parent	src/disksim_fcl.c	/^ioreq_event *fcl_create_parent (int blkno,int bcount, double time, int flags, int devno) {$/;"	f
-fcl_destage_request	src/disksim_fcl.c	/^void fcl_destage_request () {$/;"	f
+fcl_data_class	src/disksim_global.h	/^   int		fcl_data_class; \/\/ Read or Write Data $/;"	m	struct:ioreq_ev
+fcl_destage_count	src/disksim_fcl.c	/^int					 fcl_destage_count = 0;$/;"	v
+fcl_destage_request	src/disksim_fcl.c	/^int fcl_destage_request ( int destage_num) {$/;"	f
+fcl_event_arrive	src/disksim_fcl.c	/^void fcl_event_arrive ( ioreq_event *curr ) {$/;"	f
 fcl_event_count	src/disksim_global.h	/^   int		 fcl_event_count[FCL_EVENT_MAX];$/;"	m	struct:ioreq_ev
 fcl_event_list	src/disksim_global.h	/^   struct 	 ioreq_ev *fcl_event_list[FCL_EVENT_MAX];$/;"	m	struct:ioreq_ev	typeref:struct:ioreq_ev::ioreq_ev
 fcl_event_next	src/disksim_global.h	/^   struct	 ioreq_ev *fcl_event_next;$/;"	m	struct:ioreq_ev	typeref:struct:ioreq_ev::ioreq_ev
@@ -5162,8 +5171,8 @@ fcl_event_num	src/disksim_global.h	/^   int    	 fcl_event_num;  $/;"	m	struct:i
 fcl_event_ptr	src/disksim_global.h	/^   int		 fcl_event_ptr;$/;"	m	struct:ioreq_ev
 fcl_exit	src/disksim_fcl.c	/^void fcl_exit () {$/;"	f
 fcl_generate_child_request	src/disksim_fcl.c	/^void fcl_generate_child_request ( ioreq_event *parent, int devno, int blkno, int flags, int list_index )$/;"	f
+fcl_get_next_request	src/disksim_fcl.c	/^void fcl_get_next_request ( int op_type ) {$/;"	f
 fcl_global_queue	src/disksim_fcl.c	/^struct ioq			 *fcl_global_queue = NULL;$/;"	v	typeref:struct:ioq
-fcl_idle_time	src/disksim_fcl.c	/^double				 fcl_idle_time = 100000.0;$/;"	v
 fcl_inactive_list	src/disksim_global.h	/^   void	 	*fcl_inactive_list;$/;"	m	struct:ioreq_ev
 fcl_init	src/disksim_fcl.c	/^void fcl_init () {$/;"	f
 fcl_insert_active_list	src/disksim_fcl.c	/^void fcl_insert_active_list ( ioreq_event *child ) {$/;"	f
@@ -5184,7 +5193,7 @@ fcl_make_timer	src/disksim_fcl.c	/^void fcl_make_timer () {$/;"	f
 fcl_merge_list	src/disksim_fcl.c	/^void fcl_merge_list ( listnode *dirty_list ) {$/;"	f
 fcl_move_pending_list	src/disksim_fcl.c	/^void fcl_move_pending_list ( listnode *inactive_list ){$/;"	f
 fcl_opid	src/disksim_fcl.c	/^int 				 fcl_opid = 0;$/;"	v
-fcl_outstanding	src/disksim_fcl.c	/^int					 fcl_outstanding = 1000000;$/;"	v
+fcl_outstanding	src/disksim_fcl.c	/^int					 fcl_outstanding = 1;$/;"	v
 fcl_parameters	src/disksim_fcl.h	/^struct fcl_parameters {$/;"	s
 fcl_params	src/disksim_fcl.c	/^struct fcl_parameters 	 *fcl_params;$/;"	v	typeref:struct:fcl_parameters
 fcl_parent	src/disksim_global.h	/^   void  	*fcl_parent; $/;"	m	struct:ioreq_ev
@@ -5201,6 +5210,8 @@ fcl_replace_cache	src/disksim_fcl.c	/^struct lru_node * fcl_replace_cache (ioreq
 fcl_req_is_consecutive	src/disksim_fcl.c	/^int fcl_req_is_consecutive( ioreq_event *req1, ioreq_event *req2 ){$/;"	f
 fcl_request_arrive	src/disksim_fcl.c	/^void fcl_request_arrive (ioreq_event *parent){$/;"	f
 fcl_request_complete	src/disksim_fcl.c	/^void fcl_request_complete (ioreq_event *child){$/;"	f
+fcl_response_avg	src/disksim_fcl.c	/^double				 fcl_response_avg = 0.0;$/;"	v
+fcl_response_count	src/disksim_fcl.c	/^int					 fcl_response_count = 0;$/;"	v
 fcl_seal_complete_request	src/disksim_fcl.c	/^void fcl_seal_complete_request ( ioreq_event *parent ) {$/;"	f
 fcl_split_parent_request	src/disksim_fcl.c	/^void fcl_split_parent_request (ioreq_event *parent) {$/;"	f
 fcl_stage_request	src/disksim_fcl.c	/^void fcl_stage_request () {$/;"	f
@@ -5314,8 +5325,9 @@ fp	diskmodel/layout_g4_tools/g4_skews.c	/^  FILE *fp;$/;"	m	struct:trace	file:
 fpa_background_activity	src/disksim_fcl.h	/^	int fpa_background_activity;$/;"	m	struct:fcl_parameters
 fpa_bypass_cache	src/disksim_fcl.h	/^	int fpa_bypass_cache;$/;"	m	struct:fcl_parameters
 fpa_cache_policy	src/disksim_fcl.h	/^	int fpa_cache_policy;$/;"	m	struct:fcl_parameters
-fpa_idle_detect_time	src/disksim_fcl.h	/^	int fpa_idle_detect_time;$/;"	m	struct:fcl_parameters
-fpa_max_pages	src/disksim_fcl.h	/^	int fpa_max_pages;$/;"	m	struct:fcl_parameters
+fpa_idle_detect_time	src/disksim_fcl.h	/^	double fpa_idle_detect_time;$/;"	m	struct:fcl_parameters
+fpa_max_pages_percent	src/disksim_fcl.h	/^	double fpa_max_pages_percent;$/;"	m	struct:fcl_parameters
+fpa_overhead	src/disksim_fcl.h	/^	double	fpa_overhead;$/;"	m	struct:fcl_parameters
 fpa_page_size	src/disksim_fcl.h	/^	int fpa_page_size;$/;"	m	struct:fcl_parameters
 fpcheck	src/disksim_disk.h	/^  int fpcheck;$/;"	m	struct:disk
 fprintf	src/disksim_fcl.c	/^#define fprintf /;"	d	file:
@@ -6440,7 +6452,7 @@ lru_inc	src/disksim_fcl_lru.c	/^int lru_inc(struct cache_manager *c, int inc_val
 lru_init	src/disksim_fcl_lru.c	/^void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,int low){$/;"	f
 lru_insert	src/disksim_fcl_lru.c	/^void lru_insert(struct cache_manager *c,struct lru_node *ln){$/;"	f
 lru_main2	src/disksim_fcl_lru.c	/^int lru_main2(){	$/;"	f
-lru_move_to_mru	src/disksim_fcl_lru.c	/^void lru_move_to_mru(struct cache_manager *c, struct lru_node *ln ) {$/;"	f
+lru_movemru	src/disksim_fcl_lru.c	/^void lru_movemru(struct cache_manager *c, struct lru_node *ln ) {$/;"	f
 lru_next	src/disksim_cachemem.h	/^   struct cacheatom *lru_next;$/;"	m	struct:cacheatom	typeref:struct:cacheatom::cacheatom
 lru_node	src/disksim_fcl_cache.h	/^struct lru_node{$/;"	s
 lru_open	src/disksim_fcl_lru.c	/^void lru_open(struct cache_manager *c,int cache_size, int cache_max){$/;"	f

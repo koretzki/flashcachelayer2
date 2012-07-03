@@ -816,6 +816,11 @@ void disksim_simulate_event (int num)
     {
       io_internal_event ((ioreq_event *)curr);
     }
+    else if ((curr->type >= FCL_MIN_EVENT)
+         && (curr->type <= FCL_MAX_EVENT))
+    {
+      fcl_event_arrive ((ioreq_event *)curr);
+    }
     else if (curr->type == CHECKPOINT)
     {
       if (disksim->checkpoint_interval) {
@@ -1004,14 +1009,14 @@ void disksim_setup_disksim (int argc, char **argv)
     iosim_initialize_iosim_info ();
   }
 
-  // ysoh
-  fcl_init();	
-
   initialize();
   fprintf(outputfile, "Initialization complete\n");
   fflush(outputfile);
   prime_simulation();
 
+
+  // ysoh
+  fcl_init();	
 
   // XXX abstract this
   fclose(statdeffile);

@@ -486,10 +486,18 @@ fprintf (outputfile, "Entered ssd_initialize - numssds %d\n", numssds);
 
       if (!currdisk) continue;
 /*        if (!currdisk->inited) { */
+
+// ysoh 
+#if 0 
          currdisk->numblocks = currdisk->params.nelements *
                    currdisk->params.blocks_per_element *
                    currdisk->params.pages_per_block *
                    currdisk->params.page_size;
+#else
+		currdisk->numblocks = ssd_elem_export_size2 ( currdisk ) ; 
+		currdisk->numblocks *= currdisk->params.page_size;
+
+#endif 
          currdisk->reconnect_reason = -1;
          addlisttoextraq ((event **) &currdisk->buswait);
          currdisk->busowned = -1;

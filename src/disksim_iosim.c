@@ -232,11 +232,11 @@ fprintf (outputfile, "%f: io_internal_event entered with event type %d, %f\n", c
    switch (curr->type) {
 
 	   // ysoh	
-	   case IO_REQUEST_ARRIVE:
-		   fcl_request_arrive (curr);
-		   break;
+	   //case IO_REQUEST_ARRIVE:
+		//   fcl_request_arrive (curr);
+		 //  break;
 
-	   case IO_REQUEST_ARRIVE2:
+	   case IO_REQUEST_ARRIVE:
 		   iodriver_request(0, curr);
 		   break;
 
@@ -263,14 +263,14 @@ fprintf (outputfile, "%f: io_internal_event entered with event type %d, %f\n", c
 		   break;
 
 		   // ysoh 
-	   case IO_ACCESS_COMPLETE2:
+	   //case IO_ACCESS_COMPLETE2:
 
 		   //fprintf ( stderr, " 2. IO Access Complete = %.2f, %.2f, %p, blkno = %d, devno = %d \n", curr->time, simtime, curr, curr->blkno, curr->devno);
 
 		   //addtoextraq((event *) curr);
-		   fcl_request_complete (curr);
+		 //  fcl_request_complete (curr);
 
-		   break;
+		  // break;
 
 	   case IO_INTERRUPT_COMPLETE:
 		   iodriver_interrupt_complete(0, (intr_event *) curr);
@@ -651,7 +651,8 @@ event * io_get_next_external_event (FILE *iotracefile)
          case VALIDATE: io_validate_do_stats2 (temp);
 		        break;
       }
-      temp->type = IO_REQUEST_ARRIVE;
+      //temp->type = IO_REQUEST_ARRIVE;
+	  temp->type = FCL_REQUEST_ARRIVE;
 
       if (constintarrtime > 0.0) {
 	 	temp->time = last_request_arrive + constintarrtime;

@@ -218,7 +218,7 @@ void device_initialize (void)
 {
    /* call for each type of device */
   disk_initialize ();
-  simpledisk_initialize ();
+  simpledisk_initialize (); 
   mems_initialize ();
   ssd_initialize ();
 }
