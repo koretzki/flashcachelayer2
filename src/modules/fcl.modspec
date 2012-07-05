@@ -21,3 +21,7 @@ INIT result->fpa_bypass_cache = i;
 PARAM Idle Detect Time		D	1
 TEST (d >= 0)
 INIT result->fpa_idle_detect_time = d;
+
+PARAM Partitioning Scheme		D	1
+TEST (d >= 0)
+INIT result->fpa_partitioning_scheme = d;

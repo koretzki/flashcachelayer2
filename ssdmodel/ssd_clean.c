@@ -44,10 +44,18 @@ static double ssd_crossover_cost
  * writes a page to the current active page. if there is no active page,
  * allocate one and then move.
  */
-static double ssd_move_page(int lpn, int from_blk, int plane_num, int elem_num, ssd_t *s)
+static double ssd_move_page(int lpn, int from_blk, int plane_num, int elem_num, ssd_t *s, int data_class)
 {
     double cost = 0;
     ssd_element_metadata *metadata = &s->elements[elem_num].metadata;
+
+	if ( data_class == READ ) {
+		metadata->plane_meta[plane_num].pm_active_page = &metadata->plane_meta[plane_num].pm_read_active_page;		
+	} else {
+		metadata->plane_meta[plane_num].pm_active_page = &metadata->plane_meta[plane_num].pm_write_active_page;
+	}
+
+ 	metadata->active_page = *metadata->plane_meta[plane_num].pm_active_page;
 
     switch(s->params.copy_back) {
         case SSD_COPY_BACK_DISABLE:
@@ -57,7 +65,7 @@ static double ssd_move_page(int lpn, int from_blk, int plane_num, int elem_num, 
             break;
 
         case SSD_COPY_BACK_ENABLE:
-            ASSERT(metadata->plane_meta[plane_num].active_page == metadata->active_page);
+            ASSERT( *metadata->plane_meta[plane_num].pm_active_page == metadata->active_page);
             if (ssd_last_page_in_block(metadata->active_page, s)) {
                 _ssd_alloc_active_block(plane_num, elem_num, s);
             }
@@ -82,9 +90,11 @@ static double ssd_clean_one_page
 {
     double cost = 0;
     double xfer_cost = 0;
+	// ysoh 
+	int data_class = metadata->block_usage[blk].block_data_class;
 
     cost += s->params.page_read_latency;
-    cost += ssd_move_page(lp_num, blk, plane_num, elem_num, s);
+    cost += ssd_move_page(lp_num, blk, plane_num, elem_num, s, data_class );
 
     // if the write is within the same plane, then the data need
     // not cross the pins. but if not, add the cost of transferring
@@ -993,7 +1003,7 @@ double ssd_clean_element_copyback(int elem_num, ssd_t *s)
 					metadata->plane_meta[plane_num].clean_in_block = -1;
 				}
 
-				metadata->active_page = metadata->plane_meta[plane_num].active_page;
+				metadata->active_page = *metadata->plane_meta[plane_num].pm_active_page;
 				cleaning_cost += ssd_clean_plane_copyback(plane_num, elem_num, s);
 
 				tot_cleans ++;

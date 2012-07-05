@@ -14,4 +14,7 @@ void ssd_verify_parameters(ssd_t *currdisk);
 void ssd_initialize (void);
 void ssd_resetstats (void);
 
+// ysoh 
+int ssd_get_total_pages( ssd_t *currdisk ) ;
+int ssd_elem_export_size2(ssd_t *currdisk) ; 
 #endif

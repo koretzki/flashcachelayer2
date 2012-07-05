@@ -25,6 +25,7 @@
 struct lru_node{
 	
 	struct list_head cn_list;
+	struct list_head cn_clean_list;
 	struct list_head cn_dirty_list;
 	struct hlist_node cn_hash;
 
@@ -52,6 +53,7 @@ struct cache_manager{
 
  struct list_head cm_head;
  struct list_head cm_dirty_head;
+ struct list_head cm_clean_head;
  struct hlist_head *cm_hash;
 
  //listnode *cm_destage_ptr;
@@ -70,6 +72,7 @@ struct cache_manager{
  char *cm_name;
 
  int cm_dirty_count;
+ int cm_clean_count;
 
  int cm_destage_count;
  int cm_stage_count;
@@ -184,5 +187,12 @@ void *lru_replace(struct cache_manager *c, int watermark);
 int lru_inc(struct cache_manager *c, int inc_val);
 int lru_dec(struct cache_manager *c, int dec_val);
 void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,int low);
+void lru_move_clean_list ( struct cache_manager *c, struct lru_node *ln );
+
+void lru_print ( struct cache_manager *c ) ;
+struct lru_node *mlru_search(struct cache_manager **lru_manager,int lru_num, int blkno, int insert,int hit, int *hit_position);
+void mlru_remove(struct cache_manager **lru_manager,int lru_num, int blkno);
+struct cache_manager **mlru_init(char *name,int lru_num, int total_size);
+void mlru_exit(struct cache_manager **lru_manager,int lru_num);
 
 #endif 

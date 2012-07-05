@@ -70,6 +70,11 @@ int ssd_elem_export_size2(ssd_t *currdisk)
 	return (usable_blocks * SSD_DATA_PAGES_PER_BLOCK(currdisk) * currdisk->params.nelements);
 }
 
+int ssd_get_total_pages( ssd_t *currdisk ) {
+	return  currdisk->params.nelements *
+		currdisk->params.blocks_per_element *
+		currdisk->params.pages_per_block ; 
+}
 
 /*
  * vp
@@ -146,7 +151,12 @@ void ssd_element_metadata_init(int elem_number, ssd_element_metadata *metadata, 
                 exit(1);
         }
 
-        metadata->plane_meta[i].active_page = blocks_to_skip*currdisk->params.pages_per_block;
+		
+        metadata->plane_meta[i].pm_read_active_page = currdisk->params.pages_per_block - 1 ;
+        metadata->plane_meta[i].pm_write_active_page = blocks_to_skip*currdisk->params.pages_per_block; 
+        metadata->plane_meta[i].pm_active_page = &metadata->plane_meta[i].pm_write_active_page; 
+		metadata->active_page = *metadata->plane_meta[i].pm_active_page;
+
         metadata->plane_meta[i].free_blocks = reserved_blocks_per_plane;
         metadata->plane_meta[i].valid_pages = 0;
         metadata->plane_meta[i].clean_in_progress = 0;
@@ -182,7 +192,7 @@ void ssd_element_metadata_init(int elem_number, ssd_element_metadata *metadata, 
             exit(1);
     }
 
-    ASSERT(metadata->active_page == metadata->plane_meta[0].active_page);
+    ASSERT(metadata->active_page == *metadata->plane_meta[0].pm_active_page);
     active_block = metadata->active_page / currdisk->params.pages_per_block;
 
     // since we reserve one page out of every block to store the summary info,
@@ -263,6 +273,9 @@ void ssd_element_metadata_init(int elem_number, ssd_element_metadata *metadata, 
 
         // init the bsn to be zero
         metadata->block_usage[i].bsn = 0;
+
+		metadata->block_usage[i].block_data_class = 0;
+
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -376,7 +389,7 @@ void ssd_element_metadata_init(int elem_number, ssd_element_metadata *metadata, 
 
         case SSD_COPY_BACK_ENABLE:
             for (i = 0; i < (unsigned int)currdisk->params.planes_per_pkg; i ++) {
-                int plane_active_block = SSD_PAGE_TO_BLOCK(metadata->plane_meta[i].active_page, currdisk);
+                int plane_active_block = SSD_PAGE_TO_BLOCK(*metadata->plane_meta[i].pm_active_page, currdisk);
 
                 bitpos = ssd_block_to_bitpos(currdisk, plane_active_block);
                 ssd_set_bit(metadata->free_blocks, bitpos);

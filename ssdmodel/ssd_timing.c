@@ -172,9 +172,9 @@ void ssd_assert_page_version(int prev_page, int active_page, ssd_element_metadat
     int active_block = active_page / s->params.pages_per_block;
 
     if (prev_block != active_block) {
-        ASSERT(metadata->block_usage[prev_block].bsn < metadata->block_usage[active_block].bsn);
+        //ASSERT(metadata->block_usage[prev_block].bsn < metadata->block_usage[active_block].bsn);
     } else {
-        ASSERT(prev_page < active_page);
+        //ASSERT(prev_page < active_page);
     }
 }
 
@@ -354,9 +354,10 @@ double _ssd_write_page_osr(ssd_t *s, ssd_element_metadata *metadata, int lpn)
     cost = s->params.page_write_latency;
     //printf("lpn %d active pg %d\n", lpn, active_page);
 
+	// ysoh 
     // go to the next free page
     metadata->active_page = active_page + 1;
-    metadata->plane_meta[active_plane].active_page = metadata->active_page;
+    *metadata->plane_meta[active_plane].pm_active_page = metadata->active_page;
 
     // if this is the last data page on the block, let us write the
     // summary page also
@@ -371,6 +372,18 @@ double _ssd_write_page_osr(ssd_t *s, ssd_element_metadata *metadata, int lpn)
         // as a metadata, we don't count it as a valid data page.
         metadata->block_usage[active_block].page[s->params.pages_per_block - 1] = -1;
         metadata->block_usage[active_block].state = SSD_BLOCK_SEALED;
+
+		// ysoh 
+		if ( metadata->plane_meta[active_plane].pm_active_page == 
+			 &metadata->plane_meta[active_plane].pm_read_active_page ) 
+		{ 
+        	metadata->block_usage[active_block].block_data_class = READ;
+		} 
+		else
+		{
+        	metadata->block_usage[active_block].block_data_class = WRITE;
+		}
+		
         //printf("SUMMARY: lpn %d active pg %d\n", lpn, active_page);
     }
 
@@ -388,7 +401,7 @@ double _ssd_write_page_osr(ssd_t *s, ssd_element_metadata *metadata, int lpn)
 void _ssd_alloc_active_block(int plane_num, int elem_num, ssd_t *s)
 {
     ssd_element_metadata *metadata = &(s->elements[elem_num].metadata);
-    unsigned char *free_blocks = metadata->free_blocks;
+    unsigned char *free_blocks = (unsigned char *)metadata->free_blocks;
     int active_block = -1;
     int prev_pos;
     int bitpos;
@@ -461,10 +474,13 @@ void _ssd_alloc_active_block(int plane_num, int elem_num, ssd_t *s)
         ssd_set_bit(free_blocks, bitpos);
         metadata->block_usage[active_block].state = SSD_BLOCK_INUSE;
         metadata->block_usage[active_block].bsn = metadata->bsn ++;
+		// ysoh 
+		metadata->block_usage[active_block].block_data_class = 0;
 
+		// ysoh
         // start from the first page of the active block
-        pm->active_page = active_block * s->params.pages_per_block;
-        metadata->active_page = pm->active_page;
+        *pm->pm_active_page = active_block * s->params.pages_per_block;
+        metadata->active_page = *pm->pm_active_page;
 
         //ssd_assert_plane_freebits(plane_num, elem_num, metadata, s);
     } else {
@@ -522,22 +538,27 @@ listnode **ssd_pick_parunits(ssd_req **reqs, int total, int elem_num, ssd_elemen
 
             plane_num = -1;
             lpn = ssd_logical_pageno(reqs[i]->blk, s);
-            prev_page = metadata->lba_table[lpn];
+
+			// ysoh 
+            /*prev_page = metadata->lba_table[lpn];
             ASSERT(prev_page != -1);
             prev_block = SSD_PAGE_TO_BLOCK(prev_page, s);
             prev_bsn = metadata->block_usage[prev_block].bsn;
+			*/
 
             if (s->params.alloc_pool_logic == SSD_ALLOC_POOL_PLANE) {
                 plane_num = metadata->block_usage[prev_block].plane_num;
             } else {
                 // find a plane with the max no of free blocks
+				// ysoh 
+				/*
                 j = metadata->plane_to_write;
                 do {
                     int active_block;
                     int active_bsn;
                     plane_metadata *pm = &metadata->plane_meta[j];
 
-                    active_block = SSD_PAGE_TO_BLOCK(pm->active_page, s);
+                    active_block = SSD_PAGE_TO_BLOCK(*pm->pm_active_page, s);
                     active_bsn = metadata->block_usage[active_block].bsn;
 
                     // see if we can write to this block
@@ -588,7 +609,12 @@ listnode **ssd_pick_parunits(ssd_req **reqs, int total, int elem_num, ssd_elemen
                     // check out the next plane
                     j = (j+1) % s->params.planes_per_pkg;
                 } while (j != metadata->plane_to_write);
+				*/
             }
+
+			// ysoh 
+
+			plane_num = lpn % s->params.planes_per_pkg;
 
             if (plane_num != -1) {
                 // start searching from the next plane
@@ -683,14 +709,24 @@ static double ssd_issue_overlapped_ios(ssd_req **reqs, int total, int elem_num, 
                     parunit_op_cost[i] = s->params.page_read_latency;
                 } else {
                     int plane_num = r->plane_num;
+
+					if ( r->org_req->fcl_data_class == READ ) {
+						//printf (" Read \n");
+						metadata->plane_meta[plane_num].pm_active_page = &metadata->plane_meta[plane_num].pm_read_active_page;
+					} else { 
+						//printf (" Write  \n");
+						metadata->plane_meta[plane_num].pm_active_page = &metadata->plane_meta[plane_num].pm_write_active_page;
+					}
+
+
                     // if this is the last page on the block, allocate a new block
-                    if (ssd_last_page_in_block(metadata->plane_meta[plane_num].active_page, s)) {
+                    if (ssd_last_page_in_block(*metadata->plane_meta[plane_num].pm_active_page, s)) {
                         _ssd_alloc_active_block(plane_num, elem_num, s);
                     }
 
                     // issue the write to the current active page.
                     // we need to transfer the data across the serial pins for write.
-                    metadata->active_page = metadata->plane_meta[plane_num].active_page;
+                    metadata->active_page = *metadata->plane_meta[plane_num].pm_active_page;
                     //printf("elem %d plane %d ", elem_num, plane_num);
                     parunit_op_cost[i] = _ssd_write_page_osr(s, metadata, lpn);
                 }

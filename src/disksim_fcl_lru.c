@@ -10,6 +10,7 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 	//ll_create(&(c->cm_head));
 	INIT_LIST_HEAD ( &c->cm_head );
 	INIT_LIST_HEAD ( &c->cm_dirty_head ); 
+	INIT_LIST_HEAD ( &c->cm_clean_head ); 
 
 	c->cm_hash = (struct hlist_head *)malloc(sizeof(struct hlist_head) * HASH_NUM);
 	if(c->cm_hash == NULL){
@@ -30,6 +31,7 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 	c->cm_max =  cache_max;
 
 	c->cm_dirty_count = 0;
+	c->cm_clean_count = 0;
 
 }
 
@@ -66,13 +68,18 @@ void lru_close(struct cache_manager *c, int print){
 		c->cm_count--;
 	}
 
+	ASSERT ( c->cm_count == 0 );
+
 	while ( !list_empty ( head ) ) {
 		ptr = head->next;
 		ln = (struct lru_node *) list_entry ( ptr, struct lru_node, cn_list );
 
 		list_del ( & ln->cn_list );
+
 		if ( ln->cn_dirty ) 
-			list_del ( & ln->cn_dirty_list );
+			list_del( & ln->cn_dirty_list );
+		else 
+			list_del ( & ln->cn_clean_list );
 
 		hlist_del ( & ln->cn_hash );
 
@@ -182,25 +189,36 @@ void lru_movemru(struct cache_manager *c, struct lru_node *ln ) {
 
 	if ( ln->cn_dirty ) 
 		list_del ( &ln->cn_dirty_list );
+	else
+		list_del ( &ln->cn_clean_list );
 
 
 	list_add( &ln->cn_list, &c->cm_head );
 
 	if ( ln->cn_dirty ) 
-		list_add( &ln->cn_dirty_list, &c->cm_dirty_head);
+		list_add( &ln->cn_dirty_list, &c->cm_dirty_head );
+	else
+		list_add ( &ln->cn_clean_list, &c->cm_clean_head );
 
 }
 void *lru_remove(struct cache_manager *c, struct lru_node *ln ) {
 	
 	list_del ( &ln->cn_list );
 
-	if ( ln->cn_dirty ) 
+	if ( ln->cn_dirty ) {
 		list_del ( &ln->cn_dirty_list );
+		c->cm_dirty_count--;
+	} else {
+		list_del ( &ln->cn_clean_list );
+		c->cm_clean_count--;
+	}
 
 	hlist_del ( &ln->cn_hash );
 
 	c->cm_free++;
 	c->cm_count--;
+
+	ASSERT ( c->cm_clean_count + c->cm_dirty_count == c->cm_count );
 
 	return (void *)ln;
 }
@@ -225,6 +243,18 @@ void *lru_alloc(struct lru_node *ln, unsigned int blkno){
 	return ln;
 }
 
+void lru_move_clean_list ( struct cache_manager *c, struct lru_node *ln ) {
+
+	list_del ( &ln->cn_dirty_list );
+	c->cm_dirty_count --;
+
+	list_add ( &ln->cn_clean_list, &c->cm_clean_head );
+	c->cm_clean_count ++;
+
+
+	ASSERT ( c->cm_clean_count + c->cm_dirty_count == c->cm_count );
+
+}
 
 void lru_insert(struct cache_manager *c,struct lru_node *ln){
 
@@ -233,16 +263,20 @@ void lru_insert(struct cache_manager *c,struct lru_node *ln){
 
 	list_add( &ln->cn_list, &c->cm_head );
 
-	if ( ln->cn_dirty ) 
+	if ( ln->cn_dirty ) {
 		list_add( &ln->cn_dirty_list, &c->cm_dirty_head);
+		c->cm_dirty_count++;
+	} else {
+		list_add( &ln->cn_clean_list, &c->cm_clean_head);
+		c->cm_clean_count++;
+	}
 
 	hlist_add_head( &ln->cn_hash, &c->cm_hash[(ln->cn_blkno) % HASH_NUM] ) ; 
 
 	c->cm_free--;
 	c->cm_count++;
 
-	// insert node to hash
-	//ln->cn_hash = (listnode *)ll_insert_at_head(c->cm_hash[(ln->cn_blkno)%HASH_NUM],(void *) ln);
+	ASSERT ( c->cm_clean_count + c->cm_dirty_count == c->cm_count );
 
 }
 
@@ -396,34 +430,35 @@ struct cache_manager **mlru_init(char *name,int lru_num, int total_size){
 void mlru_exit(struct cache_manager **lru_manager,int lru_num){
 	int i;
 
-//	mlru_hit = 0;
+	int mlru_hit = 0;
 
 	for(i = 0;i < lru_num;i++){		
-		//lru_manager[i]->cm_ref = mlru_ref;
-		//mlru_hit += lru_manager[i]->cm_hit;
+
+		mlru_hit += lru_manager[i]->cm_hit;
 		CACHE_CLOSE(lru_manager[i], 0);
+
+		//printf(" %d Multi LRU Hit Ratio = %f \n", i, (float)mlru_hit/lru_manager[0]->cm_ref);
 	}
 
-	//printf(" Multi LRU Hit Ratio = %f \n", (float)mlru_hit/mlru_ref);
 }
 
 
 void mlru_remove(struct cache_manager **lru_manager,int lru_num, int blkno){
-	listnode *node = NULL;
+//	listnode *node = NULL;
 	struct lru_node *ln;	
 	int j;
 
 	for(j = 0;j < lru_num;j++){
-		node = CACHE_SEARCH(lru_manager[j], blkno);
-		if(node){			
+		ln = CACHE_SEARCH(lru_manager[j], blkno);
+		if(ln){			
 			break;
 		}
 	}
 
 	
 
-	if(node){ 	
-		ln = CACHE_REMOVE(lru_manager[j], node);		
+	if(ln){ 	
+		ln = CACHE_REMOVE(lru_manager[j], ln);
 		free(ln);
 	}
 	
@@ -431,46 +466,51 @@ void mlru_remove(struct cache_manager **lru_manager,int lru_num, int blkno){
 
 
 
-listnode *mlru_search(struct cache_manager **lru_manager,int lru_num, int blkno, int insert,int hit, int *hit_position){
-	listnode *node = NULL;
+struct lru_node *mlru_search(struct cache_manager **lru_manager,int lru_num, int blkno, int insert,int hit, int *hit_position){
+	//listnode *node = NULL;
 	struct lru_node *ln;	
 	int j;
 
 	for(j = 0;j < lru_num;j++){
-		node = CACHE_SEARCH(lru_manager[j], blkno);
-		if(node){
+		ln = CACHE_SEARCH(lru_manager[j], blkno);
+
+		if ( hit_position )
 			*hit_position = j;
+
+		if(ln){
 			break;
 		}
 	}
 
-	if(node){		
-		ln =(struct lru_node *) node->data;
+	if(ln){		
+		//ln =(struct lru_node *) node->data;
 		if(ln->cn_frequency > 1)
 			ln = ln;
 	}
 
-
+	//if ( j > 0 && j < lru_num ) {
+	//	printf (" hit position = %d \n");
+	//}
 	if(!hit){
 		lru_manager[0]->cm_ref--;
-		if(node){			
+		if(ln){			
 			lru_manager[j]->cm_hit--;
 		}
 	}
 
 	if(!insert){		
-		return node;
+		return ln;
 	}
 
-	if(!node){ // miss
+	if(!ln){ // miss
 		ln = m_lru_insert(lru_manager, lru_num - 1, blkno);
 	}else{ // hit 
-		ln = CACHE_REMOVE(lru_manager[j], node);
+		ln = CACHE_REMOVE(lru_manager[j], ln);
 		free(ln);
 		ln = m_lru_insert(lru_manager, j, blkno);
 	}
 
-	return node;
+	return ln;
 }
 
 

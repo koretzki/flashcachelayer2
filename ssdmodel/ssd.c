@@ -438,9 +438,11 @@ static int ssd_invoke_element_cleaning(int elem_num, ssd_t *s, ioreq_event *curr
 
         // we use the 'blkno' field to store the element number
         tmp = (ioreq_event *)getfromextraq();
+
 		// ysoh 
-       // tmp->devno = s->devno;
+        // tmp->devno = s->devno;
         tmp->devno = curr->devno;
+
         tmp->time = simtime + max_cost;
         tmp->blkno = elem_num;
         tmp->ssd_elem_num = elem_num;
@@ -544,6 +546,7 @@ static void ssd_activate_elem(ssd_t *currdisk, int elem_num, ioreq_event *curr )
                 r->count = req->bcount;
                 r->is_read = req->flags & READ;
                 r->org_req = req;
+				//printf (" req->fcl_data_class = %d \n", req->fcl_data_class );
                 r->plane_num = -1; // we don't know to which plane this req will be directed at
 
                 if (req->flags & READ) {
@@ -662,6 +665,10 @@ static void ssd_media_access_request_element (ioreq_event *curr)
        tmp->blkno = blkno;
        tmp->bcount = ssd_choose_aligned_count(currdisk->params.page_size, blkno, count);
        ASSERT(tmp->bcount == currdisk->params.page_size);
+
+	   // ysoh 
+	   tmp->fcl_data_class = curr->fcl_data_class;
+	   //printf (" data class = %d, %d \n", curr->fcl_data_class, tmp->fcl_data_class  ); 	
 
        tmp->tempptr2 = curr;
        blkno += tmp->bcount;

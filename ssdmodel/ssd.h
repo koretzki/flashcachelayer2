@@ -91,6 +91,8 @@ typedef struct _block_metadata {
                                         // is sealed for future writes
 
     unsigned int    bsn;                // block sequence number (version number for blocks)
+
+	int			block_data_class; 
 } block_metadata;
 
 
@@ -104,8 +106,10 @@ typedef struct _plane_metadata {
     int valid_pages;                // num of valid pages (note that a block might not
                                     // be free but not all its pages should be valid)
 
-    unsigned int active_page;       // this points to the next page to write inside an
+    unsigned int *pm_active_page;       // this points to the next page to write inside an
                                     // active block.
+	unsigned int pm_write_active_page;
+	unsigned int pm_read_active_page;
 
     int clean_in_progress;          // a flag that is set to 1 when some cleaning is
                                     // going on in this plane
