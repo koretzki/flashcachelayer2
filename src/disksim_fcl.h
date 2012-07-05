@@ -36,6 +36,10 @@
 #define FCL_CACHE_RW		2
 #define FCL_CACHE_OPTIMAL 	3
 
+#define FCL_REPLACE_DIRTY 	0	
+#define FCL_REPLACE_CLEAN	1
+#define FCL_REPLACE_ANY     2	
+
 struct fcl_parameters {
 	int fpa_page_size;
 	double fpa_max_pages_percent;
@@ -66,5 +70,11 @@ void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_in
 void fcl_issue_pending_child ( ioreq_event *parent ) ;
 
 double fcl_predict_hit_ratio(struct cache_manager **lru_manager,int lru_num, int size,int max_pages,int is_read);
+
+int fcl_destage_request ( int destage_num) ;
+int fcl_invalid_request ( int invalid_num) ;
+
+struct lru_node *fcl_lookup_active_list ( int blkno ) ;
+
 
 #endif // ifndef _DISKSIM_FCL_H 

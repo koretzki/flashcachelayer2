@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "list.h"
 #include "disksim_fcl_cache.h"
+#include "disksim_fcl.h"
 
 int main(){	
 	struct cache_manager *lru_manager;
@@ -15,7 +16,7 @@ int main(){
 		ln = CACHE_SEARCH(lru_manager, blkno);
 		if(!ln){
 			
-			ln = CACHE_REPLACE(lru_manager, 0);
+			ln = CACHE_REPLACE(lru_manager, 0, FCL_REPLACE_ANY);
 			ln = CACHE_ALLOC(lru_manager, ln, blkno);
 			CACHE_INSERT(lru_manager, ln);
 		}else{

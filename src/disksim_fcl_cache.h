@@ -71,6 +71,9 @@ struct cache_manager{
  int cm_min;
  char *cm_name;
 
+ int cm_dirty_size;
+ int cm_clean_size;
+
  int cm_dirty_count;
  int cm_clean_count;
 
@@ -86,7 +89,7 @@ struct cache_manager{
  void (*cache_close)(struct cache_manager *cache, int print);
  struct lru_node *(*cache_presearch)(struct cache_manager *cache, unsigned int blkno);
  struct lru_node *(*cache_search)(struct cache_manager *cache,unsigned int blkno);
- void *(*cache_replace)(struct cache_manager *cache,int w); 
+ void *(*cache_replace)(struct cache_manager *cache,int w, int dirty); 
  void *(*cache_remove)(struct cache_manager *cache, struct lru_node *ln); 
  void (*cache_move_mru)(struct cache_manager *cache, struct lru_node *ln); 
  void (*cache_insert)(struct cache_manager *cache, struct lru_node *node);
@@ -150,7 +153,7 @@ struct seq_node{
 #define CACHE_CLOSE(c, print ) c->cache_close((struct cache_manager *)c, print)
 #define CACHE_PRESEARCH(c, p) c->cache_presearch((struct cache_manager *)c, p)
 #define CACHE_SEARCH(c, p) c->cache_search((struct cache_manager *)c, p)
-#define CACHE_REPLACE(c, w) c->cache_replace((struct cache_manager *)c, w)
+#define CACHE_REPLACE(c, w, d) c->cache_replace((struct cache_manager *)c, w, d)
 #define CACHE_MOVEMRU(c, w) c->cache_move_mru((struct cache_manager *)c, w)
 #define CACHE_REMOVE(c, p) c->cache_remove((struct cache_manager *)c, p)
 #define CACHE_INSERT(c, p) c->cache_insert((struct cache_manager *)c, p)
@@ -183,7 +186,7 @@ struct lru_node *lru_search(struct cache_manager *c,unsigned int blkno);
 void *lru_remove(struct cache_manager *c, struct lru_node *ln);
 void *lru_alloc(struct lru_node *ln, unsigned int blkno);
 void lru_insert(struct cache_manager *c,struct lru_node *ln);
-void *lru_replace(struct cache_manager *c, int watermark);	
+void *lru_replace(struct cache_manager *c, int watermark, int dirty);	
 int lru_inc(struct cache_manager *c, int inc_val);
 int lru_dec(struct cache_manager *c, int dec_val);
 void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,int low);
@@ -194,5 +197,6 @@ struct lru_node *mlru_search(struct cache_manager **lru_manager,int lru_num, int
 void mlru_remove(struct cache_manager **lru_manager,int lru_num, int blkno);
 struct cache_manager **mlru_init(char *name,int lru_num, int total_size);
 void mlru_exit(struct cache_manager **lru_manager,int lru_num);
+void lru_set_dirty_size ( struct cache_manager *c, int dirty_size, int clean_size ) ;
 
 #endif 

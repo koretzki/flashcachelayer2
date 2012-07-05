@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "disksim_fcl_cache.h"
+#include "disksim_fcl.h"
 #include "../ssdmodel/ssd_utils.h"
 
 
 void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 	int i;
 
-	//ll_create(&(c->cm_head));
 	INIT_LIST_HEAD ( &c->cm_head );
 	INIT_LIST_HEAD ( &c->cm_dirty_head ); 
 	INIT_LIST_HEAD ( &c->cm_clean_head ); 
@@ -17,6 +17,7 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 		fprintf(stderr, " Malloc Error %s %d \n",__FUNCTION__,__LINE__);
 		exit(1);
 	}
+
 	for(i = 0;i < HASH_NUM;i++){
 		INIT_HLIST_HEAD ( &c->cm_hash[i] );
 	}
@@ -30,8 +31,58 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 	c->cm_count = 0;
 	c->cm_max =  cache_max;
 
+	c->cm_dirty_size = 0;
+	c->cm_clean_size = cache_size;
+
 	c->cm_dirty_count = 0;
 	c->cm_clean_count = 0;
+
+}
+
+#if 0 
+int lru_inc(struct cache_manager *c, int inc_val){
+
+	if((c->cm_size+inc_val) <= (c->cm_max)){		
+		c->cm_size+=inc_val;
+		c->cm_free+=inc_val;
+		return inc_val;
+	}else{
+		return 0;
+	}
+}
+
+int lru_dec(struct cache_manager *c, int dec_val){
+	if((c->cm_size-dec_val) > 0){
+		c->cm_size-=dec_val;
+		c->cm_free-=dec_val;
+
+	//	if(c->cm_size <= 1024)
+	//		c = c;
+		return dec_val;
+	}else{
+		return 0;
+	}
+}
+#endif 
+
+void lru_set_dirty_size ( struct cache_manager *c, int dirty_size, int clean_size ) {
+	int diff;
+
+	c->cm_dirty_size = dirty_size;
+	c->cm_clean_size = clean_size;
+	
+	diff = ( dirty_size + clean_size ) - c->cm_size;
+	c->cm_size += diff;
+	c->cm_free += diff;
+
+	//if ( diff > 0 )
+	//	lru_inc ( c, diff );
+	//else 
+	//	lru_dec ( c, diff*-1 );
+
+	//c->cm_size = dirty_size + clean_size;
+
+	ASSERT ( dirty_size + clean_size == c->cm_size );
 
 }
 
@@ -282,11 +333,48 @@ void lru_insert(struct cache_manager *c,struct lru_node *ln){
 
 
 
-//listnode *lru_replace(struct cache_manager *c, int watermark){	
-void *lru_replace(struct cache_manager *c, int watermark){	
+void *lru_replace(struct cache_manager *c, int watermark, int replace_type ){	
 	struct list_head *remove_ptr;
 	struct lru_node *victim = NULL;
+	int free;
 
+	//printf ( " dirty = %d \n", dirty );
+
+	switch ( replace_type ) {
+		case FCL_REPLACE_DIRTY:
+			free = c->cm_dirty_size - c->cm_dirty_count;
+			break;
+		case FCL_REPLACE_CLEAN:
+			free = c->cm_clean_size - c->cm_clean_count;
+			break;
+		case FCL_REPLACE_ANY:
+			free = c->cm_free;
+			break;
+	}
+
+	if ( free < watermark + 1 ) {
+
+		switch ( replace_type ) {
+			case FCL_REPLACE_DIRTY:
+
+				remove_ptr = (struct list_head *)(&c->cm_dirty_head)->prev;
+				victim = list_entry ( remove_ptr, struct lru_node, cn_dirty_list );
+				break;
+
+			case FCL_REPLACE_CLEAN:
+				remove_ptr = (struct list_head *)(&c->cm_clean_head)->prev;
+				victim = list_entry ( remove_ptr, struct lru_node, cn_clean_list );
+				break;
+
+			case FCL_REPLACE_ANY:
+				remove_ptr = (struct list_head *)(&c->cm_head)->prev;
+				victim = list_entry ( remove_ptr, struct lru_node, cn_list );
+				break;
+		}
+
+		victim = CACHE_REMOVE(c, victim);
+	}
+#if 0 
 	if(c->cm_free < watermark+1){		
 		remove_ptr = (struct list_head *)(&c->cm_head)->prev;
 
@@ -296,35 +384,12 @@ void *lru_replace(struct cache_manager *c, int watermark){
 		}
 
 	}
-
+#endif 
 
 	return victim;
 }
 
 
-int lru_inc(struct cache_manager *c, int inc_val){
-
-	if((c->cm_size+inc_val) < (c->cm_max)){		
-		c->cm_size+=inc_val;
-		c->cm_free+=inc_val;
-		return inc_val;
-	}else{
-		return 0;
-	}
-}
-
-int lru_dec(struct cache_manager *c, int dec_val){
-	if((c->cm_size-dec_val) > 0){
-		c->cm_size-=dec_val;
-		c->cm_free-=dec_val;
-
-		if(c->cm_size <= 1024)
-			c = c;
-		return dec_val;
-	}else{
-		return 0;
-	}
-}
 
 void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,int low){
 	*c = (struct cache_manager *)malloc(sizeof(struct cache_manager));
@@ -342,8 +407,8 @@ void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,
 	(*c)->cache_remove = lru_remove;
 	(*c)->cache_move_mru = lru_movemru;
 	(*c)->cache_insert = lru_insert;
-	(*c)->cache_inc = lru_inc;
-	(*c)->cache_dec = lru_dec;
+	//(*c)->cache_inc = lru_inc;
+	//(*c)->cache_dec = lru_dec;
 	(*c)->cache_alloc = lru_alloc;
 
 	CACHE_OPEN((*c), size, max_sz);
@@ -376,13 +441,14 @@ struct lru_node *m_lru_insert(struct cache_manager **lru_manager, int k, int blk
 
 	for(j = k;j > 0;j--){
 		struct lru_node *victim_ln;
-		victim_ln = CACHE_REPLACE(lru_manager[j], 0);
+		victim_ln = CACHE_REPLACE(lru_manager[j], 0, FCL_REPLACE_ANY);
 		if(victim_ln){		
 			free(victim_ln);
 		}
 
-		victim_ln = CACHE_REPLACE(lru_manager[j-1], 0);
+		victim_ln = CACHE_REPLACE(lru_manager[j-1], 0, FCL_REPLACE_ANY);
 		if(victim_ln){			
+			victim_ln->cn_dirty = 0;
 			CACHE_INSERT(lru_manager[j], victim_ln);
 		}
 	}
