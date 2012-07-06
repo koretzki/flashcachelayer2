@@ -1,3 +1,4 @@
+    
 /*
 * Flash Cache Layer (FCL) (Version 1.0) 
 *
@@ -13,6 +14,9 @@
 #include "disksim_ioqueue.h"
 #include "disksim_fcl_cache.h"
 #include "disksim_fcl_map.h"
+
+#define MAP_TRIMMED -1
+#define MAP_RELEASED -2
 
 static int *reverse_map;
 static int reverse_free = 0;
@@ -38,7 +42,7 @@ void reverse_map_create(int max){
 	}
 
 	for(i = 0;i < reverse_max_pages;i++){
-		reverse_map[i] = -1;
+		reverse_map[i] = MAP_TRIMMED;
 	}
 	reverse_used = 0;
 	reverse_free = reverse_max_pages-1;
@@ -64,7 +68,7 @@ int reverse_map_alloc_blk(int hdd_blk){
 
 	for(i = 1;i < reverse_max_pages;i++){
 
-		if(reverse_map[reverse_alloc] == -1){
+		if( reverse_map[reverse_alloc] < 0 ){
 			alloc_blk = reverse_alloc;
 			break;
 		}
@@ -84,25 +88,16 @@ int reverse_map_alloc_blk(int hdd_blk){
 		reverse_used++;
 		reverse_map[reverse_alloc] = hdd_blk;
 	}
+
 	ASSERT ( alloc_blk != -1 );
 
 	if(alloc_blk == -1){
 		fprintf(stderr, " Cannot allocate block .. \n");
-	//	fprintf(stderr, " SSD Usable Pages = %d \n", SSD_USABLE_PAGES);
-	//	fprintf(stderr, " Reverse max pages = %d\n", reverse_max_pages);
-	//	fprintf(stderr, " S_Read = %d, S_Write = %d, total = %d \n", S_READ, S_WRITE, S_READ + S_WRITE);
-	//	fprintf(stderr, " R_CLOCK count = %d, W_CLOCK count = %d, total = %d\n", R_CLOCK->cm_count, W_CLOCK->cm_count, R_CLOCK->cm_count+W_CLOCK->cm_count);
-	//	fprintf(stderr, " R_CLOCK free = %d, W_CLOCK free = %d\n", R_CLOCK->cm_free, W_CLOCK->cm_free);
-	//	fprintf(stderr, " R_CLOCK size = %d, W_CLOCK size = %d\n", R_CLOCK->cm_size, W_CLOCK->cm_size);
-	//	fprintf(stderr, " HDD WQ = %d, HDD RQ = %d\n", ll_get_size(W_CLOCK->cm_hddwq), ll_get_size(W_CLOCK->cm_hddrq));
-	//	fprintf(stderr, " SSD WQ = %d, SSD RQ = %d\n", ll_get_size(W_CLOCK->cm_ssdwq), ll_get_size(W_CLOCK->cm_ssdrq));
-		ASSERT ( 0 );
+	}
 
-		exit(0);
-	}
-	if(reverse_free == 0){
-		reverse_free = reverse_free;
-	}
+	//if(reverse_free == 0){
+	//	reverse_free = reverse_free;
+	//}
 
 	//fprintf ( stdout, " Revermap Alloc = %d \n", alloc_blk);
 
@@ -136,7 +131,7 @@ int reverse_map_release_blk(int ssd_blk){
 
 	reverse_free++;
 	reverse_used--;
-	reverse_map[ssd_blk] = -1;
+	reverse_map[ssd_blk] = MAP_RELEASED;
 	reverse_alloc = ssd_blk;
 
 	ll_insert_at_head(reverse_freeq, (void *)ssd_blk);
@@ -144,7 +139,25 @@ int reverse_map_release_blk(int ssd_blk){
 	return ssd_blk;
 }
 
+void reverse_map_discard_freeblk () {
+	listnode *del_node;
+	int freecount = ll_get_size ( reverse_freeq );
+	int i;
 
+	del_node = reverse_freeq->next;
+	for ( i = 0; i < freecount; i ++ ) {
+		int blkno = (int) del_node->data;
+		
+		if ( reverse_map [ blkno ] == MAP_RELEASED ) {
+			ssd_trim_command ( SSD, (int) blkno * FCL_PAGE_SIZE );
+			reverse_map [ blkno ] = MAP_TRIMMED;
+			//printf (" delete blkno = %d \n", (int) del_node->data);
+		}
+
+		del_node = del_node->next;
+	}
+
+}
 void reverse_map_free(){
 	free(reverse_map);
 	ll_release(reverse_freeq);

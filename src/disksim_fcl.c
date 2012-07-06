@@ -23,8 +23,9 @@
 
 /* Global variables */ 
 
-struct ioq			 *fcl_global_queue = NULL;
-struct ioq			 *fcl_background_queue = NULL;
+struct ioq			 *fcl_fore_q = NULL;
+struct ioq			 *fcl_back_q = NULL;
+
 struct cache_manager *fcl_cache_manager;
 struct cache_manager *fcl_active_block_manager;
 
@@ -41,7 +42,8 @@ void (*fcl_timer_func)(struct timer_ev *);
 
 int 				 fcl_opid = 0;
 
-int					 fcl_outstanding = 1;
+int					 fcl_fore_outstanding = 1;
+int					 fcl_back_outstanding = 1000000;
 
 int					 flash_total_pages = 100000;
 
@@ -53,14 +55,7 @@ int 				 hdd_total_sectors = 50000;
 int					 fcl_arrive_count = 0;
 int					 fcl_complete_count = 0;
 
-//double				 fcl_idle_time = 100000.0;
-
 int 				 fcl_cache_bypass = 0;
-
-//double				 fcl_response_avg = 0.0;
-//int					 fcl_response_count = 0;
-
-int					 fcl_destage_count = 0;
 
 int					 fcl_resize_period = 60000;
 int					 fcl_io_read_pages = 1;
@@ -102,6 +97,7 @@ void fcl_attach_child (ioreq_event **fcl_event_list, int *fcl_event_count, int l
 	int debug_count = 0;
 
 	last = fcl_event_list[list_index];
+
 
 	if ( last == NULL ) {
 		fcl_event_list[list_index]= child;
@@ -294,7 +290,7 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 			lru_print ( fcl_active_block_manager );	
 			printf ( " %d block %d is active ..arrival time = %f, simtime = %f  \n", active_ln->cn_blkno, blkno, active_ln->cn_time, simtime ) ;
 			printf ( " parent blk = %d, bcount = %d \n", parent->blkno, parent->bcount );
-			printf ( " Queue length = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue )) ; 
+			printf ( " Queue length = %d \n", ioqueue_get_number_in_queue ( fcl_fore_q )) ; 
 			ASSERT ( 0 );
 		}			
 
@@ -548,7 +544,12 @@ void fcl_make_request ( ioreq_event *parent, int blkno ) {
 			// child req => Move SSD data to HDD 
 		case FCL_OPERATION_DESTAGING:
 			//printf (" Destage Req blkno = %d \n", blkno);
-			fcl_make_destage_req ( parent, blkno, 0 );
+
+			if ( fcl_cache_manager->cm_clean_free > 1 ) 
+				fcl_make_destage_req ( parent, blkno, 0 );
+			else 
+				fcl_make_destage_req ( parent, blkno, 1 );
+
 			break;
 			// child req => Move HDD data to SSD
 		case FCL_OPERATION_STAGING:
@@ -736,11 +737,9 @@ void fcl_get_next_request ( int op_type ) {
 
 	// insert parent req into FCL Overall Queue 
 	if ( op_type == FCL_OPERATION_NORMAL ) {
-
-		req = ioqueue_get_next_request ( fcl_global_queue );
+		req = ioqueue_get_next_request ( fcl_fore_q );
 	} else {
-
-		req = ioqueue_get_next_request ( fcl_background_queue );
+		req = ioqueue_get_next_request ( fcl_back_q );
 	}
 
 	ASSERT ( req != NULL );
@@ -772,12 +771,12 @@ void fcl_add_new_request ( ioreq_event *parent, int op_type ) {
 
 	// insert parent req into FCL Overall Queue 
 	if ( op_type == FCL_OPERATION_NORMAL ) {
-		ioqueue_add_new_request ( fcl_global_queue, parent );
+		ioqueue_add_new_request ( fcl_fore_q, parent );
 
 		fcl_arrive_count ++ ;
 
 	} else {
-		ioqueue_add_new_request ( fcl_background_queue, parent );
+		ioqueue_add_new_request ( fcl_back_q, parent );
 	}
 
 }
@@ -967,6 +966,18 @@ double fcl_predict_hit_count(struct cache_manager **lru_manager,int lru_num, int
 }
 #endif 
 
+void fcl_decay_hit_tracker(struct cache_manager **lru_manager,int lru_num){
+	int i = 0;
+	double decay_factor = 0.75;
+
+	for(i = 0;i < lru_num;i++){		
+		lru_manager[i]->cm_hit = (double)(lru_manager[i]->cm_hit) * decay_factor;
+		lru_manager[i]->cm_read_hit = (double)(lru_manager[i]->cm_read_hit) * decay_factor;
+		lru_manager[i]->cm_ref = (double)(lru_manager[i]->cm_ref) * decay_factor;
+		lru_manager[i]->cm_read_ref = (double)(lru_manager[i]->cm_read_ref) * decay_factor;
+	}
+}
+
 void fcl_update_workload_tracker ( ioreq_event *parent ) {
 	struct lru_node *ln;
 
@@ -1002,8 +1013,6 @@ void fcl_update_workload_tracker ( ioreq_event *parent ) {
 		}
 	}
 
-	//fcl_decay_hit_tracker ( fcl_write_hit_tracker, fcl_hit_tracker_segment );
-	//fcl_decay_hit_tracker ( fcl_read_hit_tracker, fcl_hit_tracker_segment );
 }
 
 void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {
@@ -1037,66 +1046,91 @@ void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {
 
 	if ( op_type == FCL_OPERATION_NORMAL ) {
 
-		if ( ioqueue_get_reqoutstanding ( fcl_global_queue ) < fcl_outstanding &&
-			 ioqueue_get_number_pending ( fcl_global_queue ) ) 
+		if ( ioqueue_get_reqoutstanding ( fcl_fore_q ) < fcl_fore_outstanding &&
+			 ioqueue_get_number_pending ( fcl_fore_q ) ) 
 		{
 			fcl_get_next_request ( op_type );
 		} //else {
-		//	printf ( " outstanding = %d \n", ioqueue_get_reqoutstanding ( fcl_global_queue ) );
+		//	printf ( " outstanding = %d \n", ioqueue_get_reqoutstanding ( fcl_fore_q ) );
 
 		//	ASSERT ( 0 );
 		//}
 	} else {
-		fcl_get_next_request ( op_type );
+		if ( ioqueue_get_reqoutstanding ( fcl_back_q ) < fcl_back_outstanding &&
+			 ioqueue_get_number_pending ( fcl_back_q ) ) 
+		{
+			fcl_get_next_request ( op_type );
+		}
 	}
 
-	ASSERT ( ioqueue_get_reqoutstanding ( fcl_global_queue ) <= fcl_outstanding ) ;
+	ASSERT ( ioqueue_get_reqoutstanding ( fcl_fore_q ) <= fcl_fore_outstanding ) ;
+	ASSERT ( ioqueue_get_reqoutstanding ( fcl_back_q ) <= fcl_back_outstanding ) ;
 
 #if 0 
 	printf ( " get next .. \n" );
-//	printf ( " Queue # of reqs = %d \n", ioqueue_get_number_of_requests ( fcl_global_queue ));
-	printf ( " Queue # of outstanding reqs = %d \n", ioqueue_get_reqoutstanding ( fcl_global_queue ));
-	printf ( " Queue # of reqs in queue = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ));
-	printf ( " Queue # of pending reqs = %d \n", ioqueue_get_number_pending ( fcl_global_queue ));
+//	printf ( " Queue # of reqs = %d \n", ioqueue_get_number_of_requests ( fcl_fore_q ));
+	printf ( " Queue # of outstanding reqs = %d \n", ioqueue_get_reqoutstanding ( fcl_fore_q ));
+	printf ( " Queue # of reqs in queue = %d \n", ioqueue_get_number_in_queue ( fcl_fore_q ));
+	printf ( " Queue # of pending reqs = %d \n", ioqueue_get_number_pending ( fcl_fore_q ));
 #endif 
 
-	//printf ( " Arrive Queue # of outstanding reqs = %d \n", ioqueue_get_reqoutstanding ( fcl_global_queue ));
+	//printf ( " Arrive Queue # of outstanding reqs = %d \n", ioqueue_get_reqoutstanding ( fcl_fore_q ));
 
 }
 
 
 
-void fcl_resize_cache () {
+int fcl_resize_cache () {
 	int curr_dirty_pages = fcl_cache_manager->cm_dirty_count;
 	int curr_clean_pages = fcl_cache_manager->cm_clean_count;
 
 	int dirty_diff = curr_dirty_pages - fcl_optimal_write_pages;
 	int clean_diff = curr_clean_pages - fcl_optimal_read_pages;
 
+	int remain = 0;
+
 	if ( curr_dirty_pages == fcl_optimal_write_pages &&
 		 curr_clean_pages == fcl_optimal_read_pages) {
-		return;
+		return remain;
 	}
 
-	printf ( " Resizing cache ... \n");
+
+	printf ( " Resizing cache ... dirty diff = %d, clean diff =  %d \n", dirty_diff, clean_diff);
+
+
 	if ( dirty_diff > 0 ) {
+		
+		if ( dirty_diff > FCL_MAX_DESTAGE ) {
+			dirty_diff = FCL_MAX_DESTAGE;
+			remain = 1;
+		}
+
 		printf (" Destage %d pages %.2fMB \n", dirty_diff, (double)dirty_diff/256 );
 		fcl_destage_request ( dirty_diff );
-	} 
+	} //else {
+	//	dirty_diff = 0;
+	//}
 
 	if ( clean_diff > 0 ) {
 		printf (" invalid %d pages %.2fMB \n", clean_diff, (double)clean_diff/256 );
 		fcl_invalid_request ( clean_diff );
-	}
-	
-	//if ( clean_diff > 0 || dirty_diff > 0 ){ 
-	//	printf (" issue resize requests \n");
+	}// else {
+	//	clean_diff = 0;
 	//}
+	
+	lru_set_dirty_size ( fcl_cache_manager, fcl_cache_manager->cm_dirty_count - dirty_diff, 
+											fcl_cache_manager->cm_clean_count - clean_diff );
 
-	lru_set_dirty_size ( fcl_cache_manager, fcl_optimal_write_pages, 
-											fcl_optimal_read_pages );
+	//lru_set_dirty_size ( fcl_cache_manager, fcl_optimal_write_pages, 
+	//										fcl_optimal_read_pages );
 
+	printf ( " fqueue = %d, bqueue = %d \n", 
+				ioqueue_get_number_in_queue ( fcl_fore_q ),
+				ioqueue_get_number_in_queue ( fcl_back_q ) );
 	printf ("\n");
+
+
+	return remain;
 }
 
 
@@ -1106,10 +1140,10 @@ int debug_arrive = 0;
 
 void fcl_request_arrive (ioreq_event *parent){
 
-	if ( ++debug_arrive % 10000 == 0 ) {
+	if ( ++debug_arrive % 50000 == 0 ) {
 		printf ( " FCL Req Arrive time = %.2f, blkno = %d, bcount = %d, flags = %d, devno = %d, fqueue = %d, bqueue = %d \n", 
-				simtime, parent->blkno, parent->bcount, parent->flags, parent->devno, ioqueue_get_number_in_queue ( fcl_global_queue ),
-				ioqueue_get_number_in_queue ( fcl_background_queue ) );
+				simtime, parent->blkno, parent->bcount, parent->flags, parent->devno, ioqueue_get_number_in_queue ( fcl_fore_q ),
+				ioqueue_get_number_in_queue ( fcl_back_q ) );
 		printf ( " FCL Dirty Size = %.2fMB, Clean Size = %.2fMB \n", (double)fcl_cache_manager->cm_dirty_count/256, (double)fcl_cache_manager->cm_clean_count/256);
 //		lru_print ( fcl_active_block_manager ) ;
 	}
@@ -1140,6 +1174,9 @@ void fcl_request_arrive (ioreq_event *parent){
 																fcl_optimal_read_pages,
 																fcl_optimal_write_pages );
 				fcl_resize_trigger = 1;
+
+				fcl_decay_hit_tracker ( fcl_write_hit_tracker, fcl_hit_tracker_segment );
+				fcl_decay_hit_tracker ( fcl_read_hit_tracker, fcl_hit_tracker_segment );
 			}
 		}
 
@@ -1711,8 +1748,8 @@ void fcl_timer_event ( timer_event *timereq) {
 	//printf ( " Timer Inttupt !! %f, %f \n", simtime, timereq->time );
 
 
-	if ( ioqueue_get_number_in_queue ( fcl_global_queue )  == 0 && 
-		 ioqueue_get_number_in_queue ( fcl_background_queue ) == 0 && 
+	if ( ioqueue_get_number_in_queue ( fcl_fore_q )  == 0 && 
+		 ioqueue_get_number_in_queue ( fcl_back_q ) == 0 && 
 		 fcl_timer_func ) 
 	{
 	//	printf (" stage event ... \n" );
@@ -1720,11 +1757,11 @@ void fcl_timer_event ( timer_event *timereq) {
 
 		//printf (" start background destage \n" );
 		ret = fcl_destage_request ( FCL_MAX_DESTAGE );
-		if ( ret ) 
-			printf ( " Background Destage ... = %d req\n", ret );
+		//if ( ret ) 
+		//	printf ( " Background Destage ... = %d req\n", ret );
 
 	} else {
-		printf ( " Destroy Timer Event \n");
+		//printf ( " Destroy Timer Event \n");
 	}
 
 	fcl_timer_func = NULL;
@@ -1752,13 +1789,16 @@ void fcl_make_timer () {
 
 int fcl_all_queue_empty () {
 
-	if ( ioqueue_get_number_in_queue ( fcl_global_queue )  == 0 && 
-		 ioqueue_get_number_in_queue ( fcl_background_queue ) == 0 )
+	if ( ioqueue_get_number_in_queue ( fcl_fore_q )  == 0 && 
+		 ioqueue_get_number_in_queue ( fcl_back_q ) == 0 )
 		return 1;
 
 	return 0;
 }
 
+void fcl_discard_deleted_pages () {
+	reverse_map_discard_freeblk ();
+}
 void _fcl_request_complete ( ioreq_event *child ) {
 	ioreq_event *parent, *req2;
 	int total_req = 0;	
@@ -1815,27 +1855,34 @@ void _fcl_request_complete ( ioreq_event *child ) {
 		//printf (" opid = %d Complete %.2f %.2f %.2f  \n", parent->opid, parent->time, simtime, simtime - parent->time );
 
 		if ( parent->tempint1 == FCL_OPERATION_NORMAL ) {
-			req2 = ioqueue_physical_access_done (fcl_global_queue, parent);
+			req2 = ioqueue_physical_access_done (fcl_fore_q, parent);
 
 			ASSERT ( simtime - parent->time >= 0 );
 
 			fcl_complete_count++;
 			//fcl_response_avg += ( simtime - parent->time);
 
-			if ( ioqueue_get_reqoutstanding ( fcl_global_queue ) < fcl_outstanding &&
-					ioqueue_get_number_pending ( fcl_global_queue ) ) {
+			if ( ioqueue_get_reqoutstanding ( fcl_fore_q ) < fcl_fore_outstanding &&
+					ioqueue_get_number_pending ( fcl_fore_q ) ) {
 				//printf (" next request \n");
 				fcl_get_next_request ( FCL_OPERATION_NORMAL );
 
-				ASSERT ( ioqueue_get_reqoutstanding ( fcl_global_queue ) <= fcl_outstanding ) ;
+				ASSERT ( ioqueue_get_reqoutstanding ( fcl_fore_q ) <= fcl_fore_outstanding ) ;
 			}
 
 		} else {
-			req2 = ioqueue_physical_access_done (fcl_background_queue, parent);
+			req2 = ioqueue_physical_access_done (fcl_back_q, parent);
 
-			if ( ioqueue_get_number_pending ( fcl_background_queue ) ) {
+			/*if ( ioqueue_get_number_pending ( fcl_back_q ) ) {
 				ASSERT ( 0 );
 				fcl_get_next_request ( FCL_OPERATION_DESTAGING );
+			}*/
+			if ( ioqueue_get_reqoutstanding ( fcl_back_q ) < fcl_back_outstanding &&
+					ioqueue_get_number_pending ( fcl_back_q ) ) {
+
+				fcl_get_next_request ( FCL_OPERATION_DESTAGING );
+
+				ASSERT ( ioqueue_get_reqoutstanding ( fcl_back_q ) <= fcl_back_outstanding ) ;
 			}
 
 		}
@@ -1845,11 +1892,11 @@ void _fcl_request_complete ( ioreq_event *child ) {
 		//printf (" opid = %d Complete %.2f %.2f %.2f  \n", parent->opid, parent->time, simtime, simtime - parent->time );
 #if 0 
 		printf (" foutstand = %d, fqueue  = %d \n", 
-				ioqueue_get_reqoutstanding ( fcl_global_queue ), 
-				ioqueue_get_number_in_queue ( fcl_global_queue ) );
+				ioqueue_get_reqoutstanding ( fcl_fore_q ), 
+				ioqueue_get_number_in_queue ( fcl_fore_q ) );
 		printf (" boutstand = %d, bqueue  = %d \n", 
-				ioqueue_get_reqoutstanding ( fcl_background_queue ), 
-				ioqueue_get_number_in_queue ( fcl_background_queue ) );
+				ioqueue_get_reqoutstanding ( fcl_back_q ), 
+				ioqueue_get_number_in_queue ( fcl_back_q ) );
 #endif 
 
 #if 0 
@@ -1866,10 +1913,10 @@ void _fcl_request_complete ( ioreq_event *child ) {
 		}
 
 #endif 
-		//printf ( " *Complete Queue # of outstanding reqs = %d \n", ioqueue_get_reqoutstanding ( fcl_global_queue ));
+		//printf ( " *Complete Queue # of outstanding reqs = %d \n", ioqueue_get_reqoutstanding ( fcl_fore_q ));
 		fprintf ( stdout, " ** %.2f %.2f (%.2f)  Complete parent req ... %d %d %d \n", simtime, parent->time, simtime - parent->time,  parent->blkno, parent->bcount, parent->flags);
 		//printf ( " ** %.2f %.2f (%.2f)  Complete parent req ... %d %d %d, queue = %d \n", simtime, parent->time, simtime - parent->time,  parent->blkno, parent->bcount, parent->flags,
-		//		ioqueue_get_number_in_queue ( fcl_global_queue ) );
+		//		ioqueue_get_number_in_queue ( fcl_fore_q ) );
 		//ASSERT ( !(parent->flags & READ) );
 		//ASSERT (0);
 	}
@@ -1877,39 +1924,60 @@ void _fcl_request_complete ( ioreq_event *child ) {
 
 	// issue pending I/Os 
 	if ( ll_get_size ( fcl_pending_manager )  &&
-		 ioqueue_get_number_in_queue ( fcl_background_queue ) == 0 ) {
-
+		 ioqueue_get_number_in_queue ( fcl_back_q ) == 0 ) 
+	{
 		//printf (" Try to issue pending I/Os \n" );
-
 		fcl_issue_pending_parent ();
 	}
 
-	if ( fcl_resize_trigger  && fcl_all_queue_empty() ) { 
-		fcl_resize_cache ();
-		fcl_resize_trigger = 0;
+	if ( fcl_resize_trigger && fcl_all_queue_empty() ) { 
+		int remain = fcl_resize_cache ();
+
+		fcl_resize_trigger = remain ? 1 : 0;
+
+		//fcl_fore_outstanding = 0; // disable foreground I/O requests 
 	}
+#if 0 
+	if ( ioqueue_get_number_in_queue ( fcl_back_q ) == 0 ) {
+
+		fcl_fore_outstanding = 1 ;
+		
+		if ( ioqueue_get_reqoutstanding ( fcl_fore_q ) < fcl_fore_outstanding &&
+				ioqueue_get_number_pending ( fcl_fore_q ) ) {
+			//printf (" next request \n");
+			fcl_get_next_request ( FCL_OPERATION_NORMAL );
+
+			ASSERT ( ioqueue_get_reqoutstanding ( fcl_fore_q ) <= fcl_fore_outstanding ) ;
+		}
+	}
+#endif 
 
 	/* on-demand group destaging */
 	//*
-	if ( 0 && 
-		fcl_all_queue_empty() &&
-		fcl_destage_count && 
-		parent->tempint1 == FCL_OPERATION_NORMAL 
+	if ( fcl_all_queue_empty() &&
+		 fcl_cache_manager->cm_dirty_free == 0 &&
+		 parent->tempint1 == FCL_OPERATION_NORMAL 
 	)
 	{
-		//printf (" On demand destage  %f \n", simtime );
-		fcl_destage_request ( fcl_destage_count );
-		fcl_destage_count  = 0;
+		fcl_destage_request ( FCL_MAX_DESTAGE );
+
+		printf (" On demand destage  %f, free = %d  \n", simtime,
+				fcl_cache_manager->cm_dirty_free );
+
+		//printf (" On demand destage  %f, free = %d  \n", simtime,
+		//		fcl_cache_manager->cm_dirty_size - fcl_cache_manager->cm_dirty_count  );
 	}
 	//*/
 
+	if ( fcl_all_queue_empty () ) {
+		fcl_discard_deleted_pages ();
+	}
 	/* background destaging  */ 
-
 	if ( fcl_all_queue_empty () &&
 		 fcl_timer_func == NULL && 
 		 !feof ( disksim->iotracefile) )
 	{
-		//printf ( " FCL Queue Length = %d \n", ioqueue_get_number_in_queue ( fcl_global_queue ) );
+		//printf ( " FCL Queue Length = %d \n", ioqueue_get_number_in_queue ( fcl_fore_q ) );
 		if ( fcl_params->fpa_idle_detect_time > 0.0 )
 			fcl_make_timer ();
 	}
@@ -1979,20 +2047,27 @@ void fcl_print_parameters () {
 	printf ( "\n");
 }
 
+void fcl_initial_discard_pages () {
+	int i;
 
+	for ( i = 0; i < flash_usable_pages; i++ ) {
+		ssd_trim_command ( SSD, i * FCL_PAGE_SIZE);
+	}
+	
+}	
 void fcl_init () {
 	int lru_size = 50000;
 	ssd_t *currssd = getssd ( SSD );
 
-
 	fcl_print_parameters () ;
-
 
 	flash_total_pages =  ssd_get_total_pages ( currssd );
 
 	flash_usable_pages = device_get_number_of_blocks (SSD)/FCL_PAGE_SIZE;
 	flash_usable_pages = flash_usable_pages * fcl_params->fpa_max_pages_percent / 100;
 	flash_usable_sectors = flash_usable_pages * FCL_PAGE_SIZE; 
+
+	fcl_initial_discard_pages ();
 
 	printf (" ssd total pages = %d, usable pages = %d \n", flash_total_pages, flash_usable_pages ); 
 
@@ -2004,18 +2079,21 @@ void fcl_init () {
 
 
 	lru_init ( &fcl_cache_manager, "LRU", lru_size, lru_size, 1, 0);
-	lru_set_dirty_size ( fcl_cache_manager, lru_size/2, lru_size-lru_size/2);
+	if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_FIXED)
+		lru_set_dirty_size ( fcl_cache_manager, lru_size - 1024, 1024);
+	else
+		lru_set_dirty_size ( fcl_cache_manager, lru_size/2, lru_size-lru_size/2);
 
 	lru_init ( &fcl_active_block_manager, "AtiveBlockManager", lru_size, lru_size, 1, 0);
 
 	reverse_map_create ( lru_size + 1 );
 
 	// alloc queue memory 
-	fcl_global_queue = ioqueue_createdefaultqueue();
-	ioqueue_initialize (fcl_global_queue, 0);
+	fcl_fore_q = ioqueue_createdefaultqueue();
+	ioqueue_initialize (fcl_fore_q, 0);
 
-	fcl_background_queue = ioqueue_createdefaultqueue();
-	ioqueue_initialize (fcl_background_queue, 0);
+	fcl_back_q = ioqueue_createdefaultqueue();
+	ioqueue_initialize (fcl_back_q, 0);
 
 	//constintarrtime = 10.0;
 	//constintarrtime = 5.0;
@@ -2055,8 +2133,8 @@ void fcl_exit () {
 #undef fprintf 
 	
 	fprintf ( stdout , " fqueue size = %d, bqueue size = %d \n", 
-			ioqueue_get_number_in_queue ( fcl_global_queue ), 
-			ioqueue_get_number_in_queue ( fcl_background_queue ) );
+			ioqueue_get_number_in_queue ( fcl_fore_q ), 
+			ioqueue_get_number_in_queue ( fcl_back_q ) );
 
 	fprintf ( outputfile , " FCL: Arrive Request Count = %d \n", fcl_arrive_count );
 	fprintf ( outputfile , " FCL: Complete Request Count = %d \n", fcl_complete_count );
@@ -2073,13 +2151,13 @@ void fcl_exit () {
 	CACHE_CLOSE(fcl_cache_manager, 1);
 	CACHE_CLOSE(fcl_active_block_manager, 0);
 
-	fcl_global_queue->printqueuestats = TRUE;
-	ioqueue_printstats( &fcl_global_queue, 1, " FCL Foreground: ");
-	free (fcl_global_queue);
+	fcl_fore_q->printqueuestats = TRUE;
+	ioqueue_printstats( &fcl_fore_q, 1, " FCL Foreground: ");
+	free (fcl_fore_q);
 
-	fcl_background_queue->printqueuestats = TRUE;
-	ioqueue_printstats( &fcl_background_queue, 1, " FCL Background: ");
-	free (fcl_background_queue);
+	fcl_back_q->printqueuestats = TRUE;
+	ioqueue_printstats( &fcl_back_q, 1, " FCL Background: ");
+	free (fcl_back_q);
 
 	ll_release ( fcl_pending_manager );
 	// free queue memory

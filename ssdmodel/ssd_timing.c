@@ -330,9 +330,9 @@ double _ssd_write_page_osr(ssd_t *s, ssd_element_metadata *metadata, int lpn)
             metadata->plane_meta[prev_plane].valid_pages --;
             ssd_assert_valid_pages(prev_plane, metadata, s);
         }
-    } else {
-        fprintf(stderr, "Error: This case should not be executed\n");
-    }
+    } //else {
+       // fprintf(stderr, "Error: This case should not be executed\n");
+   // }
 
     // add the entry to the lba table
     metadata->lba_table[lpn] = active_page;

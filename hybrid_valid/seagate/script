@@ -1,0 +1,5 @@
+../../../src/disksim hybrid-seagate-util10.parv util10.outv ascii ../financial_trace.txt 0 &
+../../../src/disksim hybrid-seagate-util30.parv util30.outv ascii ../financial_trace.txt 0 &
+../../../src/disksim hybrid-seagate-util50.parv util50.outv ascii ../financial_trace.txt 0 &
+../../../src/disksim hybrid-seagate-util70.parv util70.outv ascii ../financial_trace.txt 0 &
+../../../src/disksim hybrid-seagate-util90.parv util90.outv ascii ../financial_trace.txt 0 &

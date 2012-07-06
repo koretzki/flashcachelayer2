@@ -74,6 +74,9 @@ struct cache_manager{
  int cm_dirty_size;
  int cm_clean_size;
 
+ int cm_dirty_free;
+ int cm_clean_free;
+
  int cm_dirty_count;
  int cm_clean_count;
 

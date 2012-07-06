@@ -643,6 +643,45 @@ static void ssd_activate_elem(ssd_t *currdisk, int elem_num, ioreq_event *curr )
 }
 
 
+void ssd_trim_command(int devno, int blkno){
+	ssd_t *currdisk = getssd(devicenos[devno]);		
+	ssd_t *s = currdisk;
+	int elem_num = currdisk->timing_t->choose_element(currdisk->timing_t, blkno);
+	ssd_element *elem = &currdisk->elements[elem_num];
+	ssd_element_metadata *metadata = &(s->elements[elem_num].metadata);
+	int lpn = ssd_logical_pageno(blkno, currdisk);
+	int plane_num = lpn % currdisk->params.planes_per_pkg;
+	int prev_page = metadata->lba_table[lpn];
+	int prev_block = SSD_PAGE_TO_BLOCK(prev_page, s);
+	int pagepos_in_prev_block = prev_page % s->params.pages_per_block;
+	int prev_plane = metadata->block_usage[prev_block].plane_num;
+	
+	///metadata = &(s->elements[elem_num].metadata);
+ 
+	if (prev_page != -1) {
+		if (metadata->block_usage[prev_block].page[pagepos_in_prev_block] != lpn) {
+			fprintf(stderr, "Error: lpn %d not found in prev block %d pos %d\n",
+				lpn, prev_block, pagepos_in_prev_block);
+
+			fprintf(stderr, "Error: Page %d\n",prev_page);
+
+			ASSERT(0);
+		} else {
+			metadata->block_usage[prev_block].page[pagepos_in_prev_block] = -1;
+			metadata->block_usage[prev_block].num_valid --;
+			metadata->plane_meta[prev_plane].valid_pages --;
+			ssd_assert_valid_pages(prev_plane, metadata, s);
+		}
+		metadata->lba_table[lpn] = -1;
+		//if(elem_num == 1 && lpn == 9152)
+		//	printf(" elem = %d, lpn = %d\n", elem_num, lpn);
+	}
+	
+	
+	// find the planes to which the reqs are to be issued
+	
+}
+
 static void ssd_media_access_request_element (ioreq_event *curr)
 {
    ssd_t *currdisk = getssd(devicenos[curr->devno]);
