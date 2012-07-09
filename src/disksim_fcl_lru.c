@@ -80,7 +80,7 @@ void lru_set_dirty_size ( struct cache_manager *c, int dirty_size, int clean_siz
 	c->cm_clean_free += diff;
 	
 	diff = ( dirty_size + clean_size ) - c->cm_size;
-	c->cm_size += diff;
+	//c->cm_size += diff;
 	c->cm_free += diff;
 
 	//if ( diff > 0 )
@@ -89,13 +89,22 @@ void lru_set_dirty_size ( struct cache_manager *c, int dirty_size, int clean_siz
 	//	lru_dec ( c, diff*-1 );
 
 	//c->cm_size = dirty_size + clean_size;
-	printf ( " clean free = %d, dirty free = %d \n", c->cm_clean_free, c->cm_dirty_free );
+	//printf ( " clean free = %d, dirty free = %d \n", c->cm_clean_free, c->cm_dirty_free );
 
 	ASSERT ( dirty_size + clean_size == c->cm_size );
 
 }
 
-void lru_close(struct cache_manager *c, int print){
+void lru_print ( struct cache_manager *c, FILE *fp ) {
+
+	fprintf(fp, " %s hit ratio = %f\n",c->cm_name, (float)c->cm_hit/c->cm_ref);
+	fprintf(fp, " %s Destage Count = %d\n",c->cm_name, c->cm_destage_count);
+	fprintf(fp, " %s Stage Count = %d\n",c->cm_name, c->cm_stage_count);
+	fprintf(fp, " %s Dirty Count = %d \n",c->cm_name, c->cm_dirty_count );
+	fprintf(fp, " %s List Count = %d \n", c->cm_name, c->cm_count );
+}
+
+void lru_close(struct cache_manager *c){
 	struct list_head *head = &c->cm_head;
 	struct list_head *ptr;
 	struct lru_node *ln;
@@ -104,15 +113,6 @@ void lru_close(struct cache_manager *c, int print){
 	int total = 0;
 	int read_count = 0;
 	int write_count = 0;
-
-	if ( print ) {
-		fprintf(stdout, " %s hit ratio = %f\n",c->cm_name, (float)c->cm_hit/c->cm_ref);
-		fprintf(stdout, " %s Destage Count = %d\n",c->cm_name, c->cm_destage_count);
-		fprintf(stdout, " %s Stage Count = %d\n",c->cm_name, c->cm_stage_count);
-		fprintf(stdout, " %s Dirty Count = %d \n",c->cm_name, c->cm_dirty_count );
-		fprintf(stdout, " %s List Count = %d \n", c->cm_name, c->cm_count );
-
-	}
 
 
 	list_for_each ( ptr, head ) {
@@ -428,6 +428,7 @@ void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,
 	//(*c)->cache_inc = lru_inc;
 	//(*c)->cache_dec = lru_dec;
 	(*c)->cache_alloc = lru_alloc;
+	(*c)->cache_print = lru_print;
 
 	CACHE_OPEN((*c), size, max_sz);
 
@@ -438,6 +439,7 @@ void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,
 	(*c)->cm_highwater = high;
 }
 
+#if 0 
 void lru_print ( struct cache_manager *c ) {
 	struct list_head *head, *ptr;
 	struct lru_node *ln;
@@ -452,7 +454,7 @@ void lru_print ( struct cache_manager *c ) {
 
 
 }
-
+#endif 
 struct lru_node *m_lru_insert(struct cache_manager **lru_manager, int k, int blkno){
 	struct lru_node *ln;
 	int j;
@@ -519,7 +521,7 @@ void mlru_exit(struct cache_manager **lru_manager,int lru_num){
 	for(i = 0;i < lru_num;i++){		
 
 		mlru_hit += lru_manager[i]->cm_hit;
-		CACHE_CLOSE(lru_manager[i], 0);
+		CACHE_CLOSE(lru_manager[i]);
 
 		//printf(" %d Multi LRU Hit Ratio = %f \n", i, (float)mlru_hit/lru_manager[0]->cm_ref);
 	}

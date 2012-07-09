@@ -675,6 +675,7 @@ void ssd_trim_command(int devno, int blkno){
 		metadata->lba_table[lpn] = -1;
 		//if(elem_num == 1 && lpn == 9152)
 		//	printf(" elem = %d, lpn = %d\n", elem_num, lpn);
+		//printf ( " discard pages = %d \n", blkno );
 	}
 	
 	

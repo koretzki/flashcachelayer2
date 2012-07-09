@@ -25,7 +25,8 @@ int main(){
 		}
 	}	
 
-	CACHE_CLOSE(lru_manager, 1);
+	CACHE_PRINT(lru_manager, stdout);
+	CACHE_CLOSE(lru_manager);
 
 	return 0;
 }

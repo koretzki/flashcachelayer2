@@ -26,7 +26,7 @@
 struct ioq			 *fcl_fore_q = NULL;
 struct ioq			 *fcl_back_q = NULL;
 
-struct cache_manager *fcl_cache_manager;
+struct cache_manager *fcl_cache_mgr;
 struct cache_manager *fcl_active_block_manager;
 
 struct cache_manager **fcl_write_hit_tracker;
@@ -272,7 +272,7 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 		replace_type = parent->flags & READ;
 
 	// evict the LRU position node from the LRU list
-	remove_ln = CACHE_REPLACE(fcl_cache_manager, 0, replace_type);
+	remove_ln = CACHE_REPLACE(fcl_cache_mgr, 0, replace_type);
 
 	if ( remove_ln ) {
 		ASSERT ( remove_ln->cn_flag == FCL_CACHE_FLAG_SEALED );
@@ -287,7 +287,7 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 		active_ln = fcl_lookup_active_list ( remove_ln->cn_blkno );
 
 		if ( active_ln && active_ln->cn_time != simtime ) {
-			lru_print ( fcl_active_block_manager );	
+			//lru_print ( fcl_active_block_manager );	
 			printf ( " %d block %d is active ..arrival time = %f, simtime = %f  \n", active_ln->cn_blkno, blkno, active_ln->cn_time, simtime ) ;
 			printf ( " parent blk = %d, bcount = %d \n", parent->blkno, parent->bcount );
 			printf ( " Queue length = %d \n", ioqueue_get_number_in_queue ( fcl_fore_q )) ; 
@@ -299,7 +299,7 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 		// move dirty data from SSD to HDD
 		if ( remove_ln->cn_dirty ) {
 			_fcl_make_destage_req ( parent, remove_ln, 0 );
-			ASSERT ( fcl_cache_manager->cm_dirty_count >= 0 );
+			ASSERT ( fcl_cache_mgr->cm_dirty_count >= 0 );
 
 			/* if ( fcl_destage_count == 0 ) 
 				fcl_destage_count = FCL_MAX_DESTAGE; */
@@ -309,9 +309,21 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 	}
 
 	if ( ln == NULL ) {
-		ln = CACHE_ALLOC(fcl_cache_manager, NULL, blkno);
+		ln = CACHE_ALLOC(fcl_cache_mgr, NULL, blkno);
 		ln->cn_flag = FCL_CACHE_FLAG_FILLING;
 		ln->cn_ssd_blk = reverse_map_alloc_blk( blkno );
+
+		if ( ln->cn_ssd_blk < 0  ) {
+			printf ( " flags = %d \n", parent->flags );
+			printf ( " fqueue = %d, bqueue = %d \n", 
+				ioqueue_get_number_in_queue ( fcl_fore_q ),
+				ioqueue_get_number_in_queue ( fcl_back_q ) );
+			printf ( " dirty count = %d, clean count = %d \n", fcl_cache_mgr->cm_dirty_count, fcl_cache_mgr->cm_clean_count );
+			printf ( " dirty size = %d, clean size = %d \n", fcl_cache_mgr->cm_dirty_size, fcl_cache_mgr->cm_clean_size );
+			printf ( " dirty free = %d, clean free = %d \n", fcl_cache_mgr->cm_dirty_free, fcl_cache_mgr->cm_clean_free );
+			printf ( " real total  = %d, size =  %d \n", fcl_cache_mgr->cm_dirty_count +  fcl_cache_mgr->cm_clean_count, fcl_cache_mgr->cm_size );
+
+		}
 		ln->cn_dirty = 0;
 	} 
 
@@ -326,12 +338,12 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 	struct lru_node *ln = NULL;
 
-	ln = CACHE_SEARCH(fcl_cache_manager, blkno);
+	ln = CACHE_SEARCH(fcl_cache_mgr, blkno);
 
 	// hit case  
 	if(ln){
 		// remove this node to move the MRU position
-		ln = CACHE_REMOVE(fcl_cache_manager, ln);
+		ln = CACHE_REMOVE(fcl_cache_mgr, ln);
 
 		// TODO: this child request must be blocked  
 		if ( ln->cn_flag == FCL_CACHE_FLAG_FILLING ) {
@@ -359,7 +371,7 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 		}
 	}
 
-	CACHE_INSERT(fcl_cache_manager, ln);
+	CACHE_INSERT(fcl_cache_mgr, ln);
 
 }
 
@@ -370,7 +382,7 @@ void fcl_make_stage_req (ioreq_event *parent, int blkno) {
 	int filling = 0;
 	struct lru_node *ln = NULL;
 
-	ln = CACHE_PRESEARCH(fcl_cache_manager, blkno);
+	ln = CACHE_PRESEARCH(fcl_cache_mgr, blkno);
 
 	// hit case  
 	if( ln ){
@@ -381,7 +393,7 @@ void fcl_make_stage_req (ioreq_event *parent, int blkno) {
 		ln = fcl_replace_cache( parent, blkno, NULL );
 	}
 	
-	CACHE_INSERT(fcl_cache_manager, ln);
+	CACHE_INSERT(fcl_cache_mgr, ln);
 }
 
 void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) {
@@ -389,7 +401,7 @@ void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_in
 	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), READ, list_index++, 0);
 	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, list_index++, READ);
 
-	fcl_cache_manager->cm_stage_count++;
+	fcl_cache_mgr->cm_stage_count++;
 
 }
 
@@ -400,7 +412,7 @@ void _fcl_make_destage_req ( ioreq_event *parent, struct lru_node *ln, int list_
 	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, list_index++, 0);
 	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, list_index++, 0);
 
-	fcl_cache_manager->cm_destage_count++;
+	fcl_cache_mgr->cm_destage_count++;
 
 }
 
@@ -414,14 +426,14 @@ void fcl_make_destage_req (ioreq_event *parent, int blkno, int replace) {
 	int	list_index = 0;
 	struct lru_node *ln = NULL;
 
-	ln = CACHE_SEARCH(fcl_cache_manager, blkno);
+	ln = CACHE_SEARCH(fcl_cache_mgr, blkno);
 
 	// miss  case  
 	ASSERT ( ln != NULL );
 
 	if ( replace ) {
 		// remove this node to move the MRU position
-		ln = CACHE_REMOVE(fcl_cache_manager, ln);
+		ln = CACHE_REMOVE(fcl_cache_mgr, ln);
 
 		// TODO: this child request must be blocked  
 		if ( ln->cn_flag == FCL_CACHE_FLAG_FILLING ) {
@@ -438,7 +450,7 @@ void fcl_make_destage_req (ioreq_event *parent, int blkno, int replace) {
 		free ( ln );
 	} else {
 		ln->cn_dirty = 0;
-		lru_move_clean_list ( fcl_cache_manager, ln );
+		lru_move_clean_list ( fcl_cache_mgr, ln );
 	}
 
 }
@@ -545,7 +557,7 @@ void fcl_make_request ( ioreq_event *parent, int blkno ) {
 		case FCL_OPERATION_DESTAGING:
 			//printf (" Destage Req blkno = %d \n", blkno);
 
-			if ( fcl_cache_manager->cm_clean_free > 1 ) 
+			if ( fcl_cache_mgr->cm_clean_free > 1 ) 
 				fcl_make_destage_req ( parent, blkno, 0 );
 			else 
 				fcl_make_destage_req ( parent, blkno, 1 );
@@ -592,10 +604,10 @@ void fcl_split_parent_request (ioreq_event *parent) {
 
 		child = (ioreq_event *)node->data;
 
-		ln = CACHE_PRESEARCH ( fcl_cache_manager, child->blkno);
+		ln = CACHE_PRESEARCH ( fcl_cache_mgr, child->blkno);
 
 		if ( ln ) 
-			CACHE_MOVEMRU ( fcl_cache_manager, ln );
+			CACHE_MOVEMRU ( fcl_cache_mgr, ln );
 
 		node = node->next;
 	} 
@@ -1081,48 +1093,67 @@ void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {
 
 
 int fcl_resize_cache () {
-	int curr_dirty_pages = fcl_cache_manager->cm_dirty_count;
-	int curr_clean_pages = fcl_cache_manager->cm_clean_count;
 
-	int dirty_diff = curr_dirty_pages - fcl_optimal_write_pages;
-	int clean_diff = curr_clean_pages - fcl_optimal_read_pages;
-
+	int dirty_diff = fcl_cache_mgr->cm_dirty_size - fcl_optimal_write_pages;
+	int clean_diff = fcl_cache_mgr->cm_clean_size - fcl_optimal_read_pages;
+	int target_dirty = 0;
+	int target_clean = 0;
 	int remain = 0;
 
-	if ( curr_dirty_pages == fcl_optimal_write_pages &&
-		 curr_clean_pages == fcl_optimal_read_pages) {
+
+	printf ( " Resizing cache ...\n");
+
+	printf ( " dirty diff = %d, clean diff %d \n", dirty_diff, clean_diff );
+	ASSERT ( -1*dirty_diff == clean_diff );
+
+	printf ( " clean free = %d, dirty free = %d \n", fcl_cache_mgr->cm_clean_free, fcl_cache_mgr->cm_dirty_free ); 
+
+	printf ( " opclean size = %d, opdirty size = %d \n", fcl_optimal_read_pages, fcl_optimal_write_pages );
+	printf ( " clean size = %d, dirty size = %d \n", fcl_cache_mgr->cm_clean_size, fcl_cache_mgr->cm_dirty_size ); 
+
+	// increase 
+	//if ( dirty_diff > FCL_MAX_DESTAGE ) 
+	//	target_dirty = fcl_cache_mgr->cm_dirty_size + FCL_MAX_DESTAGE;
+	
+
+	lru_set_dirty_size ( fcl_cache_mgr, fcl_optimal_write_pages, fcl_optimal_read_pages );
+
+	if ( fcl_cache_mgr->cm_dirty_free >= 0 && fcl_cache_mgr->cm_clean_free >= 0 ) {
+		printf ( " \n ");
 		return remain;
 	}
 
 
-	printf ( " Resizing cache ... dirty diff = %d, clean diff =  %d \n", dirty_diff, clean_diff);
+	//printf ( " dirty diff = %d, clean diff =  %d \n", dirty_diff, clean_diff);
+	printf ( " clean free = %d, dirty free = %d \n", fcl_cache_mgr->cm_clean_free, fcl_cache_mgr->cm_dirty_free ); 
+	printf ( " clean count = %d, dirty count = %d \n", fcl_cache_mgr->cm_clean_count, fcl_cache_mgr->cm_dirty_count ); 
+	printf ( " Total count = %d, Size = %d \n", fcl_cache_mgr->cm_clean_count + fcl_cache_mgr->cm_dirty_count, fcl_cache_mgr->cm_size ); 
 
-
-	if ( dirty_diff > 0 ) {
-		
+//	ASSERT (0);
+	if ( fcl_cache_mgr->cm_dirty_free <  0 ) {
+		dirty_diff = fcl_cache_mgr->cm_dirty_free * -1;	
 		if ( dirty_diff > FCL_MAX_DESTAGE ) {
-			dirty_diff = FCL_MAX_DESTAGE;
+			dirty_diff = FCL_MAX_DESTAGE * 8 ;
 			remain = 1;
 		}
 
-		printf (" Destage %d pages %.2fMB \n", dirty_diff, (double)dirty_diff/256 );
+		printf (" **Destage %d dirty pages %.2fMB \n", dirty_diff, (double)dirty_diff/256 );
+
 		fcl_destage_request ( dirty_diff );
-	} //else {
-	//	dirty_diff = 0;
-	//}
+	} 
 
-	if ( clean_diff > 0 ) {
-		printf (" invalid %d pages %.2fMB \n", clean_diff, (double)clean_diff/256 );
+	if ( fcl_cache_mgr->cm_clean_free < 0 ) {
+
+		clean_diff = fcl_cache_mgr->cm_clean_free * -1;
+		printf (" **Remove %d clean pages %.2fMB \n", clean_diff, (double)clean_diff/256 );
+
 		fcl_invalid_request ( clean_diff );
-	}// else {
-	//	clean_diff = 0;
-	//}
-	
-	lru_set_dirty_size ( fcl_cache_manager, fcl_cache_manager->cm_dirty_count - dirty_diff, 
-											fcl_cache_manager->cm_clean_count - clean_diff );
+	}
 
-	//lru_set_dirty_size ( fcl_cache_manager, fcl_optimal_write_pages, 
-	//										fcl_optimal_read_pages );
+
+
+
+	ASSERT ( fcl_cache_mgr->cm_size  == fcl_cache_mgr->cm_dirty_size + fcl_cache_mgr->cm_clean_size );
 
 	printf ( " fqueue = %d, bqueue = %d \n", 
 				ioqueue_get_number_in_queue ( fcl_fore_q ),
@@ -1144,7 +1175,7 @@ void fcl_request_arrive (ioreq_event *parent){
 		printf ( " FCL Req Arrive time = %.2f, blkno = %d, bcount = %d, flags = %d, devno = %d, fqueue = %d, bqueue = %d \n", 
 				simtime, parent->blkno, parent->bcount, parent->flags, parent->devno, ioqueue_get_number_in_queue ( fcl_fore_q ),
 				ioqueue_get_number_in_queue ( fcl_back_q ) );
-		printf ( " FCL Dirty Size = %.2fMB, Clean Size = %.2fMB \n", (double)fcl_cache_manager->cm_dirty_count/256, (double)fcl_cache_manager->cm_clean_count/256);
+		printf ( " FCL Dirty Size = %.2fMB, Clean Size = %.2fMB \n", (double)fcl_cache_mgr->cm_dirty_count/256, (double)fcl_cache_mgr->cm_clean_count/256);
 //		lru_print ( fcl_active_block_manager ) ;
 	}
 	//fprintf ( stdout, " FCL Req Arrive time = %f, blkno = %d, bcount = %d \n", 
@@ -1166,10 +1197,10 @@ void fcl_request_arrive (ioreq_event *parent){
 									&fcl_optimal_read_pages, &fcl_optimal_write_pages);
 
 				printf ( " -> curr read pages = %d (%d), curr write pages = %d (%d)\n", 
-																fcl_cache_manager->cm_clean_count,
-																fcl_cache_manager->cm_clean_size,
-																fcl_cache_manager->cm_dirty_count,
-																fcl_cache_manager->cm_dirty_size);
+																fcl_cache_mgr->cm_clean_count,
+																fcl_cache_mgr->cm_clean_size,
+																fcl_cache_mgr->cm_dirty_count,
+																fcl_cache_mgr->cm_dirty_size);
 				printf ( " -> opti read pages = %d, opti write pages = %d \n", 
 																fcl_optimal_read_pages,
 																fcl_optimal_write_pages );
@@ -1208,7 +1239,7 @@ void fcl_seal_complete_request ( ioreq_event *parent ) {
 
 	for (i = 0; i < page_count; i++){
 		blkno = parent->blkno + i * FCL_PAGE_SIZE;
-		node = CACHE_PRESEARCH(fcl_cache_manager, blkno);
+		node = CACHE_PRESEARCH(fcl_cache_mgr, blkno);
 
 		ASSERT ( node != NULL );
 	
@@ -1240,7 +1271,7 @@ void fcl_seal_complete_request ( ioreq_event *parent ) {
 		child = (ioreq_event *)active_node->data;
 
 		//printf (" seal blk = %d \n", child->blkno );
-		ln = CACHE_PRESEARCH(fcl_cache_manager, child->blkno);
+		ln = CACHE_PRESEARCH(fcl_cache_mgr, child->blkno);
 
 		ASSERT ( ln != NULL );
 	
@@ -1594,7 +1625,7 @@ void fcl_stage_request () {
 	for ( i = 0; i < list_count; i++ ) {
 		int blkno = i * FCL_PAGE_SIZE;
 
-		if ( CACHE_PRESEARCH ( fcl_cache_manager, blkno ) == NULL ) {
+		if ( CACHE_PRESEARCH ( fcl_cache_mgr, blkno ) == NULL ) {
 			parent = fcl_create_parent ( blkno, FCL_PAGE_SIZE, simtime, 0, 0 );
 			parent->tempint1 = FCL_OPERATION_STAGING;
 			
@@ -1627,7 +1658,7 @@ void fcl_stage_request () {
 int fcl_invalid_request ( int invalid_num) {
 	ioreq_event *parent;
 
-	struct list_head *head = &fcl_cache_manager->cm_clean_head;
+	struct list_head *head = &fcl_cache_mgr->cm_clean_head;
 	struct list_head *ptr;
 
 	listnode *clean_list; 
@@ -1636,7 +1667,7 @@ int fcl_invalid_request ( int invalid_num) {
 	struct lru_node *ln;
 	int i;
 
-	int clean_count = fcl_cache_manager->cm_clean_count;
+	int clean_count = fcl_cache_mgr->cm_clean_count;
 	int invalid_count = 0;
 
 	if ( clean_count < invalid_num ) 
@@ -1667,8 +1698,8 @@ int fcl_invalid_request ( int invalid_num) {
 	for ( i = 0; i < ll_get_size ( clean_list ); i++ ) {
 		int blkno = (int)clean_node->data;	
 
-		ln = CACHE_PRESEARCH ( fcl_cache_manager, blkno );
-		CACHE_REMOVE ( fcl_cache_manager, ln );
+		ln = CACHE_PRESEARCH ( fcl_cache_mgr, blkno );
+		CACHE_REMOVE ( fcl_cache_mgr, ln );
 
 		reverse_map_release_blk ( ln->cn_ssd_blk );
 		free ( ln );
@@ -1686,7 +1717,7 @@ int fcl_invalid_request ( int invalid_num) {
 int fcl_destage_request ( int destage_num) {
 	ioreq_event *parent;
 
-	struct list_head *head = &fcl_cache_manager->cm_dirty_head;
+	struct list_head *head = &fcl_cache_mgr->cm_dirty_head;
 	struct list_head *ptr;
 
 	listnode *dirty_list; 
@@ -1695,7 +1726,7 @@ int fcl_destage_request ( int destage_num) {
 	struct lru_node *ln;
 	int i;
 
-	int dirty_count = fcl_cache_manager->cm_dirty_count;
+	int dirty_count = fcl_cache_mgr->cm_dirty_count;
 	int destage_count = 0;
 
 	if ( dirty_count < destage_num ) 
@@ -1930,7 +1961,7 @@ void _fcl_request_complete ( ioreq_event *child ) {
 		fcl_issue_pending_parent ();
 	}
 
-	if ( fcl_resize_trigger && fcl_all_queue_empty() ) { 
+	if (fcl_resize_trigger && fcl_all_queue_empty() ) { 
 		int remain = fcl_resize_cache ();
 
 		fcl_resize_trigger = remain ? 1 : 0;
@@ -1954,18 +1985,18 @@ void _fcl_request_complete ( ioreq_event *child ) {
 
 	/* on-demand group destaging */
 	//*
-	if ( fcl_all_queue_empty() &&
-		 fcl_cache_manager->cm_dirty_free == 0 &&
+	if ( 0 &&   fcl_all_queue_empty() &&
+		 fcl_cache_mgr->cm_dirty_free == 0 &&
 		 parent->tempint1 == FCL_OPERATION_NORMAL 
 	)
 	{
 		fcl_destage_request ( FCL_MAX_DESTAGE );
 
-		printf (" On demand destage  %f, free = %d  \n", simtime,
-				fcl_cache_manager->cm_dirty_free );
+		//printf (" On demand destage  %f, free = %d  \n", simtime,
+		//		fcl_cache_mgr->cm_dirty_free );
 
 		//printf (" On demand destage  %f, free = %d  \n", simtime,
-		//		fcl_cache_manager->cm_dirty_size - fcl_cache_manager->cm_dirty_count  );
+		//		fcl_cache_mgr->cm_dirty_size - fcl_cache_mgr->cm_dirty_count  );
 	}
 	//*/
 
@@ -2065,24 +2096,24 @@ void fcl_init () {
 
 	flash_usable_pages = device_get_number_of_blocks (SSD)/FCL_PAGE_SIZE;
 	flash_usable_pages = flash_usable_pages * fcl_params->fpa_max_pages_percent / 100;
+	flash_usable_pages -= 10;
 	flash_usable_sectors = flash_usable_pages * FCL_PAGE_SIZE; 
 
 	fcl_initial_discard_pages ();
 
 	printf (" ssd total pages = %d, usable pages = %d \n", flash_total_pages, flash_usable_pages ); 
 
-	flash_usable_pages -= 10;
 	lru_size  = flash_usable_pages;
 
 	hdd_total_pages = device_get_number_of_blocks (HDD)/FCL_PAGE_SIZE;
 	hdd_total_sectors = hdd_total_pages * FCL_PAGE_SIZE; 
 
 
-	lru_init ( &fcl_cache_manager, "LRU", lru_size, lru_size, 1, 0);
+	lru_init ( &fcl_cache_mgr, "LRU", lru_size, lru_size, 1, 0);
 	if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_FIXED)
-		lru_set_dirty_size ( fcl_cache_manager, lru_size - 1024, 1024);
+		lru_set_dirty_size ( fcl_cache_mgr, lru_size - 1024, 1024);
 	else
-		lru_set_dirty_size ( fcl_cache_manager, lru_size/2, lru_size-lru_size/2);
+		lru_set_dirty_size ( fcl_cache_mgr, lru_size/2, lru_size-lru_size/2);
 
 	lru_init ( &fcl_active_block_manager, "AtiveBlockManager", lru_size, lru_size, 1, 0);
 
@@ -2139,6 +2170,9 @@ void fcl_exit () {
 	fprintf ( outputfile , " FCL: Arrive Request Count = %d \n", fcl_arrive_count );
 	fprintf ( outputfile , " FCL: Complete Request Count = %d \n", fcl_complete_count );
 
+	fprintf ( outputfile , " FCL: Dirty Count = %d (%.2fMB)\n", fcl_cache_mgr->cm_dirty_count, (double)fcl_cache_mgr->cm_dirty_count/256 );
+	fprintf ( outputfile , " FCL: Clean Count = %d (%.2fMB)\n", fcl_cache_mgr->cm_clean_count, (double)fcl_cache_mgr->cm_clean_count/256 );
+
 	fprintf ( stdout , " FCL: Arrive Request Count = %d \n", fcl_arrive_count );
 	fprintf ( stdout , " FCL: Complete Request Count = %d \n", fcl_complete_count );
 
@@ -2148,8 +2182,11 @@ void fcl_exit () {
 
 	reverse_map_free();
 
-	CACHE_CLOSE(fcl_cache_manager, 1);
-	CACHE_CLOSE(fcl_active_block_manager, 0);
+	CACHE_PRINT(fcl_cache_mgr, stdout);
+	CACHE_PRINT(fcl_cache_mgr, outputfile);
+
+	CACHE_CLOSE(fcl_cache_mgr);
+	CACHE_CLOSE(fcl_active_block_manager);
 
 	fcl_fore_q->printqueuestats = TRUE;
 	ioqueue_printstats( &fcl_fore_q, 1, " FCL Foreground: ");

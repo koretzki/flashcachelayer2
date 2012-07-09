@@ -1,5 +1,13 @@
-../../../src/disksim hybrid-seagate-util10.parv util10.outv ascii ../financial_trace.txt 0 &
-../../../src/disksim hybrid-seagate-util30.parv util30.outv ascii ../financial_trace.txt 0 &
-../../../src/disksim hybrid-seagate-util50.parv util50.outv ascii ../financial_trace.txt 0 &
-../../../src/disksim hybrid-seagate-util70.parv util70.outv ascii ../financial_trace.txt 0 &
-../../../src/disksim hybrid-seagate-util90.parv util90.outv ascii ../financial_trace.txt 0 &
+../../src/disksim hybrid-seagate-fixed-util10.parv fixed-util10.outv ascii ../financial_trace.txt 0 &
+../../src/disksim hybrid-seagate-fixed-util30.parv fixed-util30.outv ascii ../financial_trace.txt 0 &
+../../src/disksim hybrid-seagate-fixed-util50.parv fixed-util50.outv ascii ../financial_trace.txt 0 &
+../../src/disksim hybrid-seagate-fixed-util70.parv fixed-util70.outv ascii ../financial_trace.txt 0 &
+../../src/disksim hybrid-seagate-fixed-util90.parv fixed-util90.outv ascii ../financial_trace.txt 0 
+
+../../src/disksim hybrid-seagate-rw-util10.parv rw-util10.outv ascii ../financial_trace.txt 0 &
+../../src/disksim hybrid-seagate-rw-util30.parv rw-util30.outv ascii ../financial_trace.txt 0 &
+../../src/disksim hybrid-seagate-rw-util50.parv rw-util50.outv ascii ../financial_trace.txt 0 &
+../../src/disksim hybrid-seagate-rw-util70.parv rw-util70.outv ascii ../financial_trace.txt 0 &
+../../src/disksim hybrid-seagate-rw-util90.parv rw-util90.outv ascii ../financial_trace.txt 0 
+
+../../src/disksim hybrid-seagate-optimal-util90.parv optimal-util90.outv ascii ../financial_trace.txt 0 

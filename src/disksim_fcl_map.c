@@ -23,6 +23,7 @@ static int reverse_free = 0;
 static int reverse_used = 0;
 static int reverse_alloc = 0;
 static int reverse_max_pages = 0;
+static int reverse_wait_pages = 0;
 listnode *reverse_freeq;
 
 
@@ -86,14 +87,22 @@ int reverse_map_alloc_blk(int hdd_blk){
 			reverse_free = reverse_free;
 		}
 		reverse_used++;
+
+		if ( reverse_map[reverse_alloc] == MAP_RELEASED )
+			reverse_wait_pages --;
+
+		ASSERT ( reverse_wait_pages >= 0 );
+
 		reverse_map[reverse_alloc] = hdd_blk;
 	}
 
-	ASSERT ( alloc_blk != -1 );
 
 	if(alloc_blk == -1){
-		fprintf(stderr, " Cannot allocate block .. \n");
+		printf( " Cannot allocate block .. free num = %d, wait num = %d\n", reverse_free, reverse_wait_pages);
+		printf(stderr, " Cannot allocate block .. \n");
+		//ASSERT ( alloc_blk != -1 );
 	}
+
 
 	//if(reverse_free == 0){
 	//	reverse_free = reverse_free;
@@ -134,6 +143,8 @@ int reverse_map_release_blk(int ssd_blk){
 	reverse_map[ssd_blk] = MAP_RELEASED;
 	reverse_alloc = ssd_blk;
 
+	reverse_wait_pages ++;
+
 	ll_insert_at_head(reverse_freeq, (void *)ssd_blk);
 
 	return ssd_blk;
@@ -144,6 +155,9 @@ void reverse_map_discard_freeblk () {
 	int freecount = ll_get_size ( reverse_freeq );
 	int i;
 
+	if ( reverse_wait_pages <= 0 )
+		return; 
+
 	del_node = reverse_freeq->next;
 	for ( i = 0; i < freecount; i ++ ) {
 		int blkno = (int) del_node->data;
@@ -151,7 +165,8 @@ void reverse_map_discard_freeblk () {
 		if ( reverse_map [ blkno ] == MAP_RELEASED ) {
 			ssd_trim_command ( SSD, (int) blkno * FCL_PAGE_SIZE );
 			reverse_map [ blkno ] = MAP_TRIMMED;
-			//printf (" delete blkno = %d \n", (int) del_node->data);
+			reverse_wait_pages --;
+			ASSERT ( reverse_wait_pages >= 0 );
 		}
 
 		del_node = del_node->next;
