@@ -14,7 +14,15 @@ disksim_fcl Fcl {
   Max Pages Percent = 100,
   Bypass Cache = 0,
   Idle Detect Time = 0.0, #ms
-  Partitioning Scheme = 2
+  Partitioning Scheme = 2,
+
+  Group Destage = 1,
+  Foreground Queue Outstanding Length = 16,
+  Background Queue Outstanding Length = 10000,
+
+  HDD Read Positioning Time = 4500,  #us
+  HDD Write Positioning Time = 4500, #us 
+  HDD Bandwidth	= 72.0 # MB/s
 }
 
 disksim_stats Stats {

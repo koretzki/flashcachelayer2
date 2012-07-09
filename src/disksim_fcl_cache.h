@@ -16,8 +16,8 @@
 
 
 #define HASH_NUM (16*1024)
-#define BG_HASH_NUM (1024)
-#define GRP2BLK 1024
+//#define BG_HASH_NUM (1024)
+//#define GRP2BLK 1024
 
 #define FCL_CACHE_FLAG_FILLING 1 
 #define FCL_CACHE_FLAG_SEALED 2  

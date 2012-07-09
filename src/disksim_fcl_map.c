@@ -14,6 +14,7 @@
 #include "disksim_ioqueue.h"
 #include "disksim_fcl_cache.h"
 #include "disksim_fcl_map.h"
+#include "../ssdmodel/ssd.h"
 
 #define MAP_TRIMMED -1
 #define MAP_RELEASED -2
@@ -99,7 +100,7 @@ int reverse_map_alloc_blk(int hdd_blk){
 
 	if(alloc_blk == -1){
 		printf( " Cannot allocate block .. free num = %d, wait num = %d\n", reverse_free, reverse_wait_pages);
-		printf(stderr, " Cannot allocate block .. \n");
+		printf( " Cannot allocate block .. \n");
 		//ASSERT ( alloc_blk != -1 );
 	}
 

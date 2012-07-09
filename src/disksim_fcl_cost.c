@@ -9,16 +9,8 @@
 */
 
 #include "disksim_fcl.h"
+#include "disksim_fcl_cost.h"
 
-int HDD_CRPOS = 4400; //us
-int HDD_CWPOS = 4900; //us
-int HDD_BANDWIDTH = 72; //mb/s
-
-int SSD_PROG = 200;
-int SSD_ERASE = 1500;
-int SSD_READ = 25;
-int SSD_NP  = 64;
-int SSD_BUS = 1000;
 
 float u_table[1000];
 
@@ -46,13 +38,6 @@ int HDD_COST(int rw){
 	return cost;
 }
 
-void rw_set_params(ssd_t *curssd){
-	SSD_PROG = curssd->params.page_write_latency*1000;
-	SSD_READ = curssd->params.page_read_latency*1000;
-	SSD_ERASE = curssd->params.block_erase_latency*1000;
-	SSD_NP = curssd->params.pages_per_block;
-	SSD_BUS = 8 * (SSD_BYTES_PER_SECTOR) * curssd->params.chip_xfer_latency * 1000;
-}
 
 
 static double ssd_predict_util2(double diskUtlz){
@@ -130,7 +115,20 @@ static int calc_rw_partition_size(int cache_size, double r_p_rate, int *r_sz,int
 
 	return 0;	
 }
+void print_test_cost () {
+	double u = 0.9;
 
+	printf ( " HDD Read Cost = %.1f us \n", (double)HDD_COST ( READ ) );
+	printf ( " HDD Write Cost = %.1f us  \n", (double)HDD_COST ( WRITE ) );
+
+	printf ( " SSD Read Cost = %.1f us \n", (double)SSD_READ );
+	printf ( " SSD Write Cost (u = %.2f)  = %.1f us \n", u, (double)SSD_PW ( ssd_predict_util ( u ) ) );
+
+//	for ( u = 0.1 ; u < 0.9; u+= 0.1 ) {
+//		printf ( " SSD Write Cost (u = %.2f)  = %.1f us \n", u, (double)SSD_PW ( ssd_predict_util ( u ) ) );
+//	}
+
+}
 static float calc_write_cost(int total, int cache_size, float hit_ratio, float rhit_ratio_in_write){
 	float cost;
 	float u;
@@ -269,7 +267,7 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 	*read_optimal_pages = optimal_usable_pages * min_r;
 	*write_optimal_pages = optimal_usable_pages - *read_optimal_pages;
 
-	ASSERT ( *read_optimal_pages + *write_optimal_pages == flash_usable_pages );
+	//ASSERT ( *read_optimal_pages + *write_optimal_pages == flash_usable_pages );
 	//*write_optimal_pages = total_pages * min_u * ((double)1-min_r);
 
 }

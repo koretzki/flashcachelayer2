@@ -40,14 +40,33 @@
 #define FCL_REPLACE_CLEAN	1
 #define FCL_REPLACE_ANY     2	
 
+#define FCL_FORE_Q_DEPTH (fcl_params->fpa_fore_outstanding)
+#define FCL_BACK_Q_DEPTH (fcl_params->fpa_back_outstanding)
+
 struct fcl_parameters {
-	int fpa_page_size;
-	double fpa_max_pages_percent;
-	int fpa_bypass_cache;
-	double fpa_idle_detect_time;
-	int fpa_partitioning_scheme;
-	int fpa_background_activity;
+	int		fpa_page_size;
+	double	fpa_max_pages_percent;
+	int		fpa_bypass_cache;
+	double	fpa_idle_detect_time;
+	int		fpa_partitioning_scheme;
+	int		fpa_background_activity;
 	double	fpa_overhead;
+	
+	int		fpa_group_destage;
+	int		fpa_fore_outstanding;
+	int		fpa_back_outstanding;
+
+	// HDD Cost 
+	double		fpa_hdd_crpos;		//us
+	double		fpa_hdd_cwpos;		//us
+	double		fpa_hdd_bandwidth;	// mb/s
+
+	// SSD Cost 
+	double		fpa_ssd_cprog;	//us
+	double		fpa_ssd_cread;	//us 
+	double		fpa_ssd_cerase;	//us
+	double		fpa_ssd_cbus;	//us
+	int			fpa_ssd_np;
 };
 
 

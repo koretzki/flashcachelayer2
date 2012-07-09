@@ -42,13 +42,11 @@ void (*fcl_timer_func)(struct timer_ev *);
 
 int 				 fcl_opid = 0;
 
-int					 fcl_fore_outstanding = 1;
-int					 fcl_back_outstanding = 1000000;
-
 int					 flash_total_pages = 100000;
 
 int 				 flash_usable_pages = 50000;
 int 				 flash_usable_sectors = 50000;
+
 int 				 hdd_total_pages = 50000;
 int 				 hdd_total_sectors = 50000;
 
@@ -66,6 +64,11 @@ int					 fcl_optimal_read_pages = 0;
 int					 fcl_optimal_write_pages = 0;
 
 int					 fcl_resize_trigger = 0;
+
+
+
+
+
 #define fprintf 
 //#define printf
 
@@ -1058,7 +1061,7 @@ void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {
 
 	if ( op_type == FCL_OPERATION_NORMAL ) {
 
-		if ( ioqueue_get_reqoutstanding ( fcl_fore_q ) < fcl_fore_outstanding &&
+		if ( ioqueue_get_reqoutstanding ( fcl_fore_q ) < FCL_FORE_Q_DEPTH &&
 			 ioqueue_get_number_pending ( fcl_fore_q ) ) 
 		{
 			fcl_get_next_request ( op_type );
@@ -1068,15 +1071,15 @@ void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {
 		//	ASSERT ( 0 );
 		//}
 	} else {
-		if ( ioqueue_get_reqoutstanding ( fcl_back_q ) < fcl_back_outstanding &&
+		if ( ioqueue_get_reqoutstanding ( fcl_back_q ) < FCL_BACK_Q_DEPTH &&
 			 ioqueue_get_number_pending ( fcl_back_q ) ) 
 		{
 			fcl_get_next_request ( op_type );
 		}
 	}
 
-	ASSERT ( ioqueue_get_reqoutstanding ( fcl_fore_q ) <= fcl_fore_outstanding ) ;
-	ASSERT ( ioqueue_get_reqoutstanding ( fcl_back_q ) <= fcl_back_outstanding ) ;
+	ASSERT ( ioqueue_get_reqoutstanding ( fcl_fore_q ) <= FCL_FORE_Q_DEPTH ) ;
+	ASSERT ( ioqueue_get_reqoutstanding ( fcl_back_q ) <= FCL_BACK_Q_DEPTH ) ;
 
 #if 0 
 	printf ( " get next .. \n" );
@@ -1104,7 +1107,7 @@ int fcl_resize_cache () {
 	printf ( " Resizing cache ...\n");
 
 	printf ( " dirty diff = %d, clean diff %d \n", dirty_diff, clean_diff );
-	ASSERT ( -1*dirty_diff == clean_diff );
+	//ASSERT ( -1*dirty_diff == clean_diff );
 
 	printf ( " clean free = %d, dirty free = %d \n", fcl_cache_mgr->cm_clean_free, fcl_cache_mgr->cm_dirty_free ); 
 
@@ -1129,7 +1132,6 @@ int fcl_resize_cache () {
 	printf ( " clean count = %d, dirty count = %d \n", fcl_cache_mgr->cm_clean_count, fcl_cache_mgr->cm_dirty_count ); 
 	printf ( " Total count = %d, Size = %d \n", fcl_cache_mgr->cm_clean_count + fcl_cache_mgr->cm_dirty_count, fcl_cache_mgr->cm_size ); 
 
-//	ASSERT (0);
 	if ( fcl_cache_mgr->cm_dirty_free <  0 ) {
 		dirty_diff = fcl_cache_mgr->cm_dirty_free * -1;	
 		if ( dirty_diff > FCL_MAX_DESTAGE ) {
@@ -1893,12 +1895,12 @@ void _fcl_request_complete ( ioreq_event *child ) {
 			fcl_complete_count++;
 			//fcl_response_avg += ( simtime - parent->time);
 
-			if ( ioqueue_get_reqoutstanding ( fcl_fore_q ) < fcl_fore_outstanding &&
+			if ( ioqueue_get_reqoutstanding ( fcl_fore_q ) < FCL_FORE_Q_DEPTH &&
 					ioqueue_get_number_pending ( fcl_fore_q ) ) {
 				//printf (" next request \n");
 				fcl_get_next_request ( FCL_OPERATION_NORMAL );
 
-				ASSERT ( ioqueue_get_reqoutstanding ( fcl_fore_q ) <= fcl_fore_outstanding ) ;
+				ASSERT ( ioqueue_get_reqoutstanding ( fcl_fore_q ) <= FCL_FORE_Q_DEPTH ) ;
 			}
 
 		} else {
@@ -1908,12 +1910,12 @@ void _fcl_request_complete ( ioreq_event *child ) {
 				ASSERT ( 0 );
 				fcl_get_next_request ( FCL_OPERATION_DESTAGING );
 			}*/
-			if ( ioqueue_get_reqoutstanding ( fcl_back_q ) < fcl_back_outstanding &&
+			if ( ioqueue_get_reqoutstanding ( fcl_back_q ) < FCL_BACK_Q_DEPTH &&
 					ioqueue_get_number_pending ( fcl_back_q ) ) {
 
 				fcl_get_next_request ( FCL_OPERATION_DESTAGING );
 
-				ASSERT ( ioqueue_get_reqoutstanding ( fcl_back_q ) <= fcl_back_outstanding ) ;
+				ASSERT ( ioqueue_get_reqoutstanding ( fcl_back_q ) <= FCL_BACK_Q_DEPTH ) ;
 			}
 
 		}
@@ -1966,26 +1968,27 @@ void _fcl_request_complete ( ioreq_event *child ) {
 
 		fcl_resize_trigger = remain ? 1 : 0;
 
-		//fcl_fore_outstanding = 0; // disable foreground I/O requests 
+		//FCL_FORE_Q_DEPTH = 0; // disable foreground I/O requests 
 	}
 #if 0 
 	if ( ioqueue_get_number_in_queue ( fcl_back_q ) == 0 ) {
 
-		fcl_fore_outstanding = 1 ;
+		FCL_FORE_Q_DEPTH = 1 ;
 		
-		if ( ioqueue_get_reqoutstanding ( fcl_fore_q ) < fcl_fore_outstanding &&
+		if ( ioqueue_get_reqoutstanding ( fcl_fore_q ) < FCL_FORE_Q_DEPTH &&
 				ioqueue_get_number_pending ( fcl_fore_q ) ) {
 			//printf (" next request \n");
 			fcl_get_next_request ( FCL_OPERATION_NORMAL );
 
-			ASSERT ( ioqueue_get_reqoutstanding ( fcl_fore_q ) <= fcl_fore_outstanding ) ;
+			ASSERT ( ioqueue_get_reqoutstanding ( fcl_fore_q ) <= FCL_FORE_Q_DEPTH ) ;
 		}
 	}
 #endif 
 
 	/* on-demand group destaging */
 	//*
-	if ( 0 &&   fcl_all_queue_empty() &&
+	if ( fcl_params->fpa_group_destage &&  
+		 fcl_all_queue_empty() &&
 		 fcl_cache_mgr->cm_dirty_free == 0 &&
 		 parent->tempint1 == FCL_OPERATION_NORMAL 
 	)
@@ -2054,15 +2057,35 @@ int disksim_fcl_loadparams ( struct lp_block *b, int *num) {
 	memset ( fcl_params, 0x00, sizeof(struct fcl_parameters) );
 	lp_loadparams ( fcl_params, b, &disksim_fcl_mod);
 
+	if ( FCL_FORE_Q_DEPTH == 0 ) 
+		FCL_FORE_Q_DEPTH = 1 ;
+
+	if ( FCL_BACK_Q_DEPTH == 0 ) 
+		FCL_BACK_Q_DEPTH = 10000 ;
+
+	if ( fcl_params->fpa_hdd_crpos == 0.0 ) 
+		fcl_params->fpa_hdd_crpos = 4500;
+
+	if ( fcl_params->fpa_hdd_cwpos == 0.0 ) 
+		fcl_params->fpa_hdd_cwpos = 4500;
+
+	if ( fcl_params->fpa_hdd_bandwidth == 0.0 )
+		fcl_params->fpa_hdd_bandwidth = 72;
+
 	return 0;
 }
 
 void fcl_print_parameters () {
 
+	printf ( " Print FCL Parameters .. \n " );
 	printf ( " Page size = %d sectors \n", fcl_params->fpa_page_size );
 	printf ( " Max pages percent = %.2f \n", fcl_params->fpa_max_pages_percent );
 	printf ( " Bypass cache = %d \n", fcl_params->fpa_bypass_cache );
 	printf ( " Idle detect time= %.2f ms \n", fcl_params->fpa_idle_detect_time );
+	printf ( " Group Destage = %d \n", fcl_params->fpa_group_destage );
+
+	printf ( " Foreground Q Depth = %d \n", FCL_FORE_Q_DEPTH );
+	printf ( " Background Q Dpeth = %d \n", FCL_BACK_Q_DEPTH );
 	
 	if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_FIXED ) {
 		printf ( " Cache partitionig = Fixed \n");
@@ -2075,22 +2098,49 @@ void fcl_print_parameters () {
 		fcl_params->fpa_partitioning_scheme = FCL_CACHE_FIXED;
 	}
 
+	printf ( " HDD Read Positioning Time = %.1f us \n", fcl_params->fpa_hdd_crpos );
+	printf ( " HDD Write Positioning Time = %.1f us \n", fcl_params->fpa_hdd_cwpos );
+	printf ( " HDD Bandwidth = %.1f MB/s \n", fcl_params->fpa_hdd_bandwidth );
+	printf ( " \n" );
+
+	printf ( " SSD Program Time = %.1f us \n", fcl_params->fpa_ssd_cprog );
+	printf ( " SSD Read Time = %.1f us \n", fcl_params->fpa_ssd_cread );
+	printf ( " SSD Erase Time = %.1f us \n", fcl_params->fpa_ssd_cerase );
+	printf ( " SSD Bus Time = %.1f us \n", fcl_params->fpa_ssd_cbus );
+	printf ( " SSD NP = %d \n", fcl_params->fpa_ssd_np);
+
 	printf ( "\n");
 }
 
 void fcl_initial_discard_pages () {
 	int i;
 
+	printf ( " Discard %d pages (%.2f MB) in SSD \n", flash_usable_pages, (double)flash_usable_pages/256 );
+
 	for ( i = 0; i < flash_usable_pages; i++ ) {
 		ssd_trim_command ( SSD, i * FCL_PAGE_SIZE);
 	}
 	
 }	
+
+
+
+void fcl_set_ssd_params(ssd_t *curssd){
+	SSD_PROG = curssd->params.page_write_latency*1000;
+	SSD_READ = curssd->params.page_read_latency*1000;
+	SSD_ERASE = curssd->params.block_erase_latency*1000;
+	SSD_NP = curssd->params.pages_per_block;
+	SSD_BUS = 8 * (SSD_BYTES_PER_SECTOR) * curssd->params.chip_xfer_latency * 1000;
+}
+
 void fcl_init () {
 	int lru_size = 50000;
 	ssd_t *currssd = getssd ( SSD );
 
+	fcl_set_ssd_params ( currssd );
 	fcl_print_parameters () ;
+
+	print_test_cost ();
 
 	flash_total_pages =  ssd_get_total_pages ( currssd );
 

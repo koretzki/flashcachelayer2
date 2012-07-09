@@ -14,8 +14,11 @@ disksim_fcl Fcl {
   Max Pages Percent = 100,
   Bypass Cache = 0,
   Idle Detect Time = 0.0, #ms
-  Partitioning Scheme = 1
-#  Idle Detect Time = 50000.0 #ms
+  Partitioning Scheme = 1,
+
+  HDD Read Positioning Time = 4.5,
+  HDD Write Positioning Time = 4.5,
+  HDD Bandwidth	= 72.0
 }
 
 disksim_stats Stats {

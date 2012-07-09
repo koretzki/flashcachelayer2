@@ -18,5 +18,6 @@ void reverse_map_create(int max);
 int reverse_map_alloc_blk(int hdd_blk);
 int reverse_map_release_blk(int ssd_blk);
 void reverse_map_free();
+void reverse_map_discard_freeblk () ;
 
 #endif // ifndef _DISKSIM_FCL_MAP_H 

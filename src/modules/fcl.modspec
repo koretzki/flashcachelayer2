@@ -22,6 +22,31 @@ PARAM Idle Detect Time		D	1
 TEST (d >= 0)
 INIT result->fpa_idle_detect_time = d;
 
-PARAM Partitioning Scheme		D	1
+
+PARAM Group Destage		I	1
+TEST (i >= 0)
+INIT result->fpa_group_destage = i;
+
+PARAM Foreground Queue Outstanding Length		I	1
+TEST (i >= 0)
+INIT result->fpa_fore_outstanding = i;
+
+PARAM Background Queue Outstanding Length		I	1
+TEST (i >= 0)
+INIT result->fpa_back_outstanding = i;
+
+PARAM Partitioning Scheme		I	1
+TEST (i >= 0)
+INIT result->fpa_partitioning_scheme = i;
+
+PARAM HDD Read Positioning Time		D	1
 TEST (d >= 0)
-INIT result->fpa_partitioning_scheme = d;
+INIT result->fpa_hdd_crpos = d;
+
+PARAM HDD Write Positioning Time		D	1
+TEST (d >= 0)
+INIT result->fpa_hdd_cwpos = d;
+
+PARAM HDD Bandwidth		D	1
+TEST (d >= 0)
+INIT result->fpa_hdd_bandwidth = d;

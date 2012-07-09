@@ -457,5 +457,8 @@ void    ssd_complete_parent(ioreq_event *curr, ssd_t *currdisk);
 double _ssd_invoke_element_cleaning(int elem_num, ssd_t *s);
 int     ssd_already_present(ssd_req **reqs, int total, ioreq_event *req);
 
+// ysoh
+void ssd_trim_command(int devno, int blkno);
+
 #endif   /* DISKSIM_ssd_H */
 

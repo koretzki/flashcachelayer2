@@ -80,18 +80,13 @@ void lru_set_dirty_size ( struct cache_manager *c, int dirty_size, int clean_siz
 	c->cm_clean_free += diff;
 	
 	diff = ( dirty_size + clean_size ) - c->cm_size;
-	//c->cm_size += diff;
+	c->cm_size += diff;
 	c->cm_free += diff;
-
-	//if ( diff > 0 )
-	//	lru_inc ( c, diff );
-	//else 
-	//	lru_dec ( c, diff*-1 );
 
 	//c->cm_size = dirty_size + clean_size;
 	//printf ( " clean free = %d, dirty free = %d \n", c->cm_clean_free, c->cm_dirty_free );
 
-	ASSERT ( dirty_size + clean_size == c->cm_size );
+	//ASSERT ( dirty_size + clean_size == c->cm_size );
 
 }
 
