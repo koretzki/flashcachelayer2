@@ -159,10 +159,10 @@ void fcl_parent_init (ioreq_event *parent) {
 		parent->fcl_event_list[i] = NULL;
 	}
 	
-	ll_create ( (listnode **) &parent->fcl_complete_list );
-	ll_create ( (listnode **) &parent->fcl_active_list );
-	ll_create ( (listnode **) &parent->fcl_inactive_list );
-	ll_create ( (listnode **) &parent->fcl_pending_list );
+	INIT_LIST_HEAD ( &parent->fcl_complete_list ) ;
+	INIT_LIST_HEAD ( &parent->fcl_active_list );
+	INIT_LIST_HEAD ( &parent->fcl_inactive_list );
+	INIT_LIST_HEAD ( &parent->fcl_pending_list );
 
 }
 
@@ -170,10 +170,10 @@ void fcl_parent_release ( ioreq_event *parent ) {
 
 	fcl_remove_complete_list ( parent );
 
-	ll_release ( parent->fcl_complete_list );
-	ll_release ( parent->fcl_active_list );
-	ll_release ( parent->fcl_inactive_list );
-	ll_release ( parent->fcl_pending_list );
+	ASSERT ( list_empty( &parent->fcl_complete_list ) );
+	ASSERT ( list_empty ( &parent->fcl_active_list ) );
+	ASSERT ( list_empty ( &parent->fcl_inactive_list ) );
+	ASSERT ( list_empty ( &parent->fcl_pending_list ) );
 
 
 }
@@ -499,11 +499,11 @@ void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int b
 	if ( !node ) { // insert active list 
 		//printf ( " %f insert active list blkno = %d, %d \n", simtime, blkno, child->blkno );
 		fcl_insert_active_list ( child );
-		ll_insert_at_tail ( parent->fcl_active_list, child );
+		list_add_tail ( &child->fcl_active_list, &parent->fcl_active_list );
 	} else { // insert inactive list 
 		//printf ( " %f insert inactive list blkno = %d, %d \n", simtime, blkno, child->blkno );
 		fcl_insert_inactive_list ( child );
-		ll_insert_at_tail ( parent->fcl_inactive_list, child );
+		list_add_tail ( &child->fcl_inactive_list, &parent->fcl_inactive_list );
 	}
 
 }
@@ -541,8 +541,7 @@ void fcl_make_pending_list ( ioreq_event *parent, int op_type ) {
 								FCL_PAGE_SIZE, flags ); 
 	
 		child->fcl_parent = parent;
-
-		ll_insert_at_tail ( parent->fcl_pending_list, child );
+		list_add_tail ( &child->fcl_pending_list, &parent->fcl_pending_list );
 	} 
 
 }
@@ -578,12 +577,9 @@ void fcl_split_parent_request (ioreq_event *parent) {
 	
 	int i;
 	int blkno;
-	int active_page_count;// = ll_get_size ( parent->fcl_active_list );
-	listnode *node;
-	listnode *active_list;
+	struct list_head *head = &parent->fcl_active_list;
+	struct list_head *ptr;
 	ioreq_event *child;
-
-	//debug 
 
 	int total_req = 0;
 
@@ -594,40 +590,22 @@ void fcl_split_parent_request (ioreq_event *parent) {
 
 	ASSERT ( total_req == 0 );
 	ASSERT ( parent->bcount % FCL_PAGE_SIZE == 0 );
-	ASSERT ( ll_get_size ( parent->fcl_active_list ) != 0 );
+	ASSERT ( !list_empty ( &parent->fcl_active_list ) );
 
-	active_page_count = ll_get_size ( parent->fcl_active_list );
-
-
-	node = ((listnode *)parent->fcl_active_list)->next ;
-	for (i = 0; i < active_page_count; i++){
+	list_for_each ( ptr, head ) {
 		struct lru_node *ln;
-
-		ASSERT ( node != NULL );
-
-		child = (ioreq_event *)node->data;
-
-		ln = CACHE_PRESEARCH ( fcl_cache_mgr, child->blkno);
-
+		child = list_entry ( ptr, ioreq_event, fcl_active_list );
+		ln = CACHE_PRESEARCH ( fcl_cache_mgr, child->blkno );
 		if ( ln ) 
 			CACHE_MOVEMRU ( fcl_cache_mgr, ln );
+	}
 
-		node = node->next;
-	} 
-
-
-	node = ((listnode *)parent->fcl_active_list)->next ;
-	for (i = 0; i < active_page_count; i++){
-
-		ASSERT ( node != NULL );
-
-		child = (ioreq_event *)node->data;
+	list_for_each ( ptr, head ) {
+		child = list_entry ( ptr, ioreq_event, fcl_active_list );
 		blkno = child->blkno;
-
 		fcl_make_request ( parent, blkno );
+	}
 
-		node = node->next;
-	} 
 }
 
 
@@ -721,8 +699,7 @@ void fcl_make_child_request (ioreq_event *parent) {
 	// pending requests go to Active or Inactive 
 	fcl_issue_pending_child ( parent );
 
-	//ASSERT ( ll_get_size ( parent->fcl_active_list ) != 0 );
-	if ( ll_get_size ( parent->fcl_active_list ) ) {
+	if ( !list_empty ( &parent->fcl_active_list ) ) {
 		// Active requests -> SSD, HDD
 		fcl_split_parent_request ( parent );
 
@@ -773,7 +750,7 @@ void fcl_get_next_request ( int op_type ) {
 	fcl_make_child_request ( req );
 	
 
-	if ( ll_get_size ( req->fcl_active_list ) ) {
+	if ( !list_empty ( &req->fcl_active_list ) ) {
 		// issue requests to IODRIVER
 		fcl_issue_next_child ( req ); 
 	}
@@ -1258,21 +1235,14 @@ void fcl_seal_complete_request ( ioreq_event *parent ) {
 void fcl_seal_complete_request ( ioreq_event *parent ) {
 	struct lru_node *ln;
 
-	listnode *active_node;
 	ioreq_event *child;
-	int active_page_count = ll_get_size ( parent->fcl_active_list );
+	struct list_head *head = &parent->fcl_active_list;
+	struct list_head *ptr;
 
-	int i;
 
-	active_node = ((listnode *)parent->fcl_active_list)->next;
+	list_for_each ( ptr, head ) {
+		child = (ioreq_event *) list_entry ( ptr, ioreq_event, fcl_active_list );
 
-	for (i = 0; i < active_page_count; i++){
-
-		ASSERT ( active_node != NULL );
-
-		child = (ioreq_event *)active_node->data;
-
-		//printf (" seal blk = %d \n", child->blkno );
 		ln = CACHE_PRESEARCH(fcl_cache_mgr, child->blkno);
 
 		ASSERT ( ln != NULL );
@@ -1281,9 +1251,10 @@ void fcl_seal_complete_request ( ioreq_event *parent ) {
 			ln->cn_flag = FCL_CACHE_FLAG_SEALED;
 		}
 
-		active_node = active_node->next;
-	} 
+	}
+
 }
+#if 0 
 void print_parent_child_state ( ioreq_event *parent ) {
 
 	printf ( " Parent opid = %d, blkno = %d,C = %d, A = %d, I = %d, P = %d \n", 
@@ -1296,6 +1267,7 @@ void print_parent_child_state ( ioreq_event *parent ) {
 					);
 
 }
+#endif 
 
 void fcl_insert_pending_manager ( ioreq_event * parent) {
 
@@ -1323,27 +1295,8 @@ void fcl_insert_pending_manager ( ioreq_event * parent) {
 }
 
 void fcl_remove_inactive_list ( ioreq_event *parent, ioreq_event *child) {
-	listnode *inactive_list = ((listnode *)parent->fcl_inactive_list);
-	listnode *inactive_node = inactive_list->next;
-	listnode *found_node = NULL;
-	int inactive_count = ll_get_size ( inactive_list );
-	int i;
 
-	for ( i = 0; i < inactive_count; i++ ) {
-
-		if ( inactive_node->data == child ) {
-			found_node = inactive_node;
-			break;
-		}
-
-		inactive_node = inactive_node->next;
-	}
-	
-	ASSERT ( found_node != NULL );
-
-	if ( found_node ) {
-		ll_release_node ( parent->fcl_inactive_list, found_node );
-	}
+	list_del ( &child->fcl_inactive_list );
 
 }
 
@@ -1368,7 +1321,7 @@ void fcl_move_pending_list ( listnode *inactive_list ){
 		//print_parent_child_state ( parent );
 
 		fcl_remove_inactive_list ( parent, child );
-		ll_insert_at_tail ( parent->fcl_pending_list, child );
+		list_add_tail ( &child->fcl_pending_list, &parent->fcl_pending_list );
 		
 		fcl_insert_pending_manager ( parent );	
 
@@ -1381,139 +1334,118 @@ void fcl_move_pending_list ( listnode *inactive_list ){
 	ll_release ( inactive_list );
 }
 
-void fcl_remove_active_list ( ioreq_event *parent ) {
+void fcl_remove_active_block_in_active_list (int blkno ) {
 	struct lru_node *ln;
 
-	listnode *active_node;
+	//printf (" remove active blk = %d in active block manager \n", blkno );
+	ln = CACHE_PRESEARCH(fcl_active_block_manager, blkno);
+
+	ASSERT ( ln != NULL );
+
+	if ( ln ) {
+		
+		if ( ll_get_size ( (listnode *)ln->cn_temp2 )){
+
+			//printf (" It has blocking child reqeusts of some parents, parent blkno=%d \n",
+			//		parent->blkno);
+
+			fcl_move_pending_list ( ln->cn_temp2 );
+			ln->cn_temp2 = NULL;
+			//ASSERT ( ll_get_size ((listnode *)ln->cn_temp2 ) == 0);	
+		}
+
+		CACHE_REMOVE ( fcl_active_block_manager, ln ); 
+
+		free (ln);
+	}
+}
+void fcl_remove_active_list ( ioreq_event *parent ) {
+	//struct lru_node *ln;
+
 	ioreq_event *child;
-	int active_page_count = ll_get_size ( parent->fcl_active_list );
+	struct list_head *head = &parent->fcl_active_list;
+	struct list_head *ptr;
 
-	listnode *curr_complete_list;
-	listnode *complete_node;
-	int i;
+	//listnode *curr_complete_list;
+	//listnode *complete_node;
+	//int i;
 
 
-	ll_create ( &curr_complete_list );
+	//ll_create ( &curr_complete_list );
 
 	// move active child in active list to complete list   
-	active_node = ((listnode *)parent->fcl_active_list)->next;
-	for (i = 0; i < active_page_count; i++){
+	list_for_each ( ptr, head ) {
+		child = (ioreq_event *) list_entry ( ptr, ioreq_event, fcl_active_list );
 
-		ASSERT ( active_node != NULL );
+		fcl_remove_active_block_in_active_list ( child->blkno );
 
-		child = (ioreq_event *)active_node->data;
-	
-		ll_insert_at_tail ( parent->fcl_complete_list, child );
-		ll_insert_at_tail ( curr_complete_list, (void *) child->blkno );
-
-		active_node = active_node->next;
-	} 
-
-	while ( ll_get_size ( parent->fcl_active_list ) ) {
-		ll_release_tail ( parent->fcl_active_list );
+		list_add_tail ( &child->fcl_complete_list, &parent->fcl_complete_list );
+		//ll_insert_at_tail ( curr_complete_list, (void *) child->blkno );
 	}
 
+	while ( !list_empty ( head ) ) {
+		child = (ioreq_event *) list_first_entry ( head, ioreq_event, fcl_active_list );
+		list_del ( &child->fcl_active_list );
+	}
 
-	ASSERT ( ll_get_size ( parent->fcl_active_list ) == 0 );
+	ASSERT ( list_empty ( &parent->fcl_active_list ) );
 
 
 	// remove complete block in fcl_active_block manager 
+	/*
 	complete_node = curr_complete_list->next;
-	for (i = 0; i < active_page_count; i++){
+	for (i = 0; i < ll_get_size ( curr_complete_list ) ; i++){
 		int blkno = 0;
 
 		ASSERT ( complete_node != NULL );
 
 		blkno = (int)complete_node->data;
 
-		//printf (" remove active blk = %d in active block manager \n", blkno );
-		ln = CACHE_PRESEARCH(fcl_active_block_manager, blkno);
-
-		ASSERT ( ln != NULL );
-	
-		if ( ln ) {
-			
-			if ( ll_get_size ( (listnode *)ln->cn_temp2 )){
-
-				//printf (" It has blocking child reqeusts of some parents, parent blkno=%d \n",
-				//		parent->blkno);
-
-				fcl_move_pending_list ( ln->cn_temp2 );
-				ln->cn_temp2 = NULL;
-				//ASSERT ( ll_get_size ((listnode *)ln->cn_temp2 ) == 0);	
-			}
-
-			CACHE_REMOVE ( fcl_active_block_manager, ln ); 
-
-			free (ln);
-		}
+		fcl_remove_active_block_in_active_list ( blkno );
+		
 
 		complete_node = complete_node->next;
 	} 
 
 	ll_release ( curr_complete_list );
-
-	//print_parent_child_state ( parent );
+	*/
 
 }
 
 
 void fcl_remove_complete_list ( ioreq_event *parent ) {
 
-	listnode *complete_node;
 	ioreq_event *child;
+	struct list_head *head = &parent->fcl_complete_list;
+	struct list_head *ptr;
 
-	int complete_page_count = ll_get_size ( parent->fcl_complete_list );
-	int i;
 
-	complete_node = ((listnode *)parent->fcl_complete_list)->next;
-	//printf (" Remove complete list \n");
-	for (i = 0; i < complete_page_count; i++){
-
-		ASSERT ( complete_node != NULL );
-
-		child = (ioreq_event *)complete_node->data;
-		addtoextraq ( (event *)child );
-		complete_node = complete_node->next;
-	} 
-
-	while ( ll_get_size ( parent->fcl_complete_list ) ) {
-		ll_release_tail ( parent->fcl_complete_list );
+	while ( !list_empty ( head ) ) {
+		child = (ioreq_event *) list_first_entry ( head, ioreq_event, fcl_complete_list );
+		list_del ( &child->fcl_complete_list );
+		addtoextraq ( (event *) child );
 	}
 
-	ASSERT ( ll_get_size ( parent->fcl_complete_list ) == 0 );
+
+	ASSERT ( list_empty ( &parent->fcl_complete_list ) );
 
 }
 
 // pending childs go to ACTIVE or InACTIVE lists 
 void fcl_issue_pending_child ( ioreq_event *parent ) {
 
-	listnode *pending_node = parent->fcl_pending_list;
+	struct list_head *head = &parent->fcl_pending_list;
+	struct list_head *ptr;
 	ioreq_event *child;
+	
 
-	int pending_count = ll_get_size ( pending_node );
-	int i;
-
-	pending_node = pending_node->next;
-
-	for ( i = 0; i < pending_count ; i++ ) {
-		child = (ioreq_event *)pending_node->data;	
-
-		ASSERT ( parent == child->fcl_parent );
+	while ( !list_empty ( head ) ) {
+		child = (ioreq_event *) list_first_entry ( head, ioreq_event, fcl_pending_list ) ;
 		fcl_classify_child_request ( parent, child, child->blkno );
-
-		pending_node = pending_node->next;
+		list_del ( &child->fcl_pending_list );
 	}
 
-	for ( i = 0; i < pending_count; i++ ) {
-		ll_release_tail ( parent->fcl_pending_list );
-	}
-
-	ASSERT ( ll_get_size ( parent->fcl_pending_list ) == 0 );
-
-	//print_parent_child_state ( parent );
-
-//	ASSERT (0);
+	ASSERT ( list_empty ( head ) );
 }
 
 
@@ -1533,12 +1465,12 @@ void fcl_issue_pending_parent (){
 		pending_del = pending_next;
 		pending_next = pending_next->next;
 
-		if ( ll_get_size ( parent->fcl_active_list ) == 0 && 
-			 ll_get_size ( parent->fcl_inactive_list ) == 0 ) {
+		if ( list_empty ( &parent->fcl_active_list ) && 
+			 list_empty ( &parent->fcl_inactive_list ) ) {
 			
 			fcl_make_child_request ( parent );
-			//ASSERT ( ll_get_size ( parent->fcl_active_list ) != 0 ) ;
-			if ( ll_get_size ( parent->fcl_active_list ) ) {
+
+			if ( !list_empty ( &parent->fcl_active_list ) ) {
 				fcl_issue_next_child ( parent );
 			}
 
@@ -1832,6 +1764,19 @@ int fcl_all_queue_empty () {
 void fcl_discard_deleted_pages () {
 	reverse_map_discard_freeblk ();
 }
+
+int fcl_parent_request_complete ( ioreq_event *parent ) {
+	int count = 0;
+
+	count +=  list_empty ( &parent->fcl_active_list ) ;
+	count += list_empty ( &parent->fcl_inactive_list ) ;
+	count += list_empty ( &parent->fcl_pending_list ) ;
+
+	if ( count == 3 ) 
+		return 1;
+
+	return 0;
+}
 void _fcl_request_complete ( ioreq_event *child ) {
 	ioreq_event *parent, *req2;
 	int total_req = 0;	
@@ -1860,13 +1805,10 @@ void _fcl_request_complete ( ioreq_event *child ) {
 	// all child requests are complete 
 	if ( total_req  == 0 ) { 
 
-		//ASSERT ( ll_get_size ( parent->fcl_inactive_list ) == 0 );
 		if ( parent->tempint1 == FCL_OPERATION_NORMAL ||
 				parent->tempint1 == FCL_OPERATION_STAGING ) {
 			fcl_seal_complete_request ( parent );
 		}
-		//else
-		//	ASSERT ( 0 );
 
 		fcl_remove_active_list ( parent );
 		
@@ -1874,14 +1816,14 @@ void _fcl_request_complete ( ioreq_event *child ) {
 		//print_parent_child_state ( parent );
 
 		// active request exist
-		ASSERT ( ll_get_size ( parent->fcl_active_list ) == 0 );
+		ASSERT ( list_empty ( &parent->fcl_active_list ) );
 
 	}
 
-	if ( ll_get_size ( parent->fcl_complete_list ) ==  parent->bcount/FCL_PAGE_SIZE ){
+	if ( fcl_parent_request_complete ( parent ) ){
 
-		ASSERT ( ll_get_size ( parent->fcl_active_list ) == 0 && 
-				ll_get_size ( parent->fcl_inactive_list ) == 0 );
+		ASSERT ( list_empty ( &parent->fcl_active_list ) && 
+				list_empty ( &parent->fcl_inactive_list )  );
 
 		fcl_parent_release ( parent );
 

@@ -109,6 +109,8 @@
 #include <sys/types.h>
 #include <stdio.h>
 
+#include "list.h" // ysoh 
+
 #ifdef _WIN32
 #define u_int		unsigned int
 #define u_int64_t	unsigned __int64
@@ -276,7 +278,8 @@ typedef struct foo {
 //#define DISKSIM_EVENT_SIZE	176 // ysoh 
 //#define DISKSIM_EVENT_SIZE	184 // ysoh 
 //#define DISKSIM_EVENT_SIZE	200 // ysoh 
-#define DISKSIM_EVENT_SIZE	204 // ysoh 
+//#define DISKSIM_EVENT_SIZE	204 // ysoh 
+#define DISKSIM_EVENT_SIZE	208 // ysoh 
 #define DISKSIM_EVENT_SPACESIZE	(DISKSIM_EVENT_SIZE - sizeof(struct foo))
 
 // ysoh
@@ -319,10 +322,10 @@ typedef struct ioreq_ev {
    struct 	 ioreq_ev *fcl_event_list[FCL_EVENT_MAX];
    struct	 ioreq_ev *fcl_event_next;
 
-   void 	*fcl_complete_list;
-   void	 	*fcl_active_list;
-   void	 	*fcl_inactive_list;
-   void	 	*fcl_pending_list;
+   struct	list_head 	fcl_complete_list;
+   struct	list_head	fcl_active_list;
+   struct	list_head	fcl_inactive_list;
+   struct	list_head 	fcl_pending_list;
 
    int		fcl_data_class; // Read or Write Data 
 
