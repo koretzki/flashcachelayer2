@@ -2060,6 +2060,7 @@ int disksim_fcl_loadparams ( struct lp_block *b, int *num) {
 
 void fcl_print_parameters () {
 
+	printf ( "\n" );
 	printf ( " Print FCL Parameters .. \n " );
 	printf ( " Page size = %d sectors \n", fcl_params->fpa_page_size );
 	printf ( " Max pages percent = %.2f \n", fcl_params->fpa_max_pages_percent );

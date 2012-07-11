@@ -15,7 +15,14 @@ disksim_fcl Fcl {
   Bypass Cache = 0,
   Idle Detect Time = 0.0, #ms
   Partitioning Scheme = 3,
-#  Idle Detect Time = 50000.0 #ms
+
+  Group Destage = 0,
+
+  Sequential Detection Enable = 1,
+  Sequential Unit Size = 256,
+
+  Foreground Queue Outstanding Length = 32,
+  Background Queue Outstanding Length = 10000,
 
   HDD Read Positioning Time = 4500,  #us
   HDD Write Positioning Time = 4500, #us 

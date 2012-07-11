@@ -16,6 +16,9 @@ disksim_fcl Fcl {
   Idle Detect Time = 0.0, #ms
   Partitioning Scheme = 1,
   
+  Sequential Detection Enable = 1,
+  Sequential Unit Size = 256,
+
   Group Destage = 0,
   Foreground Queue Outstanding Length = 16,
   Background Queue Outstanding Length = 10000,
