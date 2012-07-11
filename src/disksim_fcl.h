@@ -43,6 +43,13 @@
 #define FCL_FORE_Q_DEPTH (fcl_params->fpa_fore_outstanding)
 #define FCL_BACK_Q_DEPTH (fcl_params->fpa_back_outstanding)
 
+#define	flash_total_pages		(fcl_params->fpa_flash_total_pages)
+#define	flash_usable_pages		(fcl_params->fpa_flash_usable_pages)
+#define	flash_usable_sectors	(fcl_params->fpa_flash_usable_sectors)
+
+#define	hdd_total_pages			(fcl_params->fpa_hdd_total_pages)
+#define	hdd_total_sectors		(fcl_params->fpa_hdd_total_sectors)
+
 struct fcl_parameters {
 	int		fpa_page_size;
 	double	fpa_max_pages_percent;
@@ -51,28 +58,39 @@ struct fcl_parameters {
 	int		fpa_partitioning_scheme;
 	int		fpa_background_activity;
 	double	fpa_overhead;
-	
+
+	int		fpa_seq_detection_enable;
+	int		fpa_seq_unit_size;
+
+	// RW-FCL and OP_FCL
+	int		fpa_resize_period;
+
 	int		fpa_group_destage;
 	int		fpa_fore_outstanding;
 	int		fpa_back_outstanding;
 
 	// HDD Cost 
-	double		fpa_hdd_crpos;		//us
-	double		fpa_hdd_cwpos;		//us
-	double		fpa_hdd_bandwidth;	// mb/s
+	double	fpa_hdd_crpos;		//us
+	double	fpa_hdd_cwpos;		//us
+	double	fpa_hdd_bandwidth;	// mb/s
 
 	// SSD Cost 
-	double		fpa_ssd_cprog;	//us
-	double		fpa_ssd_cread;	//us 
-	double		fpa_ssd_cerase;	//us
-	double		fpa_ssd_cbus;	//us
-	int			fpa_ssd_np;
+	double	fpa_ssd_cprog;	//us
+	double	fpa_ssd_cread;	//us 
+	double	fpa_ssd_cerase;	//us
+	double	fpa_ssd_cbus;	//us
+	int		fpa_ssd_np;
+
+	int		fpa_flash_total_pages;
+	int		fpa_flash_usable_pages;
+	int		fpa_flash_usable_sectors;
+
+	int		fpa_hdd_total_pages;
+	int		fpa_hdd_total_sectors;	
 };
 
 
 extern struct fcl_parameters *fcl_params;
-extern int flash_usable_pages;
-extern int flash_total_pages;
 extern int fcl_io_read_pages, fcl_io_total_pages;
 
 

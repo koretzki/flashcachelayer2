@@ -27,6 +27,15 @@ PARAM Group Destage		I	1
 TEST (i >= 0)
 INIT result->fpa_group_destage = i;
 
+
+PARAM Sequential Detection Enable	I	1
+TEST (i >= 0)
+INIT result->fpa_seq_detection_enable = i;
+
+PARAM Sequential Unit Size	I	1
+TEST (i >= 0)
+INIT result->fpa_seq_unit_size = i;
+
 PARAM Foreground Queue Outstanding Length		I	1
 TEST (i >= 0)
 INIT result->fpa_fore_outstanding = i;

@@ -16,6 +16,8 @@ disksim_fcl Fcl {
   Idle Detect Time = 0.0, #ms
   Partitioning Scheme = 1,
 
+  Sequential Detection Enable = 0,
+
   HDD Read Positioning Time = 4.5,
   HDD Write Positioning Time = 4.5,
   HDD Bandwidth	= 72.0

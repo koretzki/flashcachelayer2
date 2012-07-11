@@ -14,7 +14,8 @@ disksim_fcl Fcl {
   Max Pages Percent = 100,
   Bypass Cache = 0,
   Idle Detect Time = 0.0, #ms
-  Partitioning Scheme = 2
+  Partitioning Scheme = 2,
+  Sequential Unit Size = 512
 #  Idle Detect Time = 50000.0 #ms
 }
 

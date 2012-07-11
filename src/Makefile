@@ -101,7 +101,7 @@ DISKSIM_SRC = disksim.c disksim_intr.c disksim_pfsim.c \
 	disksim_simpledisk.c disksim_device.c \
 	disksim_loadparams.c \
 	raw_layout.c \
-	disksim_fcl.c  disksim_fcl_lru.c disksim_fcl_map.c disksim_fcl_cost.c
+	disksim_fcl.c  disksim_fcl_lru.c disksim_fcl_map.c disksim_fcl_cost.c disksim_fcl_seq_detect.c
 
 DISKSIM_OBJ = $(DISKSIM_SRC:.c=.o) 
 

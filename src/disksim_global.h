@@ -279,7 +279,7 @@ typedef struct foo {
 //#define DISKSIM_EVENT_SIZE	184 // ysoh 
 //#define DISKSIM_EVENT_SIZE	200 // ysoh 
 //#define DISKSIM_EVENT_SIZE	204 // ysoh 
-#define DISKSIM_EVENT_SIZE	208 // ysoh 
+#define DISKSIM_EVENT_SIZE	220 // ysoh 
 #define DISKSIM_EVENT_SPACESIZE	(DISKSIM_EVENT_SIZE - sizeof(struct foo))
 
 // ysoh
