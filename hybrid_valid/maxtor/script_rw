@@ -1,0 +1,5 @@
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-10.outv ascii ../financial_trace.txt 0 ssd0x0 "Reserve pages percentage" 90 &
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-30.outv ascii ../financial_trace.txt 0 ssd0x0 "Reserve pages percentage" 70 &
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-50.outv ascii ../financial_trace.txt 0 ssd0x0 "Reserve pages percentage" 50 &
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-70.outv ascii ../financial_trace.txt 0 ssd0x0 "Reserve pages percentage" 30 &
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-90.outv ascii ../financial_trace.txt 0 ssd0x0 "Reserve pages percentage" 10 

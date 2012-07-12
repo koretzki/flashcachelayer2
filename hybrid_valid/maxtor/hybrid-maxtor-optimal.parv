@@ -15,7 +15,7 @@ disksim_fcl Fcl {
   Bypass Cache = 0,
   Idle Detect Time = 0.0, #ms
 
-  Partitioning Scheme = 1,
+  Partitioning Scheme = 3,
 
   Group Destage = 0,
 

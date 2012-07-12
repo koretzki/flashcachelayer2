@@ -58,7 +58,8 @@ int					 fcl_optimal_write_pages = 0;
 int					 fcl_resize_trigger = 0;
 
 int					 debug_max_size = 0;
-#define fprintf 
+
+//#define fprintf 
 //#define printf
 
 
@@ -171,7 +172,7 @@ void fcl_issue_next_child ( ioreq_event *parent ){
 	int devno = -1;
 	double delay = 0.05;
 
-	fprintf ( stdout, " issue next = %d \n", parent->fcl_event_ptr );
+	//fprintf ( stdout, " issue next = %d \n", parent->fcl_event_ptr );
 
 	ASSERT ( parent->fcl_event_count[parent->fcl_event_ptr] != 0 );
 
@@ -184,26 +185,17 @@ void fcl_issue_next_child ( ioreq_event *parent ){
 	while ( req != NULL ){
 		
 		ASSERT ( req->flags == flags && req->devno == devno );
-		fprintf ( stdout, " req blkno = %d, dev = %d, bcount = %d \n", req->blkno, req->devno, req->bcount);
-		//if ( req->devno == HDD) { 
-			//printf ( " req blkno = %d, dev = %d, bcount = %d, flags = %d  \n", req->blkno, req->devno, req->bcount, req->flags);
-		//	ASSERT (0);
-		//}
+		//fprintf ( stdout, " req blkno = %d, dev = %d, bcount = %d \n", req->blkno, req->devno, req->bcount);
 
-		//req->busno = 0;
-		//req->cause = 0;
-		//req->flags |= TIME_CRITICAL;
-		//req->time += delay;
-		//printf (" simtime = %f, req time = %f \n", simtime, req->time );
-		req->time = simtime;
 
-		//io_map_trace_request ( req );
 		if ( req->bcount >= FCL_MAX_REQ_SIZE  && req->devno == HDD ) {
 			debug_max_size = req->bcount;
 			///printf (" simtime = %f, maxsize = %d, devno = %d  blkno = %d \n", simtime, debug_max_size, req->devno, req->blkno  );
 		}
 
 		ASSERT ( req->bcount <= FCL_MAX_REQ_SIZE );
+
+		req->time = simtime;
 
 		addtointq((event *) req);
 
@@ -716,8 +708,8 @@ void fcl_remove_empty_node ( ioreq_event *parent ) {
 
 				parent->fcl_event_count [j] = 0;
 				parent->fcl_event_list [j] = NULL;
-				fprintf ( stdout, " [%d] %p %d \n", j, 
-						parent->fcl_event_list[j], parent->fcl_event_count[j]);
+				//fprintf ( stdout, " [%d] %p %d \n", j, 
+				//		parent->fcl_event_list[j], parent->fcl_event_count[j]);
 			}
 
 		}
@@ -727,8 +719,8 @@ void fcl_remove_empty_node ( ioreq_event *parent ) {
 		
 		if ( parent->fcl_event_count [i] ) {
 			parent->fcl_event_num ++ ;
-			fprintf ( stdout, " [%d] %p %d \n", i, 
-					parent->fcl_event_list[i], parent->fcl_event_count[i]);
+			//fprintf ( stdout, " [%d] %p %d \n", i, 
+			//		parent->fcl_event_list[i], parent->fcl_event_count[i]);
 		}
 	}
 
@@ -1943,7 +1935,7 @@ void _fcl_request_complete ( ioreq_event *child ) {
 
 #endif 
 		//printf ( " *Complete Queue # of outstanding reqs = %d \n", ioqueue_get_reqoutstanding ( fcl_fore_q ));
-		fprintf ( stdout, " ** %.2f %.2f (%.2f)  Complete parent req ... %d %d %d \n", simtime, parent->time, simtime - parent->time,  parent->blkno, parent->bcount, parent->flags);
+		//fprintf ( stdout, " ** %.2f %.2f (%.2f)  Complete parent req ... %d %d %d \n", simtime, parent->time, simtime - parent->time,  parent->blkno, parent->bcount, parent->flags);
 		//printf ( " ** %.2f %.2f (%.2f)  Complete parent req ... %d %d %d, queue = %d \n", simtime, parent->time, simtime - parent->time,  parent->blkno, parent->bcount, parent->flags,
 		//		ioqueue_get_number_in_queue ( fcl_fore_q ) );
 		//ASSERT ( !(parent->flags & READ) );

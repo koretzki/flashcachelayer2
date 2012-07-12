@@ -12,26 +12,26 @@
 #include "disksim_fcl_cost.h"
 
 
-float u_table[1000];
+double u_table[1000];
 
-int SSD_GC(float u){
-	return ((float)u*SSD_NP*(SSD_PROG+SSD_READ) + (float)SSD_ERASE);
+double SSD_GC(double u){
+	return ((double)u*SSD_NP*(SSD_PROG+SSD_READ) + (double)SSD_ERASE);
 }
 
-int SSD_PW(float u){
+double SSD_PW(double u){
 	//return ((float)SSD_GC(u)/((1-u)*SSD_NP) + (float)SSD_PROG + SSD_BUS);
-	return ((float)SSD_GC(u)/(((float)1-u)*SSD_NP) + (float)SSD_PROG + SSD_BUS);
+	return ((double)SSD_GC(u)/(((double)1-u)*SSD_NP) + (double)SSD_PROG + SSD_BUS);
 }
 
 
-int HDD_COST(int rw){
-	int cost;
+double HDD_COST(int rw){
+	double cost;
 	
 	if(rw == READ){		
-		cost = (int)((float)HDD_CRPOS + (float)FCL_PAGE_SIZE_BYTE/(1024*1024)/HDD_BANDWIDTH*1000000);
+		cost = (int)((double)HDD_CRPOS + (double)FCL_PAGE_SIZE_BYTE/(1024*1024)/HDD_BANDWIDTH*1000000);
 		
 	}else{	
-		cost = (int)((float)HDD_CWPOS + (float)FCL_PAGE_SIZE_BYTE/(1024*1024)/HDD_BANDWIDTH*1000000);		
+		cost = (int)((double)HDD_CWPOS + (double)FCL_PAGE_SIZE_BYTE/(1024*1024)/HDD_BANDWIDTH*1000000);		
 
 	}
 
@@ -40,13 +40,13 @@ int HDD_COST(int rw){
 
 
 
-static double ssd_predict_util2(double diskUtlz){
-	return u_table[(int)(diskUtlz*1000)];
+static double ssd_predict_util2(double diskutil){
+	return u_table[(int)(diskutil*1000)];
 }
 
 
 
-static double ssd_predict_util(double diskUtlz){
+static double ssd_predict_util(double diskutil){
 	double threshold = 1e-9;
 	int i, max;
 
@@ -62,7 +62,7 @@ static double ssd_predict_util(double diskUtlz){
 		u = (u1+u2)/2;
 
 		disku = (u - 1.0) / log(u);
-		if (diskUtlz > disku) {
+		if (diskutil > disku) {
 			u1 = u;
 			disku1 = disku;
 		} else {
@@ -71,7 +71,7 @@ static double ssd_predict_util(double diskUtlz){
 		}
 
 		if (i++ > max) {
-			printf("Cannot find solution: %lf", diskUtlz);
+			printf("Cannot find solution: %lf", diskutil);
 			exit(1);
 		}
 	}
@@ -85,7 +85,7 @@ void make_utable(){
 	int i;
 
 	for(i = 0;i < 1000;i++){
-		u_table[i] = ssd_predict_util((float)i/1000);
+		u_table[i] = ssd_predict_util((double)i/1000);
 	}
 
 }
@@ -129,11 +129,11 @@ void print_test_cost () {
 //	}
 
 }
-static float calc_write_cost(int total, int cache_size, float hit_ratio, float rhit_ratio_in_write){
-	float cost;
-	float u;
-	float pw;
-	float Cwh;
+static double calc_write_cost(int total, int cache_size, double hit_ratio, double rhit_ratio_in_write){
+	double cost;
+	double u;
+	double pw;
+	double Cwh;
 
 #if 1 
 	u = ssd_predict_util((double)cache_size/total);
@@ -145,16 +145,16 @@ static float calc_write_cost(int total, int cache_size, float hit_ratio, float r
 
 
 	Cwh = (1-rhit_ratio_in_write) * (pw) + rhit_ratio_in_write * (SSD_READ + SSD_BUS);	
-	cost = hit_ratio * Cwh + (float)(1-hit_ratio) * (HDD_COST(WRITE) + (SSD_READ + SSD_BUS) + pw);
+	cost = hit_ratio * Cwh + (double)(1-hit_ratio) * (HDD_COST(WRITE) + (SSD_READ + SSD_BUS) + pw);
 
 	return cost;
 }
 
 
-static float calc_read_cost(int total, int cache_size, float hit_ratio){
-	float cost;
-	float u;
-	float pw;
+static double calc_read_cost(int total, int cache_size, double hit_ratio){
+	double cost;
+	double u;
+	double pw;
 #if 1 
 	u = ssd_predict_util((double)cache_size/total);
 #else
@@ -167,20 +167,20 @@ static float calc_read_cost(int total, int cache_size, float hit_ratio){
 	return cost;
 }
 
-static float calc_total_cost(	struct cache_manager **W_HIT_TRACKER,
+static double calc_total_cost(	struct cache_manager **W_HIT_TRACKER,
 								struct cache_manager **R_HIT_TRACKER,
 								int tracker_num,
 								int total_pages, 
 								double u,
 								double r )
 {
-	float w_hit;
-	float rhit_ratio_in_write;
-	float r_hit;
-	float w_cost;
-	float r_cost;
-	float c_cost;
-	float r_rate;
+	double w_hit;
+	double rhit_ratio_in_write;
+	double r_hit;
+	double w_cost;
+	double r_cost;
+	double c_cost;
+	double r_rate;
 	int w_size; 
 	int r_size;
 	int w_count = 0, r_count = 0;
