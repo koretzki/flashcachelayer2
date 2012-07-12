@@ -22,7 +22,7 @@ disksim_fcl Fcl {
   Sequential Detection Enable = 1,
   Sequential Unit Size = 256,
 
-  Foreground Queue Outstanding Length = 1,
+  Foreground Queue Outstanding Length = 32,
   Background Queue Outstanding Length = 10000,
 
   HDD Read Positioning Time = 4500,  #us
@@ -103,9 +103,9 @@ Use queueing in subsystem = 1
 } # end of DRV0 spec
 
 disksim_bus BUSTOP {
-type = 1,
+type = 2,
 Arbitration type = 1,
-Arbitration time = 0.0,
+Arbitration time = 0.001,
 Read block transfer time = 0.0,
 Write block transfer time = 0.0,
 Print stats =  0
@@ -139,37 +139,15 @@ Arbitration time = 0.000,
 # transfer time is about 0.238 us. SATA/300 can transfer data 
 # at 300 MBps, which amounts to about 1.6276 us per byte.
 
-Read block transfer time = 0.00,
-Write block transfer time = 0.00,
+Read block transfer time = 0.0002384,
+Write block transfer time = 0.0002384,
+
+#Read block transfer time = 0.00,
+#Write block transfer time = 0.00,
 
 Print stats =  1
 } # end of BUSHBA_DISK spec
 
-
-#disksim_ctlr CTLR0 {
-#type = 1,
-#Scale for delays = 0.0,
-#Bulk sector transfer time = 0.0,
-#Maximum queue length = 0,
-#Print stats = 1,
-#Scheduler = disksim_ioqueue {
-#Scheduling policy = 3,
-#Cylinder mapping strategy = 1,
-#Write initiation delay = 0.0,
-#Read initiation delay = 0.0,
-#Sequential stream scheme = 3,
-#Maximum concat size = 128,
-#Overlapping request scheme = 0,
-#Sequential stream diff maximum = 0,
-#Scheduling timeout scheme = 0,
-#Timeout time/weight = 6,
-##Timeout scheduling = 4,
-#Scheduling priority scheme = 0,
-#Priority scheduling = 4
-#   },
-#
-#Max per-disk pending count = 1
-#} # end of CTLR0 spec
 
 
 disksim_ctlr CTLR0 {
@@ -177,18 +155,49 @@ disksim_ctlr CTLR0 {
   Scale for delays = 0.0,
   Bulk sector transfer time = 0.0,
   Maximum queue length = 0,
-  Print stats =  1
+  Print stats =  1,
+Scheduler = disksim_ioqueue {
+Scheduling policy = 3,
+Cylinder mapping strategy = 1,
+Write initiation delay = 0.0,
+Read initiation delay = 0.0,
+Sequential stream scheme = 3,
+Maximum concat size = 128,
+Overlapping request scheme = 0,
+Sequential stream diff maximum = 0,
+Scheduling timeout scheme = 0,
+Timeout time/weight = 6,
+Timeout scheduling = 4,
+Scheduling priority scheme = 0,
+Priority scheduling = 4
+   },
+
+Cache = disksim_cachemem {
+Cache size = 8192,
+SLRU segments = [ 
+         1.000000
+      ],
+Line size = 64,
+Bit granularity = 1,
+Lock granularity = 64,
+Shared read locks = 1,
+Max request size = 512,
+Replacement policy = 2,
+Allocation policy = 0,
+Write scheme = 3,
+Flush policy = 0,
+Flush period = 0.0,
+Flush idle delay = -1.000000,
+Flush max line cluster = 8,
+Read prefetch type = 0,
+Write prefetch type = 0,
+Line-by-line fetches = 0,
+Max gather = 7
+   },
+Max per-disk pending count = 1
 } # end of CTLR0 spec
 
 
-
-#disksim_ctlr CTLR0 {
-#type = 1,
-#Scale for delays = 0.0,
-#Bulk sector transfer time = 0.0,
-#Maximum queue length = 100,
-#Print stats =  1
-#} # end of CTLR0 spec
 
 source maxtor146g.diskspecs
 

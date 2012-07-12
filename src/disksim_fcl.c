@@ -57,7 +57,7 @@ int					 fcl_optimal_read_pages = 0;
 int					 fcl_optimal_write_pages = 0;
 int					 fcl_resize_trigger = 0;
 
-
+int					 debug_max_size = 0;
 #define fprintf 
 //#define printf
 
@@ -183,7 +183,7 @@ void fcl_issue_next_child ( ioreq_event *parent ){
 
 	while ( req != NULL ){
 		
-		//ASSERT ( req->flags == flags && req->devno == devno );
+		ASSERT ( req->flags == flags && req->devno == devno );
 		fprintf ( stdout, " req blkno = %d, dev = %d, bcount = %d \n", req->blkno, req->devno, req->bcount);
 		//if ( req->devno == HDD) { 
 			//printf ( " req blkno = %d, dev = %d, bcount = %d, flags = %d  \n", req->blkno, req->devno, req->bcount, req->flags);
@@ -196,6 +196,14 @@ void fcl_issue_next_child ( ioreq_event *parent ){
 		//req->time += delay;
 		//printf (" simtime = %f, req time = %f \n", simtime, req->time );
 		req->time = simtime;
+
+		//io_map_trace_request ( req );
+		if ( req->bcount >= FCL_MAX_REQ_SIZE  && req->devno == HDD ) {
+			debug_max_size = req->bcount;
+			///printf (" simtime = %f, maxsize = %d, devno = %d  blkno = %d \n", simtime, debug_max_size, req->devno, req->blkno  );
+		}
+
+		ASSERT ( req->bcount <= FCL_MAX_REQ_SIZE );
 
 		addtointq((event *) req);
 
@@ -342,7 +350,7 @@ void fcl_make_seq_req (ioreq_event *parent, int blkno) {
 	if ( parent->flags & READ )
 		fcl_generate_child_request ( parent, HDD, blkno, READ, 0, 0);
 	else 
-		fcl_generate_child_request ( parent, HDD, blkno, WRITE, 0, 0);
+		fcl_generate_child_request ( parent, HDD, blkno, WRITE, 1, 0);
 	//else{ // miss case 
 	//	ln = fcl_replace_cache ( parent, blkno, NULL );
 	//	ASSERT ( ln );
@@ -664,8 +672,15 @@ void fcl_make_merge_next_request (ioreq_event **fcl_event_list, int *fcl_event_c
 
 		while ( req != NULL ){
 
+			//if ( req->devno == HDD &&  req->bcount >= FCL_MAX_REQ_SIZE ) {
+
+			//	printf ( " %f Merge req size =  %d \n", simtime, req->bcount);
+
+			//}
+
 			if (req->fcl_event_next && 
-				fcl_req_is_consecutive ( req, req->fcl_event_next )) {
+				fcl_req_is_consecutive ( req, req->fcl_event_next )// ) { 
+				&& req->bcount < FCL_MAX_REQ_SIZE ) {
 				
 				// assign next request to remove pointer
 				merged_req = req->fcl_event_next;
@@ -1039,6 +1054,8 @@ void fcl_update_workload_tracker ( ioreq_event *parent ) {
 void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {
 	ioreq_event *req;
 
+	//parent->bcount = 2048;
+
 	parent->blkno = parent->blkno % (hdd_total_sectors);
 
 	parent->blkno = (parent->blkno / FCL_PAGE_SIZE) * FCL_PAGE_SIZE;
@@ -1227,6 +1244,8 @@ void fcl_request_arrive (ioreq_event *parent){
 
 		parent->devno = HDD;
 		parent->blkno = parent->blkno % (flash_usable_sectors);
+		//parent->bcount = 1024;
+
 		//if ( parent->bcount > 128 ) {
 	//		parent->bcount = 128;
 	//	}
@@ -2061,7 +2080,7 @@ int disksim_fcl_loadparams ( struct lp_block *b, int *num) {
 void fcl_print_parameters () {
 
 	printf ( "\n" );
-	printf ( " Print FCL Parameters .. \n " );
+	printf ( " Print FCL Parameters .. \n" );
 	printf ( " Page size = %d sectors \n", fcl_params->fpa_page_size );
 	printf ( " Max pages percent = %.2f \n", fcl_params->fpa_max_pages_percent );
 	printf ( " Bypass cache = %d \n", fcl_params->fpa_bypass_cache );
@@ -2141,6 +2160,7 @@ void fcl_init () {
 
 	lru_size  = flash_usable_pages;
 
+	//hdd_total_pages = device_get_number_of_blocks (HDD)/FCL_PAGE_SIZE;
 	hdd_total_pages = device_get_number_of_blocks (HDD)/FCL_PAGE_SIZE;
 	hdd_total_sectors = hdd_total_pages * FCL_PAGE_SIZE; 
 

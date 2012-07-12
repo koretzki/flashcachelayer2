@@ -40,6 +40,9 @@
 #define FCL_REPLACE_CLEAN	1
 #define FCL_REPLACE_ANY     2	
 
+//#define FCL_MAX_REQ_SIZE  256
+#define FCL_MAX_REQ_SIZE  512
+
 #define FCL_FORE_Q_DEPTH (fcl_params->fpa_fore_outstanding)
 #define FCL_BACK_Q_DEPTH (fcl_params->fpa_back_outstanding)
 

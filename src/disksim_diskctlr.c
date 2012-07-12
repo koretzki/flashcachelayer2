@@ -1916,7 +1916,7 @@ static void disk_check_hda(disk *currdisk,
 
   // XXX set this dynamically according to the track bounds of the 
   // dest track.
-  //currdisk->fpcheck = 10000;
+  //currdisk->fpcheck = 20000;
 
   currdisk->fpcheck = 6000;
   //      currdisk->model->layout->dm_get_sectors_lbn(currdisk->model, 
@@ -4072,6 +4072,9 @@ disk_buffer_seekdone(disk *currdisk, ioreq_event *curr)
     currdisk->track_high = last;
 
     curr->bcount = last - first + 1;
+	if ( curr->bcount > 6000 ) 
+	printf ( " track size = %d \n", curr->bcount );
+
     last++;  // the controller code works in terms of 1-past-the-end
 
     ddbg_assert3(((first <= curr->blkno) && (curr->blkno <= last )),
@@ -4374,6 +4377,16 @@ disk_buffer_sector_done (disk *currdisk, ioreq_event *curr)
 
   currdisk->fpcheck--;
 
+  //if ( currdisk->fpcheck < 4000 )
+  //printf ( " %f fpcheck = %d \n", simtime, currdisk->fpcheck ) ;
+
+  //if (  ioqueue_get_number_in_queue ( currdisk->queue ) > 1 )
+//	 printf ( " number request in queue = %d \n", ioqueue_get_number_in_queue ( currdisk->queue ) );
+
+  if ( currdisk->fpcheck == 0 ) {
+	  printf ( " number request in queue = %d \n", ioqueue_get_number_in_queue ( currdisk->queue ) );
+	  printf ( " track size = %d \n", currdisk->track_high -  currdisk->track_low );
+  }
   /* Dushyanth: this seems to fire, so: */
   ddbg_assert(currdisk->fpcheck); // see the comment in the header
   

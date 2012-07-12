@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "disksim_fcl_seq_detect.h"
+#include "disksim_global.h"
 
 struct sequential_detector *seq_detector;
 
@@ -55,10 +56,12 @@ int sd_seq_detection ( int blkno, int length ) {
 
 	if ( seq_detector->sd_length >= seq_detector->sd_seq_size ) {
 		seq = 1;
-		/* printf ( " Seq detection: blkno = %d, length = %d \n", 
+		///* 
+		   printf ( " %f Seq detection: blkno = %d, length = %d \n", 
+				   					simtime,
 									seq_detector->sd_startblk,
 									seq_detector->sd_length );
-		*/
+		//*/
 	}
 
 	return seq;
