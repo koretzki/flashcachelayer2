@@ -95,7 +95,7 @@ static int calc_rw_partition_size(int cache_size, double r_p_rate, int *r_sz,int
 	int remain = 0;
 
 	*r_sz = r_p_rate * cache_size ;	
-	*w_sz = (1-r_p_rate) * cache_size ;
+	*w_sz = ((double)1-r_p_rate) * cache_size ;
 
 	remain = cache_size - (*r_sz + *w_sz);
 	if(remain)
@@ -144,8 +144,8 @@ static double calc_write_cost(int total, int cache_size, double hit_ratio, doubl
 	pw = SSD_PW(u);
 
 
-	Cwh = (1-rhit_ratio_in_write) * (pw) + rhit_ratio_in_write * (SSD_READ + SSD_BUS);	
-	cost = hit_ratio * Cwh + (double)(1-hit_ratio) * (HDD_COST(WRITE) + (SSD_READ + SSD_BUS) + pw);
+	Cwh = ((double)1-rhit_ratio_in_write) * (pw) + rhit_ratio_in_write * (SSD_READ + SSD_BUS);	
+	cost = hit_ratio * Cwh + (double)((double)1-hit_ratio) * (HDD_COST(WRITE) + (SSD_READ + SSD_BUS) + pw);
 
 	return cost;
 }
@@ -162,7 +162,7 @@ static double calc_read_cost(int total, int cache_size, double hit_ratio){
 #endif 
 	pw = SSD_PW(u);
 	
-	cost = hit_ratio * (SSD_READ + SSD_BUS) + (1-hit_ratio) * (HDD_COST(READ) + pw);
+	cost = hit_ratio * (SSD_READ + SSD_BUS) + ((double)1-hit_ratio) * (HDD_COST(READ) + pw);
 
 	return cost;
 }
@@ -206,7 +206,7 @@ static double calc_total_cost(	struct cache_manager **W_HIT_TRACKER,
 	//r_rate = 0.5;
 	r_rate = (double ) fcl_io_read_pages / fcl_io_total_pages;
 
-	c_cost = r_cost * r_rate + w_cost * (1 - r_rate);
+	c_cost = r_cost * r_rate + w_cost * ((double)1 - r_rate);
 
 	return c_cost;
 }
@@ -224,7 +224,8 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 	double min_cost = 0.0;
 	double min_u, min_r;
 
-	double step = (double)1/16;
+	double u_step = (double)1/16;
+	double r_step = (double)1/32;
 
 	double u_start, u_end;
 
@@ -234,12 +235,12 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 		u_start = (double)flash_usable_pages/flash_total_pages;
 		u_end = u_start +0.00001;
 	} else if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_OPTIMAL ) {
-		u_start = step;
+		u_start = u_step;
 		u_end = 0.999;
 	}
 
-	for ( u = u_start; u < (double) u_end ; u+= step ) {
-		for ( r = 0; r < (double) 0.999; r+= step ) {
+	for ( u = u_start; u < (double) u_end ; u+= u_step ) {
+		for ( r = 0; r < (double) 0.999; r+= r_step ) {
 			cur_cost = calc_total_cost ( write_hit_tracker, read_hit_tracker, tracker_num, total_pages, u, r );
 			
 			if ( u ==  u_start && r == 0 ) {

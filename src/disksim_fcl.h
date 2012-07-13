@@ -30,6 +30,7 @@
 #define FCL_OPERATION_STAGING	3
 
 #define FCL_MAX_DESTAGE 128
+#define FCL_MAX_RESIZE 512
 #define FCL_MAX_STAGE 	1
 
 #define FCL_CACHE_FIXED		1
@@ -44,6 +45,7 @@
 #define FCL_MAX_REQ_SIZE  512
 
 #define FCL_FORE_Q_DEPTH (fcl_params->fpa_fore_outstanding)
+#define FCL_FORE_Q_DEPTH_TEMP (fcl_params->fpa_fore_outstanding_temp)
 #define FCL_BACK_Q_DEPTH (fcl_params->fpa_back_outstanding)
 
 #define	flash_total_pages		(fcl_params->fpa_flash_total_pages)
@@ -67,9 +69,11 @@ struct fcl_parameters {
 
 	// RW-FCL and OP_FCL
 	int		fpa_resize_period;
+	int		fpa_resize_next;
 
 	int		fpa_group_destage;
 	int		fpa_fore_outstanding;
+	int		fpa_fore_outstanding_temp;
 	int		fpa_back_outstanding;
 
 	// HDD Cost 

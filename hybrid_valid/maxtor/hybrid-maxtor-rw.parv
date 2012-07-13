@@ -25,8 +25,8 @@ disksim_fcl Fcl {
   Foreground Queue Outstanding Length = 32,
   Background Queue Outstanding Length = 10000,
 
-  HDD Read Positioning Time = 4500,  #us
-  HDD Write Positioning Time = 4500, #us 
+  HDD Read Positioning Time = 4400,  #us
+  HDD Write Positioning Time = 4900, #us 
   HDD Bandwidth	= 72.0 # MB/s
 }
 

@@ -175,10 +175,15 @@ void io_catch_stray_events (ioreq_event *curr)
 #if 1 
 event * io_request (ioreq_event *curr)
 {
-   curr->type = IO_REQUEST_ARRIVE;
-   fcl_request_arrive (curr);
+   //curr->type = IO_REQUEST_ARRIVE;
+   //fcl_request_arrive (curr);
 
-   return NULL;
+	fprintf ( stderr, "\n\n Synthetic workloads are not supported ..!! \n" );
+	ASSERT ( 0 );
+	curr->type = FCL_REQUEST_ARRIVE;
+	fcl_event_arrive ( curr );
+
+   return curr;
 }
 #else
 event * io_request (ioreq_event *curr)

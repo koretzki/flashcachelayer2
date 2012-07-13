@@ -1,5 +1,0 @@
-../../src/disksim hybrid-simple-fixed-util10.parv fixed-util10.outv ascii ../financial_trace.txt 0 &
-../../src/disksim hybrid-simple-fixed-util30.parv fixed-util30.outv ascii ../financial_trace.txt 0 &
-../../src/disksim hybrid-simple-fixed-util50.parv fixed-util50.outv ascii ../financial_trace.txt 0 &
-../../src/disksim hybrid-simple-fixed-util70.parv fixed-util70.outv ascii ../financial_trace.txt 0 &
-../../src/disksim hybrid-simple-fixed-util90.parv fixed-util90.outv ascii ../financial_trace.txt 0 
