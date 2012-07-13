@@ -262,16 +262,12 @@ int _fcl_replace_cache ( ioreq_event *parent, int watermark, int replace_type ) 
 	// evict the LRU position node from the LRU list
 	remove_ln = CACHE_REPLACE(fcl_cache_mgr, watermark, replace_type);
 
-
 	if ( remove_ln == NULL ) 
 		return victim;
 
 	if ( remove_ln ) {
 		ASSERT ( remove_ln->cn_flag == FCL_CACHE_FLAG_SEALED );
 	}
-
-	
-	//if ( remove_ln && remove_ln->cn_ssd_blk > 0 ) {
 
 	// XXX : active block would be replaced !! 
 	active_ln = fcl_lookup_active_list ( remove_ln->cn_blkno );
@@ -304,7 +300,7 @@ int _fcl_replace_cache ( ioreq_event *parent, int watermark, int replace_type ) 
 
 	victim = 1;
 
-	//}
+
 	return victim;
 }
 
@@ -323,11 +319,16 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 
 	if ( !( parent->flags & READ )  			// Write Request 
 		&& replace_type != FCL_REPLACE_ANY		// Dynamic Partitioning 
-		&& fcl_cache_mgr->cm_dirty_free == 0)   // High Watermark
+		&& fcl_cache_mgr->cm_dirty_free == 0 )   // High Watermark
 	{
 		low_watermark = FCL_MAX_DESTAGE - 1;
 		debug = 1;
-	} else {
+	}/* else if ( !(parent->flags & READ ) 
+			&& replace_type == FCL_REPLACE_ANY 
+			&& fcl_cache_mgr->cm_free == 0 ) 
+	{ 
+		low_watermark = FCL_MAX_DESTAGE - 1;
+	}*/ else {
 		low_watermark = 0;
 	}
 
@@ -411,9 +412,11 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 	}
 
 	if ( parent->flags & READ ) {
-		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, FCL_EVENT_MAX - 2, 0 );
+		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, 
+									 READ, FCL_EVENT_MAX - 2, 0 );
 	} else {
-		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, FCL_EVENT_MAX - 1, WRITE );
+		fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, 
+				 					 WRITE, FCL_EVENT_MAX - 1, WRITE );
 
 		if ( ln->cn_dirty == 0 ) {
 			ln->cn_dirty = 1;
@@ -447,8 +450,10 @@ void fcl_make_stage_req (ioreq_event *parent, int blkno) {
 
 void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) {
 
-	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), READ, list_index++, 0);
-	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, WRITE, list_index++, READ);
+	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), 
+														READ, list_index++, 0);
+	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, 
+														WRITE, list_index++, READ);
 
 	fcl_cache_mgr->cm_stage_count++;
 
@@ -458,8 +463,10 @@ void _fcl_make_destage_req ( ioreq_event *parent, struct lru_node *ln, int list_
 
 	//printf(" make destage = %f %d\n", simtime, reverse_get_blk(ln->cn_ssd_blk));
 
-	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, READ, list_index++, 0);
-	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), WRITE, list_index++, 0);
+	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, 
+														READ, list_index++, 0);
+	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), 
+														WRITE, list_index++, 0);
 
 	fcl_cache_mgr->cm_destage_count++;
 
@@ -685,12 +692,6 @@ void fcl_make_merge_next_request (ioreq_event **fcl_event_list, int *fcl_event_c
 		ASSERT ( req != NULL);
 
 		while ( req != NULL ){
-
-			//if ( req->devno == HDD &&  req->bcount >= FCL_MAX_REQ_SIZE ) {
-
-			//	printf ( " %f Merge req size =  %d \n", simtime, req->bcount);
-
-			//}
 
 			if (req->fcl_event_next && 
 				fcl_req_is_consecutive ( req, req->fcl_event_next )// ) { 
@@ -1835,23 +1836,20 @@ int fcl_destage_request ( int destage_num) {
 void fcl_timer_event ( timer_event *timereq) {
 
 	int ret;
-	//printf ( " Timer Inttupt !! %f, %f \n", simtime, timereq->time );
 
+	//printf ( " Timer Inttupt !! %f, %f \n", simtime, timereq->time );
 
 	if ( ioqueue_get_number_in_queue ( fcl_fore_q )  == 0 && 
 		 ioqueue_get_number_in_queue ( fcl_back_q ) == 0 && 
 		 fcl_timer_func ) 
 	{
-	//	printf (" stage event ... \n" );
 		//fcl_stage_request ();
-
-		//printf (" start background destage \n" );
 		ret = fcl_destage_request ( FCL_MAX_DESTAGE );
-		//if ( ret ) 
-		//	printf ( " Background Destage ... = %d req\n", ret );
+		if ( ret ) 
+			printf ( " Background Destage ... = %d req\n", ret );
 
 	} else {
-		//printf ( " Destroy Timer Event \n");
+		printf ( " Destroy Timer Event \n");
 	}
 
 	fcl_timer_func = NULL;
@@ -1988,7 +1986,8 @@ void _fcl_request_complete ( ioreq_event *child ) {
 		fcl_issue_pending_parent ();
 	}
 
-	if ( fcl_resize_trigger && fcl_all_queue_outstanding_empty() ) { 
+	//if ( fcl_resize_trigger && fcl_all_queue_outstanding_empty() ) { 
+	if ( fcl_resize_trigger && fcl_all_queue_empty() ) { 
 		int remain = fcl_resize_rwcache ();
 
 		fcl_resize_trigger = remain ? 1 : 0;
@@ -2003,7 +2002,7 @@ void _fcl_request_complete ( ioreq_event *child ) {
 	}
 	//*/
 
-	/* on-demand group destaging */
+	/* background group destaging */
 	//*
 	if ( fcl_params->fpa_group_destage &&  
 		 fcl_all_queue_empty() &&
@@ -2021,6 +2020,7 @@ void _fcl_request_complete ( ioreq_event *child ) {
 		fcl_discard_deleted_pages ();
 	}
 
+#if FCL_BACKGROUND_TIMER == 1 
 	/* background destaging  */ 
 	if ( fcl_all_queue_empty () &&
 		 fcl_timer_func == NULL && 
@@ -2030,7 +2030,7 @@ void _fcl_request_complete ( ioreq_event *child ) {
 		if ( fcl_params->fpa_idle_detect_time > 0.0 )
 			fcl_make_timer ();
 	}
-
+#endif 
 }
 
 void fcl_event_next_foreground_request () {
@@ -2106,7 +2106,7 @@ int disksim_fcl_loadparams ( struct lp_block *b, int *num) {
 		fcl_params->fpa_hdd_crpos = 4500;
 
 	if ( fcl_params->fpa_hdd_cwpos == 0.0 ) 
-		fcl_params->fpa_hdd_cwpos = 4500;
+		fcl_params->fpa_hdd_cwpos = 4900;
 
 	if ( fcl_params->fpa_hdd_bandwidth == 0.0 )
 		fcl_params->fpa_hdd_bandwidth = 72;
@@ -2120,49 +2120,63 @@ int disksim_fcl_loadparams ( struct lp_block *b, int *num) {
 	if ( fcl_params->fpa_hit_tracker_nsegment == 0 ) 
 		fcl_params->fpa_hit_tracker_nsegment = 128;
 
+	if ( fcl_params->fpa_max_destage_size == 0 ) 
+		fcl_params->fpa_max_destage_size = 128;
+
+	if ( fcl_params->fpa_max_resize_size == 0 ) 
+		fcl_params->fpa_max_resize_size = 128;
+
+
 	fcl_params->fpa_resize_next = 1;
 
 	return 0;
 }
 
-void fcl_print_parameters () {
+void fcl_print_parameters ( FILE *fp ) {
 
-	printf ( "\n" );
-	printf ( " Print FCL Parameters .. \n" );
-	printf ( " Page size = %d sectors \n", fcl_params->fpa_page_size );
-	printf ( " Max pages percent = %.2f \n", fcl_params->fpa_max_pages_percent );
-	printf ( " Bypass cache = %d \n", fcl_params->fpa_bypass_cache );
-	printf ( " Idle detect time= %.2f ms \n", fcl_params->fpa_idle_detect_time );
-	printf ( " Group Destage = %d \n", fcl_params->fpa_group_destage );
-	printf ( " Seq Detection Enable = %d \n", fcl_params->fpa_seq_detection_enable );
-	printf ( " Seq unit size = %d sectors \n", fcl_params->fpa_seq_unit_size );
+	fprintf ( fp, "\n" );
+	fprintf ( fp, " Print FCL Parameters .. \n" );
+	fprintf ( fp, " Page size = %d sectors \n", fcl_params->fpa_page_size );
+	fprintf ( fp, " Max pages percent = %.2f \n", fcl_params->fpa_max_pages_percent );
+	fprintf ( fp, " Bypass cache = %d \n", fcl_params->fpa_bypass_cache );
+	fprintf ( fp, " Idle detect time= %.2f ms \n", fcl_params->fpa_idle_detect_time );
+	fprintf ( fp, " Group Destage = %d \n", fcl_params->fpa_group_destage );
+	fprintf ( fp, " Seq Detection Enable = %d \n", fcl_params->fpa_seq_detection_enable );
+	fprintf ( fp, " Seq unit size = %d sectors \n", fcl_params->fpa_seq_unit_size );
 
-	printf ( " Foreground Q Depth = %d \n", FCL_FORE_Q_DEPTH );
-	printf ( " Background Q Dpeth = %d \n", FCL_BACK_Q_DEPTH );
+	fprintf ( fp, " Max Destage Size = %d \n", FCL_MAX_DESTAGE );
+	fprintf ( fp, " Max Resize  Size = %d \n", FCL_MAX_RESIZE );
+	fprintf ( fp, " Max Request  Size = %d \n", FCL_MAX_REQ_SIZE );
+	
+	fprintf ( fp, " Foreground Q Depth = %d \n", FCL_FORE_Q_DEPTH );
+	fprintf ( fp, " Background Q Dpeth = %d \n", FCL_BACK_Q_DEPTH );
 	
 	if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_FIXED ) {
-		printf ( " Cache partitionig = Fixed \n");
+		fprintf ( fp, " Cache partitionig = Fixed \n");
 	} else if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_RW ) {
-		printf ( " Cache partitionig = Read Write Distinguish \n");
+		fprintf ( fp, " Cache partitionig = Read Write Distinguish \n");
 	} else if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_OPTIMAL ) {
-		printf ( " Cache partitionig = Optimal \n");
+		fprintf ( fp, " Cache partitionig = Optimal \n");
 	} else {
-		printf ( " Set default partitioning scheme (Fixed) !!! \n");
+		fprintf ( fp, " Set default partitioning scheme (Fixed) !!! \n");
 		fcl_params->fpa_partitioning_scheme = FCL_CACHE_FIXED;
 	}
 
-	printf ( " HDD Read Positioning Time = %.1f us \n", fcl_params->fpa_hdd_crpos );
-	printf ( " HDD Write Positioning Time = %.1f us \n", fcl_params->fpa_hdd_cwpos );
-	printf ( " HDD Bandwidth = %.1f MB/s \n", fcl_params->fpa_hdd_bandwidth );
-	printf ( " \n" );
+	fprintf ( fp, " HDD Read Positioning Time = %.1f us \n", fcl_params->fpa_hdd_crpos );
+	fprintf ( fp, " HDD Write Positioning Time = %.1f us \n", fcl_params->fpa_hdd_cwpos );
+	fprintf ( fp, " HDD Bandwidth = %.1f MB/s \n", fcl_params->fpa_hdd_bandwidth );
+	fprintf ( fp, " \n" );
 
-	printf ( " SSD Program Time = %.1f us \n", fcl_params->fpa_ssd_cprog );
-	printf ( " SSD Read Time = %.1f us \n", fcl_params->fpa_ssd_cread );
-	printf ( " SSD Erase Time = %.1f us \n", fcl_params->fpa_ssd_cerase );
-	printf ( " SSD Bus Time = %.1f us \n", fcl_params->fpa_ssd_cbus );
-	printf ( " SSD NP = %d \n", fcl_params->fpa_ssd_np);
+	fprintf ( fp, " SSD Program Time = %.1f us \n", fcl_params->fpa_ssd_cprog );
+	fprintf ( fp, " SSD Read Time = %.1f us \n", fcl_params->fpa_ssd_cread );
+	fprintf ( fp, " SSD Erase Time = %.1f us \n", fcl_params->fpa_ssd_cerase );
+	fprintf ( fp, " SSD Bus Time = %.1f us \n", fcl_params->fpa_ssd_cbus );
+	fprintf ( fp, " SSD NP = %d \n", fcl_params->fpa_ssd_np);
 
-	printf ( "\n");
+
+
+
+	fprintf ( fp, "\n");
 }
 
 void fcl_initial_discard_pages () {
@@ -2191,7 +2205,8 @@ void fcl_init () {
 	ssd_t *currssd = getssd ( SSD );
 
 	fcl_set_ssd_params ( currssd );
-	fcl_print_parameters () ;
+	fcl_print_parameters ( stdout ) ;
+	fcl_print_parameters ( outputfile) ;
 
 	print_test_cost ();
 

@@ -17,7 +17,12 @@ disksim_fcl Fcl {
 
   Partitioning Scheme = 3,
 
+  Max Destage Size = 128,
+  Max Resize Size = 128,
+
   Group Destage = 0,
+
+
 
   Sequential Detection Enable = 1,
   Sequential Unit Size = 256,

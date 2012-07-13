@@ -22,6 +22,13 @@ PARAM Idle Detect Time		D	1
 TEST (d >= 0)
 INIT result->fpa_idle_detect_time = d;
 
+PARAM Max Destage Size	D	1
+TEST (d >= 0)
+INIT result->fpa_max_destage_size = d;
+
+PARAM Max Resize Size	D	1
+TEST (d >= 0)
+INIT result->fpa_max_resize_size = d;
 
 PARAM Group Destage		I	1
 TEST (i >= 0)

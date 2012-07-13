@@ -16,6 +16,8 @@ disksim_fcl Fcl {
   Idle Detect Time = 0.0, #ms
 
   Partitioning Scheme = 1,
+  Max Destage Size = 128,
+  Max Resize Size = 128,
 
   Group Destage = 0,
 

@@ -29,8 +29,7 @@
 #define FCL_OPERATION_DESTAGING 2 
 #define FCL_OPERATION_STAGING	3
 
-#define FCL_MAX_DESTAGE 128
-#define FCL_MAX_RESIZE 1024
+
 #define FCL_MAX_STAGE 	1
 
 #define FCL_CACHE_FIXED		1
@@ -43,6 +42,9 @@
 
 //#define FCL_MAX_REQ_SIZE  256
 #define FCL_MAX_REQ_SIZE  512
+
+#define FCL_MAX_DESTAGE			(fcl_params->fpa_max_destage_size) 
+#define FCL_MAX_RESIZE			(fcl_params->fpa_max_resize_size)
 
 #define FCL_FORE_Q_DEPTH		(fcl_params->fpa_fore_outstanding)
 #define FCL_FORE_Q_DEPTH_TEMP	(fcl_params->fpa_fore_outstanding_temp)
@@ -57,6 +59,7 @@
 
 #define fcl_hit_tracker_nsegment (fcl_params->fpa_hit_tracker_nsegment)
 
+#define FCL_BACKGROUND_TIMER	0
 
 struct fcl_parameters {
 	int		fpa_page_size;
@@ -66,6 +69,9 @@ struct fcl_parameters {
 	int		fpa_partitioning_scheme;
 	int		fpa_background_activity;
 	double	fpa_overhead;
+
+	int		fpa_max_resize_size;
+	int		fpa_max_destage_size;
 
 	int		fpa_seq_detection_enable;
 	int		fpa_seq_unit_size;
