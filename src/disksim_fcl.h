@@ -30,7 +30,7 @@
 #define FCL_OPERATION_STAGING	3
 
 #define FCL_MAX_DESTAGE 128
-#define FCL_MAX_RESIZE 512
+#define FCL_MAX_RESIZE 1024
 #define FCL_MAX_STAGE 	1
 
 #define FCL_CACHE_FIXED		1
@@ -44,9 +44,9 @@
 //#define FCL_MAX_REQ_SIZE  256
 #define FCL_MAX_REQ_SIZE  512
 
-#define FCL_FORE_Q_DEPTH (fcl_params->fpa_fore_outstanding)
-#define FCL_FORE_Q_DEPTH_TEMP (fcl_params->fpa_fore_outstanding_temp)
-#define FCL_BACK_Q_DEPTH (fcl_params->fpa_back_outstanding)
+#define FCL_FORE_Q_DEPTH		(fcl_params->fpa_fore_outstanding)
+#define FCL_FORE_Q_DEPTH_TEMP	(fcl_params->fpa_fore_outstanding_temp)
+#define FCL_BACK_Q_DEPTH		(fcl_params->fpa_back_outstanding)
 
 #define	flash_total_pages		(fcl_params->fpa_flash_total_pages)
 #define	flash_usable_pages		(fcl_params->fpa_flash_usable_pages)
@@ -54,6 +54,9 @@
 
 #define	hdd_total_pages			(fcl_params->fpa_hdd_total_pages)
 #define	hdd_total_sectors		(fcl_params->fpa_hdd_total_sectors)
+
+#define fcl_hit_tracker_nsegment (fcl_params->fpa_hit_tracker_nsegment)
+
 
 struct fcl_parameters {
 	int		fpa_page_size;
@@ -70,6 +73,8 @@ struct fcl_parameters {
 	// RW-FCL and OP_FCL
 	int		fpa_resize_period;
 	int		fpa_resize_next;
+
+	int		fpa_hit_tracker_nsegment;
 
 	int		fpa_group_destage;
 	int		fpa_fore_outstanding;
@@ -120,5 +125,9 @@ int fcl_invalid_request ( int invalid_num) ;
 
 struct lru_node *fcl_lookup_active_list ( int blkno ) ;
 
+void fcl_event_next_foreground_request () ;
+void fcl_event_next_background_request () ;
+
+void fcl_update_workload_tracker ( ioreq_event *parent ) ;
 
 #endif // ifndef _DISKSIM_FCL_H 
