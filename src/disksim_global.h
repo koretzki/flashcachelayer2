@@ -322,6 +322,7 @@ typedef struct ioreq_ev {
    struct 	 ioreq_ev *fcl_event_list[FCL_EVENT_MAX];
    struct	 ioreq_ev *fcl_event_next;
 
+   // 4KB sub requests lists 
    struct	list_head 	fcl_complete_list;
    struct	list_head	fcl_active_list;
    struct	list_head	fcl_inactive_list;

@@ -1,3 +1,13 @@
+    
+/*
+* Flash Cache Layer (FCL) (Version 1.0) 
+*
+* Author		: Yongseok Oh (ysoh@uos.ac.kr)
+* Date			: 18/06/2012  
+* Description	: LRU Cache Algorithm
+* File Name		: disksim_fcl_lru.c 
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "disksim_fcl_cache.h"

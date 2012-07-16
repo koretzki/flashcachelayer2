@@ -6,7 +6,7 @@ disksim_global Global {
 }
 
 disksim_iosim Sim {
-   I/O Trace Time Scale = 10.0
+   I/O Trace Time Scale = 5.0
 }
 
 disksim_fcl Fcl {

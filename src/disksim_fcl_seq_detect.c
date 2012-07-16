@@ -4,8 +4,8 @@
 *
 * Author		: Yongseok Oh (ysoh@uos.ac.kr)
 * Date			: 18/06/2012  
-* Description	: 
-*
+* Description	: The sequential I/O detector program
+* File Name		: disksim_fcl_seq_detect.c
 */
 
 #include <stdio.h>

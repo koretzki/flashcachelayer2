@@ -4,8 +4,8 @@
 *
 * Author		: Yongseok Oh (ysoh@uos.ac.kr)
 * Date			: 18/06/2012  
-* Description	: 
-*
+* Description	: The main source file of Flash Cache Layer
+* File Name		: disksim_fcl.c 
 */
 
 #include "disksim_iosim.h"

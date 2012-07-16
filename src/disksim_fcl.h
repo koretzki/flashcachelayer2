@@ -4,8 +4,8 @@
 *
 * Author		: Yongseok Oh (ysoh@uos.ac.kr)
 * Date			: 18/06/2012  
-* Description	: 
-*
+* Description	: The header file 
+* File Name		: disksim_fcl.h
 */
 
 #include "disksim_global.h"

@@ -4,8 +4,8 @@
 *
 * Author		: Yongseok Oh (ysoh@uos.ac.kr)
 * Date			: 18/06/2012  
-* Description	: 
-*
+* Description	: The cost calculation program
+* File name		: disksim_fcl_cost.c 
 */
 
 #include "disksim_fcl.h"

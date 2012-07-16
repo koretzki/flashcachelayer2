@@ -4,8 +4,8 @@
 *
 * Author		: Yongseok Oh (ysoh@uos.ac.kr)
 * Date			: 18/06/2012  
-* Description	: 
-*
+* Description	: The mapping table
+* File Name		: disksim_fcl_map.c
 */
 
 #include "disksim_iosim.h"
