@@ -1266,10 +1266,6 @@ void fcl_insert_pending_manager ( ioreq_event * parent) {
 
 	struct lru_node *ln = NULL;
 
-	//int temp = (int) parent;
-	//printf ( " Int = %d, %d \n", (int)parent,  temp);
-	//printf ( " Int = %p, %p \n", parent,  (ioreq_event *)temp);
-
 	ln = CACHE_PRESEARCH ( fcl_pending_mgr, (int)parent );
 
 	if ( ln == NULL ) {
@@ -1282,8 +1278,7 @@ void fcl_insert_pending_manager ( ioreq_event * parent) {
 		ASSERT ( CACHE_PRESEARCH ( fcl_pending_mgr, (int)parent ) ) ;
 	}
  
-
-	//printf (" *fcl_pending_mgr: pending I/Os = %d \n", ll_get_size ( fcl_pending_mgr ) );
+	//printf (" *fcl_pending_mgr: pending I/Os = %d \n", fcl_pending_mgr->cm_count ); 
 
 }
 
@@ -1422,6 +1417,7 @@ void fcl_issue_pending_parent (){
 	struct lru_node *ln;
 	ioreq_event *parent;
 	
+
 	list_for_each_safe( ptr, next, head ) {
 		ln = (struct lru_node *) list_entry ( ptr, struct lru_node, cn_list );	
 
@@ -1438,7 +1434,8 @@ void fcl_issue_pending_parent (){
 				fcl_issue_next_child ( parent );
 			}
 
-			list_del ( ptr );
+			//list_del ( ptr );
+			CACHE_REMOVE ( fcl_pending_mgr, ln );
 		}
 	}
 
