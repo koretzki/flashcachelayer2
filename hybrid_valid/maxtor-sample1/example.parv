@@ -1,0 +1,371 @@
+disksim_global Global {
+Init Seed = 42,
+Real Seed = 42,
+Stat definition file = statdefs,
+Detailed execution trace = exectrace
+} # end of Global spec
+
+disksim_fcl Fcl {
+  Page Size = 8,
+  Max Pages Percent = 100,
+  Bypass Cache = 0,
+  Idle Detect Time = 0.0, #ms
+
+  Partitioning Scheme = 1,
+
+  Group Destage = 0,
+
+  Sequential Detection Enable = 1,
+  Sequential Unit Size = 256,
+
+  Foreground Queue Outstanding Length = 1,
+  Background Queue Outstanding Length = 10000,
+
+  HDD Read Positioning Time = 4500,  #us
+  HDD Write Positioning Time = 4500, #us 
+  HDD Bandwidth	= 72.0 # MB/s
+}
+
+disksim_stats Stats {
+iodriver stats = disksim_iodriver_stats {
+Print driver size stats = 1,
+Print driver locality stats = 1,
+Print driver blocking stats = 1,
+Print driver interference stats = 0,
+Print driver queue stats = 1,
+Print driver crit stats = 1,
+Print driver idle stats = 1,
+Print driver intarr stats = 1,
+Print driver streak stats = 1,
+Print driver stamp stats = 1,
+Print driver per-device stats = 1
+   },
+bus stats = disksim_bus_stats {
+Print bus idle stats = 0,
+Print bus arbwait stats = 0
+   },
+ctlr stats = disksim_ctlr_stats {
+Print controller cache stats = 1,
+Print controller size stats = 1,
+Print controller locality stats = 1,
+Print controller blocking stats = 1,
+Print controller interference stats = 1,
+Print controller queue stats = 1,
+Print controller crit stats = 1,
+Print controller idle stats = 1,
+Print controller intarr stats = 1,
+Print controller streak stats = 1,
+Print controller stamp stats = 1,
+Print controller per-device stats = 1
+   },
+device stats = disksim_device_stats {
+Print device queue stats = 1,
+Print device crit stats = 1,
+Print device idle stats = 1,
+Print device intarr stats = 1,
+Print device size stats = 1,
+Print device seek stats = 1,
+Print device latency stats = 1,
+Print device xfer stats = 1,
+Print device acctime stats = 1,
+Print device interfere stats = 1,
+Print device buffer stats = 1
+   },
+process flow stats = disksim_pf_stats {
+Print per-process stats = 0,
+Print per-CPU stats = 0,
+Print all interrupt stats = 0,
+Print sleep stats = 0
+   }
+} # end of Stats spec
+
+disksim_iodriver DRIVER0 {
+type = 1,
+Constant access time = 0.0,
+Scheduler = disksim_ioqueue {
+Scheduling policy = 1,
+Cylinder mapping strategy = 1,
+Write initiation delay = 0.0,
+Read initiation delay = 0.0,
+Sequential stream scheme = 0,
+Maximum concat size = 128,
+Overlapping request scheme = 0,
+Sequential stream diff maximum = 0,
+Scheduling timeout scheme = 0,
+Timeout time/weight = 6,
+Timeout scheduling = 4,
+Scheduling priority scheme = 0,
+Priority scheduling = 4
+   },
+Use queueing in subsystem = 1
+} # end of DRIVER0 spec
+
+disksim_bus BUS_DR2C {
+type = 1,
+Arbitration type = 1,
+Arbitration time = 0.0,
+Read block transfer time = 0.0,
+Write block transfer time = 0.0,
+Print stats = 0
+} # end of BUS_DR2C spec
+
+disksim_bus BUS_C2DI {
+type = 1,
+Arbitration type = 1,
+Arbitration time = 0.0,
+Read block transfer time = 0.0,
+Write block transfer time = 0.0,
+Print stats = 1
+} # end of BUS_C2DI spec
+
+disksim_bus BUS_C2F {
+type = 2,
+Arbitration type = 1,
+Arbitration time = 0.001000,
+Read block transfer time = 0.000238,
+Write block transfer time = 0.000238,
+Print stats = 1
+} # end of BUS_C2F spec
+
+disksim_ctlr CTLR0 {
+type = 1,
+Scale for delays = 0.0,
+Bulk sector transfer time = 0.0,
+Maximum queue length = 0,
+Print stats = 1,
+Scheduler = disksim_ioqueue {
+Scheduling policy = 3,
+Cylinder mapping strategy = 1,
+Write initiation delay = 0.0,
+Read initiation delay = 0.0,
+Sequential stream scheme = 3,
+Maximum concat size = 128,
+Overlapping request scheme = 0,
+Sequential stream diff maximum = 0,
+Scheduling timeout scheme = 0,
+Timeout time/weight = 6,
+Timeout scheduling = 4,
+Scheduling priority scheme = 0,
+Priority scheduling = 4
+   },
+#Cache = disksim_cachemem {
+#Cache size = 8192,
+#SLRU segments = [ 
+#         1.000000
+#      ],
+#Line size = 64,
+#Bit granularity = 1,
+#Lock granularity = 64,
+#Shared read locks = 1,
+#Max request size = 512,
+#Replacement policy = 2,
+#Allocation policy = 0,
+#Write scheme = 3,
+#Flush policy = 0,
+#Flush period = 0.0,
+#Flush idle delay = -1.000000,
+#Flush max line cluster = 8,
+#Read prefetch type = 0,
+#Write prefetch type = 0,
+#Line-by-line fetches = 0,
+#Max gather = 7
+#   },
+Max per-disk pending count = 1
+} # end of CTLR0 spec
+
+source maxtor146g.diskspecs
+
+ssdmodel_ssd SSD {
+Reserve pages percentage = 15,
+Minimum free blocks percentage = 5,
+Write policy = 2,
+Cleaning policy = 2,
+Planes per package = 8,
+Blocks per plane = 2048,
+Plane block mapping = 3,
+Copy back = 1,
+Number of parallel units = 1,
+Allocation pool logic = 1,
+Elements per gang = 1,
+Gang share = 1,
+Cleaning in background = 0,
+Command overhead = 0.0,
+Bus transaction latency = 0.0,
+Bulk sector transfer time = 0,
+Flash chip elements = 8,
+Page size = 8,
+Pages per block = 64,
+Blocks per element = 16384,
+Element stride pages = 1,
+Never disconnect = 1,
+Print stats = 1,
+Max queue length = 20,
+Scheduler = disksim_ioqueue {
+Scheduling policy = 1,
+Cylinder mapping strategy = 0,
+Write initiation delay = 0,
+Read initiation delay = 0.0,
+Sequential stream scheme = 0,
+Maximum concat size = 0,
+Overlapping request scheme = 0,
+Sequential stream diff maximum = 0,
+Scheduling timeout scheme = 0,
+Timeout time/weight = 0,
+Timeout scheduling = 0,
+Scheduling priority scheme = 0,
+Priority scheduling = 1
+   },
+Timing model = 1,
+Chip xfer latency = 0.000025,
+Page read latency = 0.025000,
+Page write latency = 0.200000,
+Block erase latency = 1.500000
+} # end of SSD spec
+
+instantiate [    statfoo] as Stats
+instantiate [    bus_dr2c] as BUS_DR2C
+instantiate [ 
+   bus_c2di
+] as BUS_C2DI
+
+instantiate [ 
+   bus_c2f
+] as BUS_C2F
+
+instantiate [ 
+   disk0
+] as MAXTOR_ATLAS10K4_146SCA_B8DJ0SLM_00000
+
+instantiate [ 
+   ssd0
+] as SSD
+
+instantiate [ 
+   driver0
+] as DRIVER0
+
+instantiate [ 
+   ctlr0
+] as CTLR0
+
+instantiate [ fclFoo ]			as Fcl
+
+# system topology
+topology disksim_iodriver driver0 [
+   disksim_bus bus_dr2c [ 
+      disksim_ctlr ctlr0 [  
+	disksim_bus bus_c2di [ 
+            disksim_disk disk0 []
+         ], # end of bus_c2di
+      	# anjo
+         disksim_bus bus_c2f [
+         	ssdmodel_ssd ssd0 []
+         ] # end of bus_c2f
+         # anjo
+      ] # end of ctlr0
+   ] # end of bus_dr2c
+] # end of system topology 
+
+disksim_logorg ORG0 {
+Addressing mode = Parts,
+Distribution scheme = Asis,
+Redundancy scheme = Noredun,
+devices = [ 
+      disk0
+   ],
+Stripe unit = 286749479,
+Synch writes for safety = 0,
+Number of copies = 2,
+Copy choice on read = 6,
+RMW vs. reconstruct = 0.500000,
+Parity stripe unit = 64,
+Parity rotation type = 1,
+Time stamp interval = 0.0,
+Time stamp start time = 60000.000000,
+Time stamp stop time = 10000000000.000000
+} # end of ORG0 spec
+
+disksim_logorg ORG1 {
+Addressing mode = Array,
+Distribution scheme = Striped,
+Redundancy scheme = Noredun,
+devices = [ 
+      ssd0
+   ],
+Stripe unit = 128,
+Synch writes for safety = 0,
+Number of copies = 2,
+Copy choice on read = 6,
+RMW vs. reconstruct = 0.500000,
+Parity stripe unit = 128,
+Parity rotation type = 1,
+Time stamp interval = 0.0,
+Time stamp start time = 60000.000000,
+Time stamp stop time = 10000000000.000000,
+Time stamp file name = stamps
+} # end of ORG1 spec
+
+instantiate [ 
+   org0
+] as ORG0
+
+instantiate [ 
+   org1
+] as ORG1
+
+disksim_pf Proc {
+Number of processors = 2,
+Process-Flow Time Scale = 1.000000
+} # end of Proc spec
+
+disksim_synthio Synthio {
+Number of I/O requests to generate = 10000,
+Maximum time of trace generated = 100000000.000000,
+System call/return with each request = 0,
+Think time from call to request = 0.0,
+Think time from request to return = 0.0,
+Generators = [ 
+      disksim_synthgen { #generator 0
+Storage capacity per device = 286749479,
+devices = [ 
+		disk0
+         ],
+Blocking factor = 8,
+Probability of sequential access = 0.0,
+Probability of local access = 0.0,
+Probability of read access = 1.0,
+Probability of time-critical request = 1.000000,
+Probability of time-limited request = 0.0,
+Time-limited think times = [ 
+            normal, 
+            30.000000, 
+            100.000000
+         ],
+General inter-arrival times = [ 
+            exponential, 
+            0.0, 
+            0.0
+         ],
+Sequential inter-arrival times = [ 
+            normal, 
+            0.0, 
+            0.0
+         ],
+Local inter-arrival times = [ 
+            exponential, 
+            0.0, 
+            0.0
+         ],
+Local distances = [ 
+            normal, 
+            0.0, 
+            40000.000000
+         ],
+Sizes = [ 
+            exponential, 
+            0.0, 
+            8.000000
+         ]
+      }
+   ]
+} # end of Synthio spec

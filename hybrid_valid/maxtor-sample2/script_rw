@@ -1,0 +1,5 @@
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-10.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 90 fclFoo "Hit Tracker N-Segment Size" 512 &
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-30.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 70 fclFoo "Hit Tracker N-Segment Size" 512 
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-50.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 50 fclFoo "Hit Tracker N-Segment Size" 512 &
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-70.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 30 fclFoo "Hit Tracker N-Segment Size" 512 
+../../src/disksim hybrid-maxtor-rw.parv result-rw-util-90.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 10 fclFoo "Hit Tracker N-Segment Size" 512

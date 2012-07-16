@@ -1,0 +1,1 @@
+../../src/disksim hybrid-maxtor-optimal.parv result-optimal-util-90.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 10 

@@ -1,0 +1,2 @@
+grep -i 'fcl foreground: response time average' *.outv > response.txt
+grep -i 'fcl foreground: response time average' *.outv 

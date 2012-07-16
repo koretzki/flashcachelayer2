@@ -1,0 +1,5 @@
+../../src/disksim hybrid-maxtor-fixed.parv result-fixed-util-10.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 90 &
+../../src/disksim hybrid-maxtor-fixed.parv result-fixed-util-30.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 70 &
+../../src/disksim hybrid-maxtor-fixed.parv result-fixed-util-50.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 50 &
+../../src/disksim hybrid-maxtor-fixed.parv result-fixed-util-70.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 30 &
+../../src/disksim hybrid-maxtor-fixed.parv result-fixed-util-90.outv ascii ../trace/sample_trace2.txt 0 ssd0x0 "Reserve pages percentage" 10 

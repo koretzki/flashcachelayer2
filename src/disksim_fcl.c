@@ -29,7 +29,7 @@ struct ioq			 	*fcl_back_q = NULL;
 
 struct cache_manager	*fcl_cache_mgr;
 struct cache_manager	*fcl_active_block_mgr;
-			listnode	*fcl_pending_mgr; 
+struct cache_manager	*fcl_pending_mgr; 
 
 struct cache_manager	**fcl_write_hit_tracker;
 struct cache_manager	**fcl_read_hit_tracker;
@@ -1264,24 +1264,24 @@ void fcl_seal_complete_request ( ioreq_event *parent ) {
 
 void fcl_insert_pending_manager ( ioreq_event * parent) {
 
-	listnode *pending_parent = fcl_pending_mgr->next;
-	int pending_parent_count = ll_get_size ( fcl_pending_mgr );
+	struct lru_node *ln = NULL;
 
-	int exist = 0;
-	int i;
+	//int temp = (int) parent;
+	//printf ( " Int = %d, %d \n", (int)parent,  temp);
+	//printf ( " Int = %p, %p \n", parent,  (ioreq_event *)temp);
 
-	for ( i = 0; i < pending_parent_count; i++ ) {
-		if ( parent == pending_parent->data ) {
-			exist = 1;
-			//ASSERT ( 0 );
-			break;
-		}
-		pending_parent = pending_parent->next;
+	ln = CACHE_PRESEARCH ( fcl_pending_mgr, (int)parent );
+
+	if ( ln == NULL ) {
+		ln = CACHE_ALLOC ( fcl_pending_mgr, NULL, (int)parent );
+
+		ln->cn_temp1 = (void *)parent;
+
+		CACHE_INSERT ( fcl_pending_mgr, ln );
+
+		ASSERT ( CACHE_PRESEARCH ( fcl_pending_mgr, (int)parent ) ) ;
 	}
  
-	if ( !exist ) {
-		ll_insert_at_tail ( fcl_pending_mgr, parent ) ;
-	}
 
 	//printf (" *fcl_pending_mgr: pending I/Os = %d \n", ll_get_size ( fcl_pending_mgr ) );
 
@@ -1417,20 +1417,17 @@ void fcl_issue_pending_child ( ioreq_event *parent ) {
 
 
 void fcl_issue_pending_parent (){
-	listnode *pending_next = fcl_pending_mgr->next;
-	listnode *pending_del = NULL;
+	struct list_head *head = &fcl_pending_mgr->cm_head;
+	struct list_head *ptr, *next;
+	struct lru_node *ln;
 	ioreq_event *parent;
-	int pending_count = ll_get_size ( fcl_pending_mgr );
-	int i;
-		
-	int debug_count = 0;
+	
+	list_for_each_safe( ptr, next, head ) {
+		ln = (struct lru_node *) list_entry ( ptr, struct lru_node, cn_list );	
 
-	for ( i = 0; i < pending_count; i++ ) {
-		parent = pending_next->data;
-		//print_parent_child_state ( parent );
-		
-		pending_del = pending_next;
-		pending_next = pending_next->next;
+		parent = (ioreq_event *) ln->cn_blkno;
+
+		ASSERT ( ln->cn_temp1 == parent );
 
 		if ( list_empty ( &parent->fcl_active_list ) && 
 			 list_empty ( &parent->fcl_inactive_list ) ) {
@@ -1441,17 +1438,9 @@ void fcl_issue_pending_parent (){
 				fcl_issue_next_child ( parent );
 			}
 
-			debug_count ++;
-
-			ll_release_node ( fcl_pending_mgr, pending_del );
+			list_del ( ptr );
 		}
 	}
-
-	if ( debug_count ) {
-		//printf ( " > %d of %d pending I/Os have been issued \n", debug_count, pending_count );
-		//ASSERT ( 0);
-	}
-
 
 }	
 
@@ -1820,7 +1809,8 @@ void _fcl_request_complete ( ioreq_event *child ) {
 	
 
 	// issue pending I/Os 
-	if ( ll_get_size ( fcl_pending_mgr )  &&
+	//if ( ll_get_size ( fcl_pending_mgr )  &&
+	if (  fcl_pending_mgr->cm_count  &&
 		 ioqueue_get_number_in_queue ( fcl_back_q ) == 0 ) 
 	{
 		//printf (" Try to issue pending I/Os \n" );
@@ -2086,6 +2076,9 @@ void fcl_init () {
 
 	lru_init ( &fcl_active_block_mgr, "AtiveBlockManager", lru_size, lru_size, 1, 0);
 
+	lru_init ( &fcl_pending_mgr, "PengdingBlockManager", lru_size, lru_size, 1, 0);
+		
+	//ll_create ( &fcl_pending_mgr );
 	reverse_map_create ( lru_size + 1 );
 
 	// alloc queue memory 
@@ -2099,7 +2092,6 @@ void fcl_init () {
 	//constintarrtime = 5.0;
 	//constintarrtime = 3.0;
 
-	ll_create ( &fcl_pending_mgr );
 
 	fcl_read_hit_tracker = (struct cache_manager **)mlru_init("W_HIT_TRACKER", fcl_hit_tracker_nsegment, flash_total_pages );
 	fcl_write_hit_tracker = (struct cache_manager **)mlru_init("R_HIT_TRACKER", fcl_hit_tracker_nsegment, flash_total_pages );
@@ -2160,6 +2152,8 @@ void fcl_exit () {
 
 	CACHE_CLOSE(fcl_cache_mgr);
 	CACHE_CLOSE(fcl_active_block_mgr);
+	CACHE_CLOSE(fcl_pending_mgr);
+	//ll_release ( fcl_pending_mgr );
 
 	fcl_fore_q->printqueuestats = TRUE;
 	ioqueue_printstats( &fcl_fore_q, 1, " FCL Foreground: ");
@@ -2169,7 +2163,6 @@ void fcl_exit () {
 	ioqueue_printstats( &fcl_back_q, 1, " FCL Background: ");
 	free (fcl_back_q);
 
-	ll_release ( fcl_pending_mgr );
 	// free queue memory
 
 

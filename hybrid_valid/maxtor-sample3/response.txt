@@ -1,0 +1,11 @@
+result-fixed-util-10.outv: FCL Foreground: Response time average: 	8.754695
+result-fixed-util-30.outv: FCL Foreground: Response time average: 	8.277807
+result-fixed-util-50.outv: FCL Foreground: Response time average: 	6.807076
+result-fixed-util-70.outv: FCL Foreground: Response time average: 	5.165590
+result-fixed-util-90.outv: FCL Foreground: Response time average: 	4.939956
+result-optimal-util-90.outv: FCL Foreground: Response time average: 	4.735363
+result-rw-util-10.outv: FCL Foreground: Response time average: 	8.762392
+result-rw-util-30.outv: FCL Foreground: Response time average: 	8.311969
+result-rw-util-50.outv: FCL Foreground: Response time average: 	6.961229
+result-rw-util-70.outv: FCL Foreground: Response time average: 	5.356973
+result-rw-util-90.outv: FCL Foreground: Response time average: 	4.730216
