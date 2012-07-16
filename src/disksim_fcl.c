@@ -1067,9 +1067,10 @@ int fcl_resize_rwcache () {
 	int remain = 0;
 	int max_dirty_reduce = 0;
 
-	printf ( " Resizing cache ...dirty reduce = %.2fMB clean reduce = %.2fMB \n", (double)dirty_reduce/256, (double)clean_reduce/256 );
-	printf ( " write size optimal = %.2f, curr = %.2f \n", (double)fcl_optimal_write_pages/256, (double)fcl_cache_mgr->cm_dirty_size/256 );
-	printf ( " Read size optimal = %.2f, curr = %.2f \n", (double)fcl_optimal_read_pages/256, (double)fcl_cache_mgr->cm_clean_size/256 );
+	//printf ( " Resizing cache ...dirty reduce = %.2fMB clean reduce = %.2fMB \n", (double)dirty_reduce/256, (double)clean_reduce/256 );
+	//printf ( " write size optimal = %.2f, curr = %.2f \n", (double)fcl_optimal_write_pages/256, (double)fcl_cache_mgr->cm_dirty_size/256 );
+	//printf ( " Read size optimal = %.2f, curr = %.2f \n", (double)fcl_optimal_read_pages/256, (double)fcl_cache_mgr->cm_clean_size/256 );
+
 	//printf ( " dirty diff = %d, clean diff %d \n", dirty_reduce, clean_reduce );
 	//printf ( " dirty free = %d, clean free = %d \n",  fcl_cache_mgr->cm_dirty_free, fcl_cache_mgr->cm_clean_free); 
 	//printf ( " dirty size = %d, clean size = %d \n", fcl_cache_mgr->cm_dirty_size, fcl_cache_mgr->cm_clean_size ); 
@@ -1093,7 +1094,7 @@ int fcl_resize_rwcache () {
 //		dirty_reduce = -FCL_MAX_RESIZE;
 	}
 
-	printf ( " 2 dirty reduce = %d, clean reduce %d \n", dirty_reduce, clean_reduce );
+	///printf ( " 2 dirty reduce = %d, clean reduce %d \n", dirty_reduce, clean_reduce );
 	
 
 	//lru_set_dirty_size ( fcl_cache_mgr, fcl_optimal_write_pages, fcl_optimal_read_pages );
@@ -1106,7 +1107,7 @@ int fcl_resize_rwcache () {
 		 fcl_cache_mgr->cm_dirty_free >= 0 && 
 		 fcl_cache_mgr->cm_clean_free >= 0 
 		 ) {
-		printf ( " * Resize done \n ");
+		//printf ( " * Resize done \n ");
 		return remain;
 	}
 
@@ -1118,7 +1119,7 @@ int fcl_resize_rwcache () {
 	//		remain = 1;
 		}
 
-		printf (" **Destage %d dirty pages %.2fMB \n", dirty_reduce, (double)dirty_reduce/256 );
+		//printf (" **Destage %d dirty pages %.2fMB \n", dirty_reduce, (double)dirty_reduce/256 );
 
 		fcl_destage_request ( dirty_reduce );
 	} 
@@ -1126,7 +1127,7 @@ int fcl_resize_rwcache () {
 	if ( fcl_cache_mgr->cm_clean_free < 0 ) {
 
 		clean_reduce = fcl_cache_mgr->cm_clean_free * -1;
-		printf (" **Remove %d clean pages %.2fMB \n", clean_reduce, (double)clean_reduce/256 );
+		//printf (" **Remove %d clean pages %.2fMB \n", clean_reduce, (double)clean_reduce/256 );
 
 		fcl_invalid_request ( clean_reduce );
 	}
@@ -1141,15 +1142,15 @@ int fcl_resize_rwcache () {
 		 fcl_cache_mgr->cm_dirty_free >= 0 && 
 		 fcl_cache_mgr->cm_clean_free >= 0 
 		 ) {
-		printf ( " * Resize done \n ");
+		//printf ( " * Resize done \n ");
 	}
 
 	ASSERT ( fcl_cache_mgr->cm_size  == fcl_cache_mgr->cm_dirty_size + fcl_cache_mgr->cm_clean_size );
 
-	printf ( " fqueue = %d, bqueue = %d \n", 
-				ioqueue_get_number_in_queue ( fcl_fore_q ),
+	//printf ( " fqueue = %d, bqueue = %d \n", 
+	//			ioqueue_get_number_in_queue ( fcl_fore_q ),
 				ioqueue_get_number_in_queue ( fcl_back_q ) );
-	printf ("\n");
+	//printf ("\n");
 
 
 	return remain;
@@ -1166,10 +1167,10 @@ void fcl_conduct_resize () {
 
 	fcl_params->fpa_resize_next++;
 
-	printf ( " Resize period = %d \n", fcl_stat->fstat_io_total_pages/fcl_params->fpa_resize_period );
+	/*printf ( " Resize period = %d \n", fcl_stat->fstat_io_total_pages/fcl_params->fpa_resize_period );
 	printf ( " Read I/O Ratio = %.2f \n", (double)fcl_stat->fstat_io_read_pages/fcl_stat->fstat_io_total_pages );
 	printf ( " Write Free = %.2fMB, Read Free = %.2fMB\n", PAGE_TO_MB(fcl_cache_mgr->cm_dirty_free),
-			PAGE_TO_MB(fcl_cache_mgr->cm_clean_free)); 
+			PAGE_TO_MB(fcl_cache_mgr->cm_clean_free)); */
 
 	fcl_find_optimal_size ( fcl_write_hit_tracker, fcl_read_hit_tracker,
 			fcl_hit_tracker_nsegment, flash_total_pages,
@@ -1204,10 +1205,10 @@ int debug_arrive = 0;
 void fcl_request_arrive (ioreq_event *parent){
 
 	if ( ++debug_arrive % 50000 == 0 ) {
-		printf ( " FCL Req Arrive time = %.2f, blkno = %d, bcount = %d, flags = %d, devno = %d, fqueue = %d, bqueue = %d \n", 
-				simtime, parent->blkno, parent->bcount, parent->flags, parent->devno, ioqueue_get_number_in_queue ( fcl_fore_q ),
-				ioqueue_get_number_in_queue ( fcl_back_q ) );
-		printf ( " FCL Dirty Size = %.2fMB, Clean Size = %.2fMB \n", (double)fcl_cache_mgr->cm_dirty_count/256, (double)fcl_cache_mgr->cm_clean_count/256);
+		//printf ( " FCL Req Arrive time = %.2f, blkno = %d, bcount = %d, flags = %d, devno = %d, fqueue = %d, bqueue = %d \n", 
+		//		simtime, parent->blkno, parent->bcount, parent->flags, parent->devno, ioqueue_get_number_in_queue ( fcl_fore_q ),
+		//		ioqueue_get_number_in_queue ( fcl_back_q ) );
+		//printf ( " FCL Dirty Size = %.2fMB, Clean Size = %.2fMB \n", (double)fcl_cache_mgr->cm_dirty_count/256, (double)fcl_cache_mgr->cm_clean_count/256);
 //		lru_print ( fcl_active_block_mgr ) ;
 	}
 	//fprintf ( stdout, " FCL Req Arrive time = %f, blkno = %d, bcount = %d \n", 

@@ -283,11 +283,12 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 	}
 
 	
-
+/*
 	fprintf ( stdout,  " -> Found Optimal u = %f, r = %f , min_cost = %f \n", min_u, min_r, min_cost );
 	fprintf ( stdout,  " Curr Write Size = %.2fMB, Curr Read Size = %.2fMB \n", (double)*write_optimal_pages/256, (double)*read_optimal_pages/256);
 	fprintf ( stdout,  " Opti Write Size = %.2fMB, Opti Read Size = %.2fMB \n", (double)temp_write_pages/256, (double)temp_read_pages/256);
 	fprintf ( stdout, "\n");
+	*/
 
 	//ASSERT ( temp_write_pages <= (256*256) );
 
