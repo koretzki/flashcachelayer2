@@ -19,7 +19,12 @@ disksim_fcl Fcl {
   Max Destage Size = 128,
   Max Resize Size = 128,
 
-  Group Destage = 0,
+  On-demand Group Destage = 1,
+  Background Group Destage = 0,
+
+
+  Hit Tracker Decay Factor = 0.5,
+  Hit Tracker N-Segment Size = 32,
 
   Sequential Detection Enable = 1,
   Sequential Unit Size = 256,
@@ -27,8 +32,8 @@ disksim_fcl Fcl {
   Foreground Queue Outstanding Length = 32,
   Background Queue Outstanding Length = 10000,
 
-  HDD Read Positioning Time = 4500,  #us
-  HDD Write Positioning Time = 4500, #us 
+  HDD Read Positioning Time = 4400,  #us
+  HDD Write Positioning Time = 4900, #us 
   HDD Bandwidth	= 72.0 # MB/s
 }
 

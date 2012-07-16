@@ -30,10 +30,21 @@ PARAM Max Resize Size	D	1
 TEST (d >= 0)
 INIT result->fpa_max_resize_size = d;
 
-PARAM Group Destage		I	1
+PARAM On-demand Group Destage		I	1
 TEST (i >= 0)
-INIT result->fpa_group_destage = i;
+INIT result->fpa_ondemand_group_destage = i;
 
+PARAM Background Group Destage		I	1
+TEST (i >= 0)
+INIT result->fpa_background_group_destage = i;
+
+PARAM Hit Tracker Decay Factor	D	1
+TEST (d >= 0)
+INIT result->fpa_hit_tracker_decayfactor = d;
+
+PARAM Hit Tracker N-Segment Size	I	1
+TEST (i >= 0)
+INIT result->fpa_hit_tracker_nsegment = i;
 
 PARAM Sequential Detection Enable	I	1
 TEST (i >= 0)
@@ -42,6 +53,7 @@ INIT result->fpa_seq_detection_enable = i;
 PARAM Sequential Unit Size	I	1
 TEST (i >= 0)
 INIT result->fpa_seq_unit_size = i;
+
 
 PARAM Foreground Queue Outstanding Length		I	1
 TEST (i >= 0)

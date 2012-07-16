@@ -47,6 +47,10 @@ INIT } else if (ioscale == 0.0) {
 INIT   fprintf(stderr, "Invalid value for I/O trace time scale - %f\n", ioscale);
 INIT   exit(0);
 INIT }
+INIT if ( d != 0 ) 
+INIT 	ioscale = d;
+INIT else 
+INIT    ioscale = 1;
 
 This specifies a value by which each arrival time in a trace is
 multiplied.  For example, a value of 2.0 doubles each arrival time,

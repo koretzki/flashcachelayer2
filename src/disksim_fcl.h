@@ -43,6 +43,7 @@
 //#define FCL_MAX_REQ_SIZE  256
 #define FCL_MAX_REQ_SIZE  512
 
+// Page Unit (e.g., 4KB)
 #define FCL_MAX_DESTAGE			(fcl_params->fpa_max_destage_size) 
 #define FCL_MAX_RESIZE			(fcl_params->fpa_max_resize_size)
 
@@ -59,7 +60,12 @@
 
 #define fcl_hit_tracker_nsegment (fcl_params->fpa_hit_tracker_nsegment)
 
+#define PAGE_TO_MB(x) ((double)x/256)
+
 #define FCL_BACKGROUND_TIMER	0
+
+#define fcl_io_read_pages	(fcl_stat->fstat_io_read_pages)
+#define fcl_io_total_pages	(fcl_stat->fstat_io_total_pages)
 
 struct fcl_parameters {
 	int		fpa_page_size;
@@ -81,8 +87,10 @@ struct fcl_parameters {
 	int		fpa_resize_next;
 
 	int		fpa_hit_tracker_nsegment;
+	double	fpa_hit_tracker_decayfactor;
 
-	int		fpa_group_destage;
+	int		fpa_ondemand_group_destage;
+	int		fpa_background_group_destage;
 	int		fpa_fore_outstanding;
 	int		fpa_fore_outstanding_temp;
 	int		fpa_back_outstanding;
@@ -107,9 +115,18 @@ struct fcl_parameters {
 	int		fpa_hdd_total_sectors;	
 };
 
+struct fcl_statistics { 
+	int fstat_arrive_count;
+	int fstat_complete_count;
+	int fstat_io_read_pages;
+	int fstat_io_write_pages;
+	int fstat_io_total_pages;
+};
 
 extern struct fcl_parameters *fcl_params;
-extern int fcl_io_read_pages, fcl_io_total_pages;
+extern struct fcl_statistics *fcl_stat;
+
+//extern int fcl_io_read_pages, fcl_io_total_pages;
 
 
 void fcl_request_arrive (ioreq_event *);

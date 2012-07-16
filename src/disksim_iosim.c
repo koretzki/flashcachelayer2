@@ -116,8 +116,6 @@ void iosim_initialize_iosim_info (void)
    ioscale = 1.0;
    last_request_arrive = 0.0;
 
-   // ysoh 
-   //constintarrtime = 100.0;
    constintarrtime = 0.0;
 }
 
@@ -656,14 +654,25 @@ event * io_get_next_external_event (FILE *iotracefile)
          case VALIDATE: io_validate_do_stats2 (temp);
 		        break;
       }
+
+	  // ysoh
+
       //temp->type = IO_REQUEST_ARRIVE;
-	  temp->type = FCL_REQUEST_ARRIVE;
+	  temp->type = FCL_REQUEST_ARRIVE;	
+
 
       if (constintarrtime > 0.0) {
 	 	temp->time = last_request_arrive + constintarrtime;
 	 	last_request_arrive = temp->time;
       }
+	  //printf (" %.2fms %.2fms, %f, %f\n", temp->time, temp->time*ioscale, tracebasetime, constintarrtime);
       temp->time = (temp->time * ioscale) + tracebasetime;
+
+	  // ysoh 
+	  if ( temp->time < simtime )
+		  temp->time = simtime;
+	  ASSERT ( temp->time >= simtime );
+
       if ((temp->time < simtime) && (!disksim->closedios)) {
          fprintf(stderr, "Trace event appears out of time order in trace - simtime %f, time %f\n", simtime, temp->time);
 	 fprintf(stderr, "ioscale %f, tracebasetime %f\n", ioscale, tracebasetime);

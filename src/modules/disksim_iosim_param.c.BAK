@@ -18,6 +18,10 @@ static void DISKSIM_IOSIM_IO_TRACE_TIME_SCALE_loader(int result, double d) {
  fprintf(stderr, "Invalid value for I/O trace time scale - %f\n", ioscale);
  exit(0);
  }
+ if ( d != 0 )
+ 	ioscale = d;
+ else
+ ioscale = 1;
 
 }
 

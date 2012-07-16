@@ -31,5 +31,5 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 						 int *write_optimal_pages);
 
 void fcl_decay_hit_tracker(struct cache_manager **lru_manager,int lru_num);
-
+void print_test_cost () ;
 #endif // DISKSIM_FCL_COST_H

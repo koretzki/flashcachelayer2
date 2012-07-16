@@ -228,8 +228,11 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 	double r_step = (double)1/32;
 
 	double u_start, u_end;
-
+	double r_start, r_end;
 	int optimal_usable_pages = 0;
+
+	int	temp_read_pages = 0;
+	int	temp_write_pages = 0;
 
 	if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_RW ) {
 		u_start = (double)flash_usable_pages/flash_total_pages;
@@ -239,11 +242,14 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 		u_end = 0.999;
 	}
 
+	r_start = r_step;
+	r_end	= 0.999;
+
 	for ( u = u_start; u < (double) u_end ; u+= u_step ) {
-		for ( r = 0; r < (double) 0.999; r+= r_step ) {
+		for ( r = r_start; r < (double) r_end; r+= r_step ) {
 			cur_cost = calc_total_cost ( write_hit_tracker, read_hit_tracker, tracker_num, total_pages, u, r );
 			
-			if ( u ==  u_start && r == 0 ) {
+			if ( u ==  u_start && r == r_start ) {
 				min_cost = cur_cost;
 				min_u = u;
 				min_r = r;
@@ -259,14 +265,34 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 		}
 	}
 
-	fprintf ( stdout,  " -> Found Optimal u = %f, r = %f , min_cost = %f \n", min_u, min_r, min_cost );
 
 	optimal_usable_pages = total_pages * min_u;
 	if ( optimal_usable_pages > flash_usable_pages ) 
 		optimal_usable_pages = flash_usable_pages;
 
-	*read_optimal_pages = optimal_usable_pages * min_r;
-	*write_optimal_pages = optimal_usable_pages - *read_optimal_pages;
+	temp_read_pages = (double) optimal_usable_pages * min_r;
+	temp_write_pages = optimal_usable_pages - temp_read_pages; 
+
+	// smothing algorithm
+	if ( (*write_optimal_pages - temp_write_pages) > (256 * 256) ){
+		temp_write_pages = *write_optimal_pages - (256 * 256);
+
+		if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_RW ) {
+			temp_read_pages = optimal_usable_pages - temp_write_pages;
+		}
+	}
+
+	
+
+	fprintf ( stdout,  " -> Found Optimal u = %f, r = %f , min_cost = %f \n", min_u, min_r, min_cost );
+	fprintf ( stdout,  " Curr Write Size = %.2fMB, Curr Read Size = %.2fMB \n", (double)*write_optimal_pages/256, (double)*read_optimal_pages/256);
+	fprintf ( stdout,  " Opti Write Size = %.2fMB, Opti Read Size = %.2fMB \n", (double)temp_write_pages/256, (double)temp_read_pages/256);
+	fprintf ( stdout, "\n");
+
+	//ASSERT ( temp_write_pages <= (256*256) );
+
+	*read_optimal_pages = temp_read_pages;
+	*write_optimal_pages = temp_write_pages; 
 
 	//ASSERT ( *read_optimal_pages + *write_optimal_pages == flash_usable_pages );
 	//*write_optimal_pages = total_pages * min_u * ((double)1-min_r);

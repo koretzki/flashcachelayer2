@@ -601,6 +601,7 @@ static ioreq_event * iotrace_ascii_get_ioreq_event (FILE *tracefile, ioreq_event
       new->flags |= TIME_CRITICAL;
    }
 
+   //printf ( " %lf, %f \n", new->time, new->time*2 );
    //new->flags = READ;
    //new->devno = 1;
    //new->flags = WRITE;

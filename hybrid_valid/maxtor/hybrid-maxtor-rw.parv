@@ -19,7 +19,12 @@ disksim_fcl Fcl {
   Max Destage Size = 128,
   Max Resize Size = 128,
 
-  Group Destage = 0,
+  On-demand Group Destage = 1,
+  Background Group Destage = 0,
+
+
+  Hit Tracker Decay Factor = 0.5,
+  Hit Tracker N-Segment Size = 32,
 
   Sequential Detection Enable = 1,
   Sequential Unit Size = 256,
