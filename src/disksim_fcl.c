@@ -1149,7 +1149,7 @@ int fcl_resize_rwcache () {
 
 	//printf ( " fqueue = %d, bqueue = %d \n", 
 	//			ioqueue_get_number_in_queue ( fcl_fore_q ),
-				ioqueue_get_number_in_queue ( fcl_back_q ) );
+				//ioqueue_get_number_in_queue ( fcl_back_q ) );
 	//printf ("\n");
 
 
@@ -2043,7 +2043,7 @@ void fcl_init () {
 	ssd_t *currssd = getssd ( SSD );
 
 	fcl_set_ssd_params ( currssd );
-	fcl_print_parameters ( stdout ) ;
+	//fcl_print_parameters ( stdout ) ;
 	fcl_print_parameters ( outputfile) ;
 
 	print_test_cost ();
