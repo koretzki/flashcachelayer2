@@ -283,7 +283,7 @@ int _fcl_replace_cache ( ioreq_event *parent, int watermark, int replace_type ) 
 
 	} else {
 
-		reverse_map_release_blk ( remove_ln->cn_ssd_blk );
+		reverse_map_release_blk ( SSD, remove_ln->cn_ssd_blk );
 		free( remove_ln );
 
 	}
@@ -345,7 +345,7 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 	if ( ln == NULL ) {
 		ln = CACHE_ALLOC(fcl_cache_mgr, NULL, blkno);
 		ln->cn_flag = FCL_CACHE_FLAG_FILLING;
-		ln->cn_ssd_blk = reverse_map_alloc_blk( blkno );
+		ln->cn_ssd_blk = reverse_map_alloc_blk( SSD, blkno );
 		ln->cn_dirty = 0;
 
 		ASSERT ( ln->cn_ssd_blk != -1 );
@@ -368,7 +368,7 @@ void fcl_make_seq_req (ioreq_event *parent, int blkno) {
 	if(ln){
 		// remove this node to move the MRU position
 		ln = CACHE_REMOVE(fcl_cache_mgr, ln);
-		reverse_map_release_blk ( ln->cn_ssd_blk );
+		reverse_map_release_blk ( SSD, ln->cn_ssd_blk );
 		free ( ln );
 	}
 
@@ -449,7 +449,7 @@ void fcl_make_stage_req (ioreq_event *parent, int blkno) {
 
 void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) {
 
-	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), 
+	fcl_generate_child_request ( parent, HDD, reverse_get_blk(SSD, ln->cn_ssd_blk), 
 														READ, list_index++, 0);
 	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, 
 														WRITE, list_index++, READ);
@@ -464,7 +464,7 @@ void _fcl_make_destage_req ( ioreq_event *parent, struct lru_node *ln, int list_
 
 	fcl_generate_child_request ( parent, SSD, ln->cn_ssd_blk, 
 														READ, list_index++, 0);
-	fcl_generate_child_request ( parent, HDD, reverse_get_blk(ln->cn_ssd_blk), 
+	fcl_generate_child_request ( parent, HDD, reverse_get_blk( SSD, ln->cn_ssd_blk), 
 														WRITE, list_index++, 0);
 
 	fcl_cache_mgr->cm_destage_count++;
@@ -501,7 +501,7 @@ void fcl_make_destage_req (ioreq_event *parent, int blkno, int replace) {
 	_fcl_make_destage_req ( parent, ln, 0 );
 
 	if ( replace ) {
-		reverse_map_release_blk ( ln->cn_ssd_blk );
+		reverse_map_release_blk ( SSD, ln->cn_ssd_blk );
 		free ( ln );
 	} else {
 		ln->cn_dirty = 0;
@@ -1591,7 +1591,7 @@ int fcl_invalid_request ( int invalid_num) {
 		ln = CACHE_PRESEARCH ( fcl_cache_mgr, blkno );
 		CACHE_REMOVE ( fcl_cache_mgr, ln );
 
-		reverse_map_release_blk ( ln->cn_ssd_blk );
+		reverse_map_release_blk ( SSD, ln->cn_ssd_blk );
 		free ( ln );
 
 		clean_node = clean_node->next;
@@ -1724,7 +1724,7 @@ int fcl_all_queue_empty () {
 }
 
 void fcl_discard_deleted_pages () {
-	reverse_map_discard_freeblk ();
+	reverse_map_discard_freeblk ( SSD );
 }
 
 int fcl_parent_request_complete ( ioreq_event *parent ) {
@@ -2079,7 +2079,7 @@ void fcl_init () {
 	lru_init ( &fcl_pending_mgr, "PengdingBlockManager", lru_size, lru_size, 1, 0);
 		
 	//ll_create ( &fcl_pending_mgr );
-	reverse_map_create ( lru_size + 1 );
+	reverse_map_create ( SSD, lru_size + 1 );
 
 	// alloc queue memory 
 	fcl_fore_q = ioqueue_createdefaultqueue();
@@ -2087,11 +2087,6 @@ void fcl_init () {
 
 	fcl_back_q = ioqueue_createdefaultqueue();
 	ioqueue_initialize (fcl_back_q, 0);
-
-	//constintarrtime = 10.0;
-	//constintarrtime = 5.0;
-	//constintarrtime = 3.0;
-
 
 	fcl_read_hit_tracker = (struct cache_manager **)mlru_init("W_HIT_TRACKER", fcl_hit_tracker_nsegment, flash_total_pages );
 	fcl_write_hit_tracker = (struct cache_manager **)mlru_init("R_HIT_TRACKER", fcl_hit_tracker_nsegment, flash_total_pages );
@@ -2145,7 +2140,7 @@ void fcl_exit () {
 	ASSERT ( fcl_stat->fstat_arrive_count == fcl_stat->fstat_complete_count );
 
 
-	reverse_map_free();
+	reverse_map_free( SSD );
 
 	CACHE_PRINT(fcl_cache_mgr, stdout);
 	CACHE_PRINT(fcl_cache_mgr, outputfile);
