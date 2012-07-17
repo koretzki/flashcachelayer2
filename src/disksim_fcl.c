@@ -382,6 +382,8 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 	struct lru_node *ln = NULL;
 	int hit = 0;
 
+	/* Virtual Device */
+
 	ln = CACHE_SEARCH(fcl_cache_mgr, blkno);
 
 	// hit case  
