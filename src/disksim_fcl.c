@@ -2092,6 +2092,7 @@ void fcl_init () {
 	fcl_write_hit_tracker = (struct cache_manager **)mlru_init("R_HIT_TRACKER", fcl_hit_tracker_nsegment, flash_total_pages );
 
 	fcl_stat = (struct fcl_statistics *) malloc ( sizeof ( struct fcl_statistics) );
+	memset ( fcl_stat, 0x00, sizeof ( struct fcl_statistics) );
 
 	fprintf ( stdout, " Flash Cache Layer is initializing ... \n");
 	printf (" FCL: Flash Cache Usable Size = %.2fGB \n", (double)flash_usable_pages / 256 / 1024);
