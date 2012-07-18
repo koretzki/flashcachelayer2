@@ -1439,6 +1439,7 @@ void fcl_issue_pending_parent (){
 
 			//list_del ( ptr );
 			CACHE_REMOVE ( fcl_pending_mgr, ln );
+			free ( ln );
 		}
 	}
 
