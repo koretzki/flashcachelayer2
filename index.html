@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Flash Cache Layer  : Flash Cache Layer for Hybrid Storage Systems integrating SSDs and HDDs" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Flash Cache Layer </title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/yongseokoh/flashcachelayer">View on GitHub</a>
+
+          <h1 id="project_title">Flash Cache Layer </h1>
+          <h2 id="project_tagline">Flash Cache Layer for Hybrid Storage Systems integrating SSDs and HDDs</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/yongseokoh/flashcachelayer/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/yongseokoh/flashcachelayer/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>Flash Cache Layer (FCL)</h1>
+
+<p>The FCL is a core software for hybrid storage systems that integrate high-performance SSDs into large-capacity HDDs, or MLC based SSDs. The main role of the FCL is to manage SSDs as a data cache with various cache algorithms. It is implemented in CMU DiskSim with MSR SSD Extension. </p>
+
+<h3>Various FCLs</h3>
+
+<ul>
+<li>FP-FCL (Fixed Partitioning): SSD is used as a data cache device with LRU algorithm.</li>
+<li>RW-FCL (Read Write Partitioning): Read and Write data would be distinguished due to GC of SSD. (Now implementing) </li>
+<li>OP-FCL (Optimal Partitioning): Our proposed scheme in USENIX FAST 2012. (Now implementing) </li>
+</ul><h1>Supported Feature</h1>
+
+<ul>
+<li>LRU-based Data Caching </li>
+<li>Background Data Migration </li>
+<li>Prefetching (not yet implemented)</li>
+<li>Trim Command  (not yet implemented) </li>
+</ul><h1>Installation</h1>
+
+<ul>
+<li>download </li>
+<li>tar xvfj fcl-beta-release-0.1.tar.gz</li>
+<li>cd fcl-beta-release-0.1</li>
+<li>make </li>
+<li>cd hybrid_valid/maxtor-sample1</li>
+<li>download <a href="http://www.mpi-sws.org/%7Evahldiek/diskmodels/maxtor146g.tar.gz">http://www.mpi-sws.org/~vahldiek/diskmodels/maxtor146g.tar.gz</a>
+</li>
+<li>tar xvfj maxtor146g.tar.gz</li>
+<li>mv maxtor146g/{{{*}}} hybrid_valid/maxtor-sample1 </li>
+<li>set the parameter <em>Max Queue Length = 1</em> in maxtor146g.diskspecs file</li>
+<li>./script_fixed</li>
+<li>./script_rw</li>
+<li>./script_optimal</li>
+<li>./response</li>
+</ul><h1>Simulation Result</h1>
+
+<p><img src="https://docs.google.com/spreadsheet/oimg?key=0AoWducd2Df_KdFBpd1pQc19NWFNBQ0hmNmlicjdGd3c&amp;oid=1&amp;zx=h33s22hzid1&amp;nonsense=result.png" alt="Result"></p>
+
+<h1>People</h1>
+
+<ul>
+<li>Yongseok Oh <a href="http://ysoh.wordpress.com">http://ysoh.wordpress.com</a>
+</li>
+<li>Jongmoo Choi <a href="http://embedded.dankook.ac.kr/%7Echoijm">http://embedded.dankook.ac.kr/~choijm</a>
+</li>
+<li>Donghee Lee <a href="http://embedded.uos.ac.kr">http://embedded.uos.ac.kr</a>
+</li>
+<li>Sam H. Noh <a href="http://next.hongik.ac.kr">http://next.hongik.ac.kr</a>
+</li>
+</ul><h1>Paper</h1>
+
+<ul>
+<li>“Caching less for better performance: Balancing cache size and update cost of flash memory cache in hybrid storage system” Yongseok Oh, Jongmoo Choi, Donghee Lee, and Sam H. Noh, In Proceedings of the 10th USENIX Conference on File and Storage Technology (FAST2012), San Jose, CA, Feb 14-17, 2012. </li>
+<li>Paper: <a href="http://static.usenix.org/events/fast12/tech/full_papers/Oh.pdf">http://static.usenix.org/events/fast12/tech/full_papers/Oh.pdf</a>
+</li>
+<li>Slide: <a href="http://static.usenix.org/events/fast/tech/slides/Oh.pdf">http://static.usenix.org/events/fast/tech/slides/Oh.pdf</a>
+</li>
+<li>Poster: <a href="http://static.usenix.org/events/fast/poster_refereed/Ohposter.pdf">http://static.usenix.org/events/fast/poster_refereed/Ohposter.pdf</a>
+</li>
+</ul><h1>Related Project</h1>
+
+<ul>
+<li>CMU DiskSim 4.0 <a href="http://www.pdl.cmu.edu/DiskSim/">http://www.pdl.cmu.edu/DiskSim/</a>
+</li>
+<li>MSR SSD Extension <a href="http://research.microsoft.com/en-us/downloads/b41019e2-1d2b-44d8-b512-ba35ab814cd4/">http://research.microsoft.com/en-us/downloads/b41019e2-1d2b-44d8-b512-ba35ab814cd4/</a>
+</li>
+<li>Anjo Hybrid Disk <a href="http://ovahldy.blogspot.kr/2011/03/hybrid-disk-simulation-using-disksim.htm">http://ovahldy.blogspot.kr/2011/03/hybrid-disk-simulation-using-disksim.htm</a>
+</li>
+<li>FlashTier <a href="http://research.cs.wisc.edu/sonar/projects/FlashTier/">http://research.cs.wisc.edu/sonar/projects/FlashTier/</a>
+</li>
+</ul><h1>Acknowledgement</h1>
+
+<ul>
+<li>CMU Disksim Team</li>
+<li>MSR SSD Extension Team</li>
+<li>Anjo Vahldiek</li>
+</ul>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Flash Cache Layer  maintained by <a href="https://github.com/yongseokoh">yongseokoh</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
