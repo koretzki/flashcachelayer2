@@ -62,7 +62,7 @@
 
 #define PAGE_TO_MB(x) ((double)x/256)
 
-#define FCL_BACKGROUND_TIMER	0
+#define FCL_BACKGROUND_TIMER	1 
 
 #define fcl_io_read_pages	(fcl_stat->fstat_io_read_pages)
 #define fcl_io_total_pages	(fcl_stat->fstat_io_total_pages)

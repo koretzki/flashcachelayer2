@@ -163,7 +163,7 @@ void fcl_issue_next_child ( ioreq_event *parent ){
 	int devno = -1;
 	double delay = 0.05;
 
-	//fprintf ( stdout, " issue next = %d \n", parent->fcl_event_ptr );
+	//fprintf ( stdout, " issue next = %d, blkno = %d, opid = %d \n", parent->fcl_event_ptr, parent->blkno, parent->opid );
 
 	ASSERT ( parent->fcl_event_count[parent->fcl_event_ptr] != 0 );
 
@@ -437,14 +437,16 @@ void fcl_make_stage_req (ioreq_event *parent, int blkno) {
 
 	// hit case  
 	if( ln ){
-		printf ( " Stagine Hit .. blkno = %d \n", blkno );
+		//printf ( " Stagine Hit .. blkno = %d \n", blkno );
 		ASSERT ( ln  == NULL );	
 
 	}else{ // miss case 
+		//printf ( " stage miss \n" );
 		ln = fcl_replace_cache( parent, blkno, NULL );
 	}
 	
 	CACHE_INSERT(fcl_cache_mgr, ln);
+
 }
 
 void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) {
@@ -572,6 +574,7 @@ void fcl_make_pending_list ( ioreq_event *parent, int op_type ) {
 	listnode *node;
 
 	parent->tempint1 = op_type;
+	//printf ( " op type = %d \n", op_type );
 
 	switch ( op_type ) {
 		case FCL_OPERATION_NORMAL:
@@ -796,10 +799,12 @@ void fcl_get_next_request ( int op_type ) {
 
 	} else {
 		req = ioqueue_get_next_request ( fcl_back_q );
+		//printf ( " next back .. \n" );
 	}
 
 	ASSERT ( req != NULL );
 
+	op_type = req->tempint1;
 	fcl_make_pending_list ( req, op_type );
 
 	// parent request will be splited and distributed into SSD and HDD 
@@ -817,6 +822,8 @@ void fcl_add_new_request ( ioreq_event *parent, int op_type ) {
 
 	//printf (" fcl add new request %.2f, %.2f, blkno = %d, bcount = %d \n", simtime, parent->time, parent->blkno, parent->bcount );
 
+	//printf ( " %d %d \n", parent->tempint1, op_type );
+	ASSERT ( parent->tempint1 == op_type );
 	// insert parent req into FCL Overall Queue 
 	if ( op_type == FCL_OPERATION_NORMAL ) {
 		ioqueue_add_new_request ( fcl_fore_q, parent );
@@ -825,6 +832,7 @@ void fcl_add_new_request ( ioreq_event *parent, int op_type ) {
 
 	} else {
 		ioqueue_add_new_request ( fcl_back_q, parent );
+		//printf ( " insert Background Queue \n" );
 	}
 
 }
@@ -1035,6 +1043,7 @@ void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {
 
 	fcl_parent_init ( parent );
 
+	parent->tempint1 = op_type;
 	fcl_add_new_request( parent, op_type );
 
 	if ( op_type == FCL_OPERATION_NORMAL ) {
@@ -1517,7 +1526,7 @@ void fcl_stage_request () {
 		int blkno = i * FCL_PAGE_SIZE;
 
 		if ( CACHE_PRESEARCH ( fcl_cache_mgr, blkno ) == NULL ) {
-			parent = fcl_create_parent ( blkno, FCL_PAGE_SIZE, simtime, 0, 0 );
+			parent = fcl_create_parent ( blkno, FCL_PAGE_SIZE, simtime, READ, 0 );
 			parent->tempint1 = FCL_OPERATION_STAGING;
 			
 			ll_insert_at_sort ( stage_list, (void *) parent, fcl_compare_blkno );
@@ -1674,13 +1683,17 @@ void fcl_timer_event ( timer_event *timereq) {
 		 ioqueue_get_number_in_queue ( fcl_back_q ) == 0 && 
 		 fcl_timer_func ) 
 	{
-		//fcl_stage_request ();
+#if 1 
+		//printf ( " Background Stage \n" );
+		fcl_stage_request ();
+#else
 		ret = fcl_destage_request ( FCL_MAX_DESTAGE );
 		if ( ret ) 
 			printf ( " Background Destage ... = %d req\n", ret );
+#endif 
 
 	} else {
-		printf ( " Destroy Timer Event \n");
+		//printf ( " Destroy Timer Event \n");
 	}
 
 	fcl_timer_func = NULL;
@@ -1770,7 +1783,8 @@ void _fcl_request_complete ( ioreq_event *child ) {
 	if ( total_req  == 0 ) { 
 
 		if ( parent->tempint1 == FCL_OPERATION_NORMAL ||
-				parent->tempint1 == FCL_OPERATION_STAGING ) {
+			parent->tempint1 == FCL_OPERATION_STAGING ) 
+		{
 			fcl_seal_complete_request ( parent );
 		}
 
@@ -1796,7 +1810,9 @@ void _fcl_request_complete ( ioreq_event *child ) {
 			fcl_event_next_foreground_request ();
 
 		} else {
+		//	printf ( " background req done opid = %d \n", parent->opid );
 
+			ASSERT ( simtime - parent->time >= 0 );
 			req2 = ioqueue_physical_access_done (fcl_back_q, parent);
 			fcl_event_next_background_request ();
 		}
@@ -1882,6 +1898,7 @@ void fcl_event_next_background_request () {
 			ioqueue_get_number_pending ( fcl_back_q ) ) {
 
 		fcl_get_next_request ( FCL_OPERATION_DESTAGING );
+		//fcl_get_next_request ( FCL_OPERATION_STAGING );
 
 		ASSERT ( ioqueue_get_reqoutstanding ( fcl_back_q ) <= FCL_BACK_Q_DEPTH ) ;
 	}
