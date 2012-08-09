@@ -13,7 +13,7 @@ disksim_fcl Fcl {
   Page Size = 8,
   Max Pages Percent = 100,
   Bypass Cache = 0,
-  Idle Detect Time = 0.0, #ms
+  Idle Detect Time = 1000.0, #ms
 
   Partitioning Scheme = 3,
 

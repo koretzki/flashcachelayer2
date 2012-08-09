@@ -1216,10 +1216,10 @@ int debug_arrive = 0;
 void fcl_request_arrive (ioreq_event *parent){
 
 	if ( ++debug_arrive % 50000 == 0 ) {
-		//printf ( " FCL Req Arrive time = %.2f, blkno = %d, bcount = %d, flags = %d, devno = %d, fqueue = %d, bqueue = %d \n", 
-		//		simtime, parent->blkno, parent->bcount, parent->flags, parent->devno, ioqueue_get_number_in_queue ( fcl_fore_q ),
-		//		ioqueue_get_number_in_queue ( fcl_back_q ) );
-		//printf ( " FCL Dirty Size = %.2fMB, Clean Size = %.2fMB \n", (double)fcl_cache_mgr->cm_dirty_count/256, (double)fcl_cache_mgr->cm_clean_count/256);
+		printf ( " FCL Req Arrive time = %.2f, blkno = %d, bcount = %d, flags = %d, devno = %d, fqueue = %d, bqueue = %d \n", 
+				simtime, parent->blkno, parent->bcount, parent->flags, parent->devno, ioqueue_get_number_in_queue ( fcl_fore_q ),
+				ioqueue_get_number_in_queue ( fcl_back_q ) );
+		printf ( " FCL Dirty Size = %.2fMB, Clean Size = %.2fMB \n", (double)fcl_cache_mgr->cm_dirty_count/256, (double)fcl_cache_mgr->cm_clean_count/256);
 //		lru_print ( fcl_active_block_mgr ) ;
 	}
 	//fprintf ( stdout, " FCL Req Arrive time = %f, blkno = %d, bcount = %d \n", 
@@ -1684,7 +1684,7 @@ void fcl_timer_event ( timer_event *timereq) {
 		 fcl_timer_func ) 
 	{
 #if 1 
-		//printf ( " Background Stage \n" );
+		printf ( " Background Stage \n" );
 		fcl_stage_request ();
 #else
 		ret = fcl_destage_request ( FCL_MAX_DESTAGE );
