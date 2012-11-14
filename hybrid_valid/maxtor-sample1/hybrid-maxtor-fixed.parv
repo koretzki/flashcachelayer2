@@ -28,6 +28,7 @@ disksim_fcl Fcl {
 
   Sequential Detection Enable = 1,
   Sequential Unit Size = 256,
+#  Sequential Unit Size = 0,
 
   Foreground Queue Outstanding Length = 32,
   Background Queue Outstanding Length = 10000,

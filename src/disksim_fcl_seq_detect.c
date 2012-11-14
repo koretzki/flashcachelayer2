@@ -29,11 +29,11 @@ int sd_is_seq_io ( int blkno ) {
 	if ( seq_detector->sd_length >= seq_detector->sd_seq_size &&
 		 startblk <= blkno && lastblk >= blkno )
 	{
-		//printf (" Sequential I/O = %d \n", blkno );
+		printf (" Sequential I/O = %d \n", blkno );
 		seq = 1;
 	} else {
 
-		//printf (" Non-Sequential I/O = %d \n", blkno );
+		printf (" Non-Sequential I/O = %d \n", blkno );
 	}		
 
 	return seq;
@@ -56,7 +56,7 @@ int sd_seq_detection ( int blkno, int length ) {
 
 	if ( seq_detector->sd_length >= seq_detector->sd_seq_size ) {
 		seq = 1;
-		/* 
+		///* 
 		   printf ( " %f Seq detection: blkno = %d, length = %d \n", 
 				   					simtime,
 									seq_detector->sd_startblk,

@@ -15,7 +15,7 @@
 
 //vp - maximum no of erasures a block can sustain
 //#define SSD_MAX_ERASURES                      1000000
-#define SSD_MAX_ERASURES                        50
+#define SSD_MAX_ERASURES                        500
 #define SSD_LIFETIME_THRESHOLD_X                0.80
 #define SSD_LIFETIME_THRESHOLD_Y                0.85
 
