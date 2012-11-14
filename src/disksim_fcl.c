@@ -55,8 +55,8 @@ ioreq_event *fcl_create_child ( ioreq_event *parent, int devno, int blkno, int b
 {
 	ioreq_event *child = NULL;
 
-	child = ioreq_copy ( parent );
-	//child  = (ioreq_event *) getfromextraq(); // DO NOT Use !!	
+	//child = ioreq_copy ( parent );
+	child  = (ioreq_event *) getfromextraq(); // DO NOT Use !!	
 
 	child->time = simtime;
 	child->devno = devno;
@@ -64,8 +64,11 @@ ioreq_event *fcl_create_child ( ioreq_event *parent, int devno, int blkno, int b
 	child->bcount = bcount;
 	child->flags = flags;
 	child->fcl_event_next = NULL;
-	
 
+	child->buf = 0;
+	child->busno = 0;
+	child->cause = 0;
+	
 	return child;
 }
 
@@ -1466,7 +1469,8 @@ static int fcl_compare_blkno(const void *a,const void *b){
 ioreq_event *fcl_create_parent (int blkno,int bcount, double time, int flags, int devno) {
 	ioreq_event * parent;
 
-	parent  = (ioreq_event *) ioreq_copy ( (ioreq_event *) io_extq );  	
+	//parent  = (ioreq_event *) ioreq_copy ( (ioreq_event *) io_extq );  	
+	parent  = (ioreq_event *) getfromextraq(); 
 
 	parent->blkno = blkno;
 	parent->bcount = bcount;
@@ -1474,6 +1478,9 @@ ioreq_event *fcl_create_parent (int blkno,int bcount, double time, int flags, in
 	parent->flags = flags;
 	parent->devno = devno;
 
+	parent->buf = 0;
+	parent->busno = 0;
+	parent->cause = 0;
 
 	return parent;
 
