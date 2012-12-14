@@ -364,21 +364,31 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 
 void fcl_make_seq_req (ioreq_event *parent, int blkno) {
 	struct lru_node *ln = NULL;
+	int hit = 0;
 
 	ln = CACHE_SEARCH(fcl_cache_mgr, blkno);
 
 	// hit case  
 	if(ln){
-		// remove this node to move the MRU position
+		hit = 1;
+
+		if ( (parent->flags & READ) && ln->cn_dirty ) {
+			_fcl_make_destage_req ( parent, ln, 0 );
+			//printf ( " Read Sequential I/O for dirty data in ssd cache \n" ) ;
+		}
+
 		ln = CACHE_REMOVE(fcl_cache_mgr, ln);
 		reverse_map_release_blk ( SSD, ln->cn_ssd_blk );
 		free ( ln );
 	}
 
-	if ( parent->flags & READ )
-		fcl_generate_child_request ( parent, HDD, blkno, READ, 0, 0);
-	else 
-		fcl_generate_child_request ( parent, HDD, blkno, WRITE, 1, 0);
+	if ( parent->flags & READ ) {
+		if ( !hit ) { 
+			fcl_generate_child_request ( parent, HDD, blkno, READ, FCL_EVENT_MAX - 2, 0);
+		}
+	 } else  { 
+		fcl_generate_child_request ( parent, HDD, blkno, WRITE, FCL_EVENT_MAX - 1, 0);
+	 }
 }
 
 void fcl_make_normal_req (ioreq_event *parent, int blkno) {
