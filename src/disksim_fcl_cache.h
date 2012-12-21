@@ -15,7 +15,7 @@
 #define _FCL_CACHE_H  
 
 
-#define HASH_NUM (16*1024)
+#define HASH_NUM (1024*1024)
 //#define BG_HASH_NUM (1024)
 //#define GRP2BLK 1024
 

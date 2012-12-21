@@ -56,7 +56,7 @@ int sd_seq_detection ( int blkno, int length ) {
 
 	if ( seq_detector->sd_length >= seq_detector->sd_seq_size ) {
 		seq = 1;
-		///* 
+		/* 
 		   printf ( " %f Seq detection: blkno = %d, length = %d \n", 
 				   					simtime,
 									seq_detector->sd_startblk,

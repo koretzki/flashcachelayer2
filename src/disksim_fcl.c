@@ -370,12 +370,12 @@ void fcl_make_seq_req (ioreq_event *parent, int blkno) {
 
 	// hit case  
 	if(ln){
-		hit = 1;
+	//	hit = 1;
 
-		if ( (parent->flags & READ) && ln->cn_dirty ) {
-			_fcl_make_destage_req ( parent, ln, 0 );
-			//printf ( " Read Sequential I/O for dirty data in ssd cache \n" ) ;
-		}
+	//	if ( (parent->flags & READ) && ln->cn_dirty ) {
+	//		_fcl_make_destage_req ( parent, ln, 0 );
+	//		//printf ( " Read Sequential I/O for dirty data in ssd cache \n" ) ;
+	//	}
 
 		ln = CACHE_REMOVE(fcl_cache_mgr, ln);
 		reverse_map_release_blk ( SSD, ln->cn_ssd_blk );
@@ -1034,6 +1034,12 @@ void _fcl_request_arrive ( ioreq_event *parent, int op_type ) {
 	if ( parent->bcount % FCL_PAGE_SIZE ) {
 		parent->bcount += (FCL_PAGE_SIZE - ( parent->bcount % FCL_PAGE_SIZE));
 	}
+
+	if ( parent->blkno + parent->bcount >= hdd_total_sectors ) {
+		int temp = parent->blkno + parent->bcount - hdd_total_sectors;
+		//temp -= 1;
+		parent->blkno -= temp;
+	}
 /*
 	if ( op_type == FCL_OPERATION_NORMAL ) {
 
@@ -1233,6 +1239,8 @@ void fcl_request_arrive (ioreq_event *parent){
 				simtime, parent->blkno, parent->bcount, parent->flags, parent->devno, ioqueue_get_number_in_queue ( fcl_fore_q ),
 				ioqueue_get_number_in_queue ( fcl_back_q ) );
 		printf ( " FCL Dirty Size = %.2fMB, Clean Size = %.2fMB \n", (double)fcl_cache_mgr->cm_dirty_count/256, (double)fcl_cache_mgr->cm_clean_count/256);
+		printf ( " FCL Written = %.2fMB, Read = %.2fMB \n", (double)fcl_stat->fstat_io_write_pages/256,
+															(double)fcl_stat->fstat_io_read_pages/256);
 //		lru_print ( fcl_active_block_mgr ) ;
 	}
 	//fprintf ( stdout, " FCL Req Arrive time = %f, blkno = %d, bcount = %d \n", 

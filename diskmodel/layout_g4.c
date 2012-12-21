@@ -59,7 +59,25 @@ static inline int min(int x, int y) {
 
 // Returns the highest entry in the slip list <= lbn??
 
-static int
+
+int _slipcount_bins(struct dm_layout_g4 *l,
+	       int lbn,
+	       int low,
+	       int high){
+
+  int midpt;
+  while(!(high == low+1 || high == low)) {
+  	  midpt = low + ((high - low)/2);
+	  if(l->slips[midpt].off > lbn) {
+		high = midpt;
+	  }
+	  else {  // off <= lbn
+		low = midpt;
+	  }
+  }
+  return low;
+}
+static inline int
 slipcount_bins(struct dm_layout_g4 *l,
 	       int lbn,
 	       int low,
@@ -69,6 +87,49 @@ slipcount_bins(struct dm_layout_g4 *l,
   ddbg_assert(0 <= low);
   ddbg_assert(high <= l->slips_len);
 
+#if 1 
+  if((high == low+1 || high == low)) {
+	  return low;
+  }
+  return l->slip_direct[lbn];
+#else
+  return _slipcount_bins(l, lbn, low, high);
+#endif 
+
+#if 0 
+  while(!(high == low+1 || high == low)) {
+  	  midpt = low + ((high - low)/2);
+	  if(l->slips[midpt].off > lbn) {
+	  	if(l->slips[midpt-1].off > lbn) {
+			high = midpt - 1;
+		} else {
+			high = midpt;
+		}
+			
+	  }
+	  else {  // off <= lbn
+	  	  if(l->slips[midpt+1].off <= lbn) {
+			  low = midpt+1;
+		  }else{
+		  	low = midpt;
+		  }
+	  }
+  }
+#endif 
+#if 0 
+  while( low < high-1 ) {
+	  if(l->slips[low].off <= lbn && l->slips[low+1].off > lbn) {
+		  break;
+	  }
+	  low++;
+  }
+#endif 
+
+  ddbg_assert(low <= l->slips_len);
+
+  return low;
+
+#if 0 
   if(high == low+1 || high == low) {
     return low;
   }
@@ -82,6 +143,7 @@ slipcount_bins(struct dm_layout_g4 *l,
     }
     return slipcount_bins(l,lbn,low,high);
   }
+#endif 
 }
 
 static int 

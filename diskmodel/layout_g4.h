@@ -133,6 +133,8 @@ struct dm_layout_g4 {
   struct remap *remaps;
   int remaps_len;
 
+  short int *slip_direct; // ysoh
+
 
 };
 

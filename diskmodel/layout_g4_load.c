@@ -394,6 +394,7 @@ g4_load_slips(struct dm_layout_g4 *r,
 {
   int i;
   int tot = 0;
+  int last_sector = 0;
   r->slips_len = l->values_pop / SLIP_FIELDS;
   r->slips_len; // add "0" entry
 
@@ -412,6 +413,16 @@ g4_load_slips(struct dm_layout_g4 *r,
     r->slips[0].off = 0;
     r->slips[0].count = 0;
     r->slips_len++;
+  }
+
+  last_sector = r->slips[r->slips_len-1].off;
+
+  // ysoh 
+  // optimization 
+  r->slip_direct = (short int *)malloc(last_sector*sizeof(short int));
+  for(i=0;i<last_sector;i++){
+	  r->slip_direct[i] = (short int)_slipcount_bins(r, i, 0, r->slips_len);
+//	  printf("%d %d\n", i, r->slip_direct[i]);
   }
 
   return 0;
