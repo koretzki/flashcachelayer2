@@ -362,6 +362,15 @@ struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_
 	return ln;
 }
 
+void fcl_make_bypass_req (ioreq_event *parent, int blkno) {
+
+	if ( parent->flags & READ ) {
+		fcl_generate_child_request ( parent, HDD, blkno, READ, 0, 0);
+	 } else  { 
+		fcl_generate_child_request ( parent, HDD, blkno, WRITE, 1, 0);
+	 }
+}
+
 void fcl_make_seq_req (ioreq_event *parent, int blkno) {
 	struct lru_node *ln = NULL;
 	int hit = 0;
@@ -623,8 +632,13 @@ void fcl_make_request ( ioreq_event *parent, int blkno ) {
 			//printf (" Normal Req blkno = %d \n", blkno);
 			if ( sd_is_seq_io ( blkno ) )
 				fcl_make_seq_req ( parent, blkno ); // sequential request 
-			else
-				fcl_make_normal_req ( parent, blkno );  // non-sequential request
+			else {
+				if ( fcl_params->fpa_partitioning_scheme != FCL_CACHE_BYPASS ){
+					fcl_make_normal_req ( parent, blkno );  // non-sequential request
+				} else {
+					fcl_make_bypass_req ( parent, blkno );  // non-sequential request
+				}
+			}
 
 			break;
 			// child req => Move SSD data to HDD 
@@ -2040,6 +2054,8 @@ void fcl_print_parameters ( FILE *fp ) {
 		fprintf ( fp, " Cache partitionig = Read Write Distinguish \n");
 	} else if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_OPTIMAL ) {
 		fprintf ( fp, " Cache partitionig = Optimal \n");
+	} else if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_BYPASS ) {
+		fprintf ( fp, " Cache partitionig = Bypassing Cache \n");
 	} else {
 		fprintf ( fp, " Set default partitioning scheme (Fixed) !!! \n");
 		fcl_params->fpa_partitioning_scheme = FCL_CACHE_FIXED;
@@ -2175,13 +2191,19 @@ void fcl_exit () {
 	fprintf ( outputfile , " FCL: Arrive Request Count = %d \n", fcl_stat->fstat_arrive_count );
 	fprintf ( outputfile , " FCL: Complete Request Count = %d \n", fcl_stat->fstat_complete_count );
 
+	//ASSERT ( fcl_stat->fstat_arrive_count == fcl_stat->fstat_complete_count );
+	if ( fcl_stat->fstat_arrive_count == fcl_stat->fstat_complete_count ) {
+		fprintf ( outputfile , " FCL: Arrive and complete request mis-matched = %d \n", fcl_stat->fstat_complete_count );
+
+
+	}
+
 	fprintf ( outputfile , " FCL: Dirty Count = %d (%.2fMB)\n", fcl_cache_mgr->cm_dirty_count, (double)fcl_cache_mgr->cm_dirty_count/256 );
 	fprintf ( outputfile , " FCL: Clean Count = %d (%.2fMB)\n", fcl_cache_mgr->cm_clean_count, (double)fcl_cache_mgr->cm_clean_count/256 );
 
 	fprintf ( stdout , " FCL: Arrive Request Count = %d \n", fcl_stat->fstat_arrive_count );
 	fprintf ( stdout , " FCL: Complete Request Count = %d \n", fcl_stat->fstat_complete_count );
 
-	ASSERT ( fcl_stat->fstat_arrive_count == fcl_stat->fstat_complete_count );
 
 
 	reverse_map_free( SSD );

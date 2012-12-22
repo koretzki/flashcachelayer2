@@ -35,6 +35,7 @@
 #define FCL_CACHE_FIXED		1
 #define FCL_CACHE_RW		2
 #define FCL_CACHE_OPTIMAL 	3
+#define FCL_CACHE_BYPASS 	4
 
 #define FCL_REPLACE_DIRTY 	0	
 #define FCL_REPLACE_CLEAN	1

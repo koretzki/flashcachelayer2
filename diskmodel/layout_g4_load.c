@@ -419,11 +419,13 @@ g4_load_slips(struct dm_layout_g4 *r,
 
   // ysoh 
   // optimization 
+#if 0 
   r->slip_direct = (short int *)malloc(last_sector*sizeof(short int));
   for(i=0;i<last_sector;i++){
 	  r->slip_direct[i] = (short int)_slipcount_bins(r, i, 0, r->slips_len);
 //	  printf("%d %d\n", i, r->slip_direct[i]);
   }
+#endif 
 
   return 0;
 }

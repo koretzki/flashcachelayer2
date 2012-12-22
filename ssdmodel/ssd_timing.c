@@ -748,8 +748,18 @@ static double ssd_issue_overlapped_ios(ssd_req **reqs, int total, int elem_num, 
                         r->schtime = parunit_tot_cost[i] + op_count*ssd_data_transfer_cost(s,s->params.page_size) + parunit_op_cost[i];
                     }
                 } else {
+					double read_modify_write_time = 0.0;
+
+					if ( r->count <  s->params.page_size ) {
+						read_modify_write_time =  s->params.page_read_latency 
+							+ ssd_data_transfer_cost(s,s->params.page_size);
+						//printf ( " read modify write = %d \n", r->count );
+					} else {
+						//printf ( " normal write \n" );
+					}
                     // for write
                     r->acctime = parunit_op_cost[i] + ssd_data_transfer_cost(s,s->params.page_size);
+					r->acctime += read_modify_write_time;
                     r->schtime = parunit_tot_cost[i] + (op_count-1)*ssd_data_transfer_cost(s,s->params.page_size) + r->acctime;
                 }
 

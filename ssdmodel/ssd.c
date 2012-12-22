@@ -704,7 +704,7 @@ static void ssd_media_access_request_element (ioreq_event *curr)
        tmp->flags = curr->flags;
        tmp->blkno = blkno;
        tmp->bcount = ssd_choose_aligned_count(currdisk->params.page_size, blkno, count);
-       ASSERT(tmp->bcount == currdisk->params.page_size);
+       //ASSERT(tmp->bcount == currdisk->params.page_size);
 
 	   // ysoh 
 	   tmp->fcl_data_class = curr->fcl_data_class;

@@ -87,13 +87,24 @@ slipcount_bins(struct dm_layout_g4 *l,
   ddbg_assert(0 <= low);
   ddbg_assert(high <= l->slips_len);
 
-#if 1 
+#if 0 
   if((high == low+1 || high == low)) {
 	  return low;
   }
   return l->slip_direct[lbn];
 #else
-  return _slipcount_bins(l, lbn, low, high);
+  int midpt;
+  while(!(high == low+1 || high == low)) {
+  	  midpt = low + ((high - low)/2);
+	  if(l->slips[midpt].off > lbn) {
+		high = midpt;
+	  }
+	  else {  // off <= lbn
+		low = midpt;
+	  }
+  }
+  return low;
+
 #endif 
 
 #if 0 

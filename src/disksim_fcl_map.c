@@ -151,6 +151,9 @@ void reverse_map_discard_freeblk (int devno) {
 	listnode *del_node;
 	int freecount = ll_get_size ( fm->fm_reverse_freeq );
 	int i;
+	int ssd_page_size;
+	ssd_t *currssd = getssd (SSD);
+	ssd_page_size = currssd->params.page_size;
 
 	if ( fm->fm_reverse_wait_pages <= 0 )
 		return; 
@@ -160,10 +163,32 @@ void reverse_map_discard_freeblk (int devno) {
 		int blkno = (int) del_node->data;
 		
 		if ( fm->fm_reverse_map [ blkno ] == MAP_RELEASED ) {
-			ssd_trim_command ( SSD, (int) blkno * FCL_PAGE_SIZE );
-			fm->fm_reverse_map [ blkno ] = MAP_TRIMMED;
-			fm->fm_reverse_wait_pages --;
-			ASSERT ( fm->fm_reverse_wait_pages >= 0 );
+			if ( ssd_page_size == 8) { // 4kb
+				ssd_trim_command ( SSD, (int) blkno * FCL_PAGE_SIZE );
+				fm->fm_reverse_map [ blkno ] = MAP_TRIMMED;
+				fm->fm_reverse_wait_pages --;
+				ASSERT ( fm->fm_reverse_wait_pages >= 0 );
+			} else {
+				int high_sector, low_sector;
+				int high_page, low_page;
+
+				low_sector = 16 * ( blkno/16 ) ;
+				high_sector = low_sector + 8 ;
+
+				low_page = low_sector / FCL_PAGE_SIZE ;
+				high_page = high_sector / FCL_PAGE_SIZE ;
+
+
+				if ( fm->fm_reverse_map [ low_page ] == MAP_RELEASED &&
+					fm->fm_reverse_map [ high_page ] == MAP_RELEASED ) {
+
+					ssd_trim_command ( devno, (int) low_sector ) ;
+					fm->fm_reverse_map [ low_page ] = MAP_TRIMMED;
+					fm->fm_reverse_map [ high_page ] = MAP_TRIMMED;
+					fm->fm_reverse_wait_pages --;
+					fm->fm_reverse_wait_pages --;
+				}
+			}
 		}
 
 		del_node = del_node->next;
