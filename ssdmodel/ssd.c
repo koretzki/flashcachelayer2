@@ -46,12 +46,17 @@ struct ssd *getssd (int devno)
    if ( disksim->simplediskinfo && !numdisks )  
 	   numdisks = simpledisk_get_numdisks();	   
 
-   if(devno >= numdisks){
-	   s = (disksim->ssdinfo->ssds[devno-numdisks]);
-	   return s;
-   }else{
+   //printf(" devno = %d \n", devno );
+   //if(devicenos[devno] == devno){
+	//   devno -= numdisks;
+  // }
+
+//   if(devno >= numdisks){
+//	   s = (disksim->ssdinfo->ssds[devno-numdisks]);
+//	   return s;
+//   }else{
 	   return disksim->ssdinfo->ssds[devno];
-   }
+//   }
 
 }
 
@@ -263,7 +268,7 @@ void ssd_bus_ownership_grant (int devno, ioreq_event *curr, int busno, double ar
    ssd_t *currdisk;
    ioreq_event *tmp;
 
-   currdisk = getssd (devno);
+   currdisk = getssd ( devicenos[devno]);
 
    ssd_assert_current_activity(currdisk, curr);
    tmp = currdisk->buswait;
@@ -928,7 +933,7 @@ static void ssd_disconnect_done (ioreq_event *curr)
 {
    ssd_t *currdisk;
 
-   currdisk = getssd (curr->devno);
+   currdisk = getssd (devicenos[curr->devno]);
    ssd_assert_current_activity(currdisk, curr);
 
    // fprintf (outputfile, "Entering ssd_disconnect for disk %d: %12.6f\n", currdisk->devno, simtime);
@@ -1052,7 +1057,7 @@ int ssd_get_number_of_blocks (int devno)
 
 int ssd_get_numcyls (int devno)
 {
-   ssd_t *currdisk = getssd (devno);
+   ssd_t *currdisk = getssd ( devicenos[devno]);
    return (currdisk->numblocks);
 }
 
@@ -1119,7 +1124,7 @@ void ssd_cleanstats (void)
 {
    int i, j;
 
-   for (i=0; i<MAXDEVICES; i++) {
+   for (i=0; i<numssds; i++) {
       ssd_t *currdisk = getssd (i);
       if (currdisk) {
           ioqueue_cleanstats(currdisk->queue);
@@ -1184,11 +1189,11 @@ struct ssd *ssdmodel_ssd_loadparams(struct lp_block *b, int *num)
 
   // ysoh 
   
-  if( disksim->diskinfo )
-	device_add((struct device_header *)result,disksim->diskinfo->numdisks+ n);
-  else if ( disksim->simplediskinfo )
-	device_add((struct device_header *)result,disksim->simplediskinfo->numsimpledisks+ n);
-  else 
+  //if( disksim->diskinfo )
+//	device_add((struct device_header *)result,disksim->diskinfo->numdisks+ n);
+ // else if ( disksim->simplediskinfo )
+//	device_add((struct device_header *)result,disksim->simplediskinfo->numsimpledisks+ n);
+ // else 
 	device_add((struct device_header *)result, n);
 
 
@@ -1323,6 +1328,35 @@ void ssd_print_block_lifetime_distribution(int elem_num, ssd_t *s, int ssdno, do
         sourcestr, ssdno, elem_num, dead_blocks);
 }
 
+
+void ssd_avg_erasecount(int devno, double *pmean,double *pvariance) {
+	int i, j;
+	int total_erase_count = 0;
+	int total_block_count = 0;
+	double sum_sqr = 0.0;
+	double mean = 0.0;
+	double variance = 0.0;
+
+	ssd_t *s = getssd(devno);
+
+	for ( i = 0; i < s->params.nelements; i++ ) {
+		ssd_element_metadata *metadata = &(s->elements[i].metadata);
+
+		for (j = 0; j < s->params.blocks_per_element; j ++) {
+			int erase_count = metadata->block_usage[j].erase_count; 
+			total_erase_count += erase_count;
+			total_block_count ++;
+			sum_sqr = sum_sqr + (erase_count*erase_count);
+		}
+	}
+
+	mean = (double)total_erase_count/total_block_count;
+	variance = (sum_sqr - total_erase_count * mean)/(total_block_count-1); 
+
+	*pmean = mean;
+	*pvariance = variance;
+	return;
+}
 //prints the cleaning algo statistics
 void ssd_printcleanstats(int *set, int setsize, char *sourcestr)
 {

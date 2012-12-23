@@ -29,9 +29,9 @@ struct lru_node{
 	struct list_head cn_dirty_list;
 	struct hlist_node cn_hash;
 
-	unsigned int cn_blkno;
-	int cn_ssd_blk;
-//	int cn_ssd_sector;
+	unsigned int cn_blkno; // hdd block number 
+	int cn_ssd_blk; // cache block number
+	int cn_devno;
 
 	int cn_dirty;
 	int cn_read;

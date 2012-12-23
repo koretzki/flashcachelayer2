@@ -233,9 +233,10 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 
 	int	temp_read_pages = 0;
 	int	temp_write_pages = 0;
+	int devno = 0;
 
 	if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_RW ) {
-		u_start = (double)flash_usable_pages/flash_total_pages;
+		u_start = (double)flash_usable_pages(devno)/flash_total_pages(devno);
 		u_end = u_start +0.00001;
 	} else if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_OPTIMAL ) {
 		u_start = u_step;
@@ -267,8 +268,8 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 
 
 	optimal_usable_pages = total_pages * min_u;
-	if ( optimal_usable_pages > flash_usable_pages ) 
-		optimal_usable_pages = flash_usable_pages;
+	if ( optimal_usable_pages > flash_usable_pages(devno) ) 
+		optimal_usable_pages = flash_usable_pages(devno);
 
 	temp_read_pages = (double) optimal_usable_pages * min_r;
 	temp_write_pages = optimal_usable_pages - temp_read_pages; 

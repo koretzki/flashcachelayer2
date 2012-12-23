@@ -97,7 +97,7 @@ int reverse_map_alloc_blk(int devno, int hdd_blk){
 
 
 	if(alloc_blk == -1){
-		//printf( " Cannot allocate block .. free num = %d, wait num = %d\n", fm_reverse_free, fm_reverse_wait_pages);
+		printf( " Cannot allocate block .. free num = %d, wait num = %d\n", fm->fm_reverse_free, fm->fm_reverse_wait_pages);
 		printf( " Cannot allocate block .. \n");
 		//ASSERT ( alloc_blk != -1 );
 	}
@@ -107,7 +107,7 @@ int reverse_map_alloc_blk(int devno, int hdd_blk){
 	//	fm_reverse_free = reverse_free;
 	//}
 
-	//fprintf ( stdout, " Revermap Alloc = %d \n", alloc_blk);
+	//fprintf ( stdout, " Revermap Alloc devno = %d, blk  = %d, hdd = %d  \n", devno, alloc_blk * FCL_PAGE_SIZE, hdd_blk);
 
 	//if(alloc_blk == 3866)
 	//	alloc_blk = alloc_blk;
@@ -126,12 +126,10 @@ int reverse_map_release_blk(int devno, int ssd_blk){
 	struct fcl_mapping_table *fm = &fcl_map[devno];
 	int i;	
 
-	
 	if(ssd_blk < 1 || ssd_blk >= fm->fm_reverse_max_pages){
 		fprintf(stderr, " invalid ssd blkno = %d \n", ssd_blk);
 		return -1;
 	}
-
 
 	fm->fm_reverse_free++;
 	fm->fm_reverse_used--;
@@ -152,7 +150,7 @@ void reverse_map_discard_freeblk (int devno) {
 	int freecount = ll_get_size ( fm->fm_reverse_freeq );
 	int i;
 	int ssd_page_size;
-	ssd_t *currssd = getssd (SSD);
+	ssd_t *currssd = getssd (devno);
 	ssd_page_size = currssd->params.page_size;
 
 	if ( fm->fm_reverse_wait_pages <= 0 )
@@ -164,7 +162,7 @@ void reverse_map_discard_freeblk (int devno) {
 		
 		if ( fm->fm_reverse_map [ blkno ] == MAP_RELEASED ) {
 			if ( ssd_page_size == 8) { // 4kb
-				ssd_trim_command ( SSD, (int) blkno * FCL_PAGE_SIZE );
+				ssd_trim_command ( devno + NUM_HDD, (int) blkno * FCL_PAGE_SIZE );
 				fm->fm_reverse_map [ blkno ] = MAP_TRIMMED;
 				fm->fm_reverse_wait_pages --;
 				ASSERT ( fm->fm_reverse_wait_pages >= 0 );
@@ -182,7 +180,7 @@ void reverse_map_discard_freeblk (int devno) {
 				if ( fm->fm_reverse_map [ low_page ] == MAP_RELEASED &&
 					fm->fm_reverse_map [ high_page ] == MAP_RELEASED ) {
 
-					ssd_trim_command ( devno, (int) low_sector ) ;
+					ssd_trim_command ( devno + NUM_HDD, (int) low_sector ) ;
 					fm->fm_reverse_map [ low_page ] = MAP_TRIMMED;
 					fm->fm_reverse_map [ high_page ] = MAP_TRIMMED;
 					fm->fm_reverse_wait_pages --;

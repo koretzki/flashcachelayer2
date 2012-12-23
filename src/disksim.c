@@ -635,12 +635,15 @@ getnextevent(void)
       if (curr->type == NULL_EVENT) {
 	if ((disksim->iotrace) && io_using_external_event(curr)) {
 	  temp = io_get_next_external_event(disksim->iotracefile);
+	  // ysoh
+	  /*
 	  if (!temp) {
             disksim->stop_sim = TRUE;
 	  }
 	  else { 
 	    // OK
 	  }
+	  */
 	} 
 	else {
 	  fprintf(stderr, "NULL_EVENT not linked to any external source\n");

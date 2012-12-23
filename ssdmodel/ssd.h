@@ -80,6 +80,7 @@ typedef struct _block_metadata {
                                         // to total num of erasures that can be performed on a block.
                                         // after every time this block is erased, this count is
                                         // decremented.
+	int			erase_count;
 
     double      time_of_last_erasure;   // holds the time when the last erasure was performed.
 
@@ -459,6 +460,7 @@ int     ssd_already_present(ssd_req **reqs, int total, ioreq_event *req);
 
 // ysoh
 void ssd_trim_command(int devno, int blkno);
+void ssd_avg_erasecount(int devno, double *pmean, double *pvariance);
 
 #endif   /* DISKSIM_ssd_H */
 

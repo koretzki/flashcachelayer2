@@ -124,6 +124,7 @@ static double ssd_clean_one_page
 void ssd_update_block_lifetime(double time, int blk, ssd_element_metadata *metadata)
 {
     metadata->block_usage[blk].rem_lifetime --;
+    metadata->block_usage[blk].erase_count ++;
     metadata->block_usage[blk].time_of_last_erasure = time;
 
     if (metadata->block_usage[blk].rem_lifetime < 0) {
