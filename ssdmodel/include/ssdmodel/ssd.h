@@ -460,6 +460,7 @@ int     ssd_already_present(ssd_req **reqs, int total, ioreq_event *req);
 
 // ysoh
 void ssd_trim_command(int devno, int blkno);
+int ssd_curr_physical(int devno, int blkno);
 void ssd_avg_erasecount(int devno, double *pmean, double *pvariance);
 
 #endif   /* DISKSIM_ssd_H */

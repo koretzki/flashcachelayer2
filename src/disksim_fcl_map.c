@@ -170,8 +170,9 @@ void reverse_map_discard_freeblk (int devno) {
 				int high_sector, low_sector;
 				int high_page, low_page;
 
-				low_sector = 16 * ( blkno/16 ) ;
-				high_sector = low_sector + 8 ;
+				//low_sector = 16 * ( blkno/16 ) ;
+				low_sector = blkno / (ssd_page_size/FCL_PAGE_SIZE) * ssd_page_size;
+				high_sector = low_sector + FCL_PAGE_SIZE ;
 
 				low_page = low_sector / FCL_PAGE_SIZE ;
 				high_page = high_sector / FCL_PAGE_SIZE ;
@@ -180,6 +181,7 @@ void reverse_map_discard_freeblk (int devno) {
 				if ( fm->fm_reverse_map [ low_page ] == MAP_RELEASED &&
 					fm->fm_reverse_map [ high_page ] == MAP_RELEASED ) {
 
+					//printf (" devno = %d, trim = blkno %d, %d \n", devno, low_sector, low_sector % ssd_page_size );
 					ssd_trim_command ( devno + NUM_HDD, (int) low_sector ) ;
 					fm->fm_reverse_map [ low_page ] = MAP_TRIMMED;
 					fm->fm_reverse_map [ high_page ] = MAP_TRIMMED;

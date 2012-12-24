@@ -131,6 +131,9 @@ struct fcl_statistics {
 	int fstat_arrive_count;
 	int fstat_complete_count;
 
+	int fstat_cache_ref;
+	int fstat_cache_hit;
+
 	int fstat_io_read_pages;
 	int fstat_io_write_pages;
 	int fstat_io_total_pages;
@@ -171,5 +174,7 @@ void fcl_event_next_background_request () ;
 void fcl_update_workload_tracker ( ioreq_event *parent ) ;
 struct lru_node *fcl_cache_search( int blkno ) ;
 struct lru_node *fcl_cache_presearch( int blkno ) ;
+struct lru_node *fcl_alloc_node( int devno, int blkno ) ;
+void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int blkno ) ;
 
 #endif // ifndef _DISKSIM_FCL_H 

@@ -33,7 +33,7 @@ include .paths
 
 SUBDIRS=libddbg libparam diskmodel memsmodel ssdmodel src
 
-CC=gcc -m32  -Wall -Wno-unused -MD  -O3
+CC=gcc -m32  -Wall -Wno-unused -MD -O3
 
 all: 	
 	$(MAKE) -C libddbg

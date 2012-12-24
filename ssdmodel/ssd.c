@@ -647,6 +647,22 @@ static void ssd_activate_elem(ssd_t *currdisk, int elem_num, ioreq_event *curr )
     }
 }
 
+int ssd_curr_physical(int devno, int blkno){
+	ssd_t *currdisk = getssd(devicenos[devno]);		
+	ssd_t *s = currdisk;
+	int elem_num = currdisk->timing_t->choose_element(currdisk->timing_t, blkno);
+	ssd_element *elem = &currdisk->elements[elem_num];
+	ssd_element_metadata *metadata = &(s->elements[elem_num].metadata);
+	int lpn = ssd_logical_pageno(blkno, currdisk);
+	int plane_num = lpn % currdisk->params.planes_per_pkg;
+	int prev_page = metadata->lba_table[lpn];
+	int prev_block = SSD_PAGE_TO_BLOCK(prev_page, s);
+	int pagepos_in_prev_block = prev_page % s->params.pages_per_block;
+	int prev_plane = metadata->block_usage[prev_block].plane_num;
+	
+ 
+	return prev_page;
+}
 
 void ssd_trim_command(int devno, int blkno){
 	ssd_t *currdisk = getssd(devicenos[devno]);		

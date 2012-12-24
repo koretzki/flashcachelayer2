@@ -64,6 +64,7 @@ ioreq_event *fcl_create_child ( ioreq_event *parent, int devno, int blkno, int b
 	child->bcount = bcount;
 	child->flags = flags;
 	child->fcl_event_next = NULL;
+	child->fcl_replaced = 0;
 
 	child->buf = 0;
 	child->busno = 0;
@@ -255,6 +256,13 @@ void fcl_generate_child_request ( ioreq_event *parent, int devno, int blkno, int
 								FCL_PAGE_SIZE, 
 								flags ); 
 
+	// debugging 
+	if ( flags & READ && devno >= NUM_HDD ) {
+		int curr_phy = -1;
+		curr_phy = ssd_curr_physical ( devno, blkno ) ;
+		ASSERT ( curr_phy != -1 );
+	}
+
 	if ( ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_RW || 
 		   fcl_params->fpa_partitioning_scheme == FCL_CACHE_OPTIMAL) 
 		&& devno >=NUM_HDD 
@@ -276,161 +284,136 @@ void fcl_generate_child_request ( ioreq_event *parent, int devno, int blkno, int
 						child ); 
 }
 
-
-
-int _fcl_replace_cache (int devno,  ioreq_event *parent, int watermark, int replace_type ) {
+void fcl_replace_cache (ioreq_event *parent) {
 	struct lru_node *remove_ln;
 	struct lru_node *active_ln;
-	int victim = 0;
-
-	// evict the LRU position node from the LRU list
-	remove_ln = CACHE_REPLACE(fcl_cache_mgr[devno], watermark, replace_type);
-
-	if ( remove_ln == NULL ) 
-		return victim;
-
-	if ( remove_ln ) {
-		ASSERT ( remove_ln->cn_flag == FCL_CACHE_FLAG_SEALED );
-	}
-
-	// XXX : active block would be replaced !! 
-	active_ln = fcl_lookup_active_list ( remove_ln->cn_blkno );
-	if ( active_ln && active_ln->cn_time != simtime ) {
-		printf ( " Queue length = %d \n", ioqueue_get_number_in_queue ( fcl_fore_q )) ; 
-		ASSERT ( 0 );
-	}			
-	ASSERT ( active_ln == NULL );
-
-	// move dirty data from SSD to HDD
-	if ( remove_ln->cn_dirty ) {
-		_fcl_make_destage_req ( parent, remove_ln, 0 );
-		ASSERT ( fcl_cache_mgr[devno]->cm_dirty_count >= 0 );
-	}
-
-	// There are available clean pages 
-	//if ( fcl_cache_mgr[devno]->cm_clean_free > 1 && 
-	//	 fcl_params->fpa_partitioning_scheme != FCL_CACHE_FIXED ) 
-	//{ 
-		// move dirty page to clean list 
-	//	remove_ln->cn_dirty = 0;
-	//	CACHE_INSERT ( fcl_cache_mgr[devno], remove_ln );
-
-	//} else {
-
-		reverse_map_release_blk ( remove_ln->cn_devno, remove_ln->cn_ssd_blk );
-		free( remove_ln );
-
-	//}
-
-	victim = 1;
-
-
-	return victim;
-}
-
-
-#if 0 
-struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_node *ln, int devno) {
 	int replace_type; //  = (parent->flags & READ) ? 0 : 1;
-	int low_watermark = 0;
-	int debug = 0;
+	int watermark = 0;
+	int list_index = 0;
+	int dev;
+	int blk;
+	int flags;
+	int rep_map[MAX_CACHE];
+	int i;
+	int count = 0;
 
-	if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_FIXED ) 
-		replace_type = FCL_REPLACE_ANY;
-	else // FCL_CACHE_RW, FCL_CACHE_FIXED
-		replace_type = parent->flags & READ;
 
-
-	if ( !( parent->flags & READ )  			// Write Request 
-		&& replace_type != FCL_REPLACE_ANY		// Dynamic Partitioning 
-		&& fcl_cache_mgr[devno]->cm_dirty_free == 0	// High Watermark
-		&& fcl_params->fpa_ondemand_group_destage )   
-	{
-		low_watermark = FCL_MAX_DESTAGE - 1;
-		debug = 1;
-	} else if ( !(parent->flags & READ ) 
-			&& replace_type == FCL_REPLACE_ANY 
-			&& fcl_cache_mgr[devno]->cm_free == 0 	 
-			&& fcl_params->fpa_ondemand_group_destage )   
-	{ 
-		low_watermark = FCL_MAX_DESTAGE - 1;
-	} else {
-		low_watermark = 0;
-	}
-
-	while ( 1 ) {
-		int victim;
-
-		victim = _fcl_replace_cache ( devno, parent, low_watermark, replace_type );
-		if ( !victim ) {
-			break;
-		}
-
-	}
-
-	/*if ( debug ) 
-		printf ( " Clean free = %d, dirty free = %d flags = %d \n", 
-								 fcl_cache_mgr[SLC_CACHE]->cm_clean_free,
-								 fcl_cache_mgr[SLC_CACHE]->cm_dirty_free,
-								 parent->flags);
-								 */
-
-	if ( ln == NULL ) {
-		ln = CACHE_ALLOC(fcl_cache_mgr[devno], NULL, blkno);
-		ln->cn_devno = devno;
-		ln->cn_flag = FCL_CACHE_FLAG_FILLING;
-		ln->cn_ssd_blk = reverse_map_alloc_blk( devno, blkno );
-		ln->cn_dirty = 0;
-
-		ASSERT ( ln->cn_ssd_blk != -1 );
-	} 
-
-	// miss penalty request  
-	if ( parent->flags & READ ) { // read clean data 
-		_fcl_make_stage_req ( parent, ln, 2);
-	}
-
-	return ln;
-}
-#else 
-
-struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_node *ln, int devno) {
-	int replace_type; //  = (parent->flags & READ) ? 0 : 1;
-	int low_watermark = 0;
-	int debug = 0;
+	ioreq_event *child;
 
 	replace_type = FCL_REPLACE_ANY;
-	low_watermark = 0;
+	watermark = 0;
 
+	//memset ( rep_map, -1, sizeof(int) * MAX_CACHE );
 
-	while ( 1 ) {
-		int victim;
+	// higher level to lower level 
+	for ( i = MAX_CACHE-1; i >= 0; i -- ) {
+		if ( fcl_cache_mgr[i] && fcl_cache_mgr[i]->cm_free <= 0 ) {
+			rep_map[i] = i;
+			count ++ ;
+		} else {
+			rep_map[i] = -1;
+		}
+	}
+	if ( count == 0 ) 
+		return ;
 
-		victim = _fcl_replace_cache ( devno, parent, low_watermark, replace_type );
-		if ( !victim ) {
-			break;
+	// replace from lower level cache to high level 
+	for ( i = 0; i < FCL_NUM_CACHE; i++ ) {
+		int rep_devno = rep_map[i];
+
+		list_index = i * 2;
+		if ( rep_devno == -1 ) {
+			continue;
 		}
 
+		// evict the LRU position node from the LRU list
+		remove_ln = CACHE_REPLACE(fcl_cache_mgr[rep_devno], watermark, replace_type);
+
+		if ( remove_ln == NULL ) 
+			continue;
+
+		ASSERT ( remove_ln->cn_flag == FCL_CACHE_FLAG_SEALED );
+
+		// XXX : active block would be replaced !! 
+		active_ln = fcl_lookup_active_list ( remove_ln->cn_blkno );
+		if ( active_ln && active_ln->cn_time != simtime ) {
+			printf ( " Queue length = %d \n", ioqueue_get_number_in_queue ( fcl_fore_q )) ; 
+			ASSERT ( 0 );
+		}			
+		ASSERT ( active_ln == NULL );
+
+		blk = remove_ln->cn_blkno;
+		dev = parent->devno;
+		flags = parent->flags;
+
+		child = fcl_create_child ( parent, dev, blk, FCL_PAGE_SIZE, flags ); 
+		child->fcl_parent = parent;
+		child->fcl_replaced = 1;
+		fcl_classify_child_request ( parent, child, child->blkno );
+
+	//	fcl_insert_active_list ( remove_ln->cn_blkno, NULL );
+
+		if ( i == HDD ) { // move to original place 
+			if ( remove_ln->cn_dirty ) {
+				dev = remove_ln->cn_devno + NUM_HDD;
+				blk = remove_ln->cn_ssd_blk;
+				fcl_generate_child_request ( parent, dev, blk, READ, list_index++, 0);
+
+				dev = i;
+				blk = reverse_get_blk( remove_ln->cn_devno, remove_ln->cn_ssd_blk);
+				fcl_generate_child_request ( parent, dev, blk, WRITE, list_index++, 0);
+			}
+		} else { // move to the next lower level cache 
+			struct lru_node *ln = fcl_alloc_node ( rep_devno-1, remove_ln->cn_blkno );
+
+			dev = remove_ln->cn_devno + NUM_HDD;
+			blk = remove_ln->cn_ssd_blk;
+			fcl_generate_child_request ( parent, dev, blk, READ, list_index++, 0);
+
+			//ln->cn_flag = remove_ln->cn_flag;
+			ln->cn_flag = FCL_CACHE_FLAG_FILLING;
+			ln->cn_dirty = remove_ln->cn_dirty;
+			CACHE_INSERT(fcl_cache_mgr[ln->cn_devno], ln);
+
+			dev = i;
+			blk = ln->cn_ssd_blk;
+			fcl_generate_child_request ( parent, dev, blk, WRITE, list_index++, 0);
+		}
+
+		fcl_cache_mgr[remove_ln->cn_devno]->cm_destage_count++;
+		ASSERT ( fcl_cache_mgr[rep_devno]->cm_dirty_count >= 0 );
+		reverse_map_release_blk ( remove_ln->cn_devno, remove_ln->cn_ssd_blk );
+		free( remove_ln );
 	}
 
-	if ( ln == NULL ) {
-		ln = CACHE_ALLOC(fcl_cache_mgr[devno], NULL, blkno);
-		ln->cn_devno = devno;
-		ln->cn_flag = FCL_CACHE_FLAG_FILLING;
-		ln->cn_ssd_blk = reverse_map_alloc_blk( devno, blkno );
-		ln->cn_dirty = 0;
-
-		ASSERT ( ln->cn_ssd_blk != -1 );
-	} 
-
-	// miss penalty request  
-	if ( parent->flags & READ ) { // read clean data 
-		_fcl_make_stage_req ( parent, ln, 2);
-	}
-
-	return ln;
+	return;
 }
-#endif 
+
+/*
+		} else {
+			// clean data simply can be remove without synchronization problem.
+	
+			if ( i == 0 ) { // move to original place 
+
+			} else { // move to the next lower level cache 
+
+				struct lru_node *ln = fcl_alloc_node ( rep_devno-1, remove_ln->cn_blkno );
+
+				dev = remove_ln->cn_devno + NUM_HDD;
+				blk = remove_ln->cn_ssd_blk;
+				fcl_generate_child_request ( parent, dev, blk, READ, list_index++, 0);
+
+				ln->cn_flag = remove_ln->cn_flag;
+				ln->cn_dirty = remove_ln->cn_dirty;
+				CACHE_INSERT(fcl_cache_mgr[ln->cn_devno], ln);
+
+				dev = i;
+				blk = ln->cn_ssd_blk;
+				fcl_generate_child_request ( parent, dev, blk, WRITE, list_index++, 0);
+			}
+		}
+		*/
+
 void fcl_make_bypass_req (ioreq_event *parent, int blkno) {
 
 	if ( parent->flags & READ ) {
@@ -475,30 +458,32 @@ void fcl_make_seq_req (ioreq_event *parent, int blkno) {
 	struct lru_node *ln = NULL;
 	int hit = 0;
 
-//	ln = CACHE_SEARCH(fcl_cache_mgr[SLC_CACHE], blkno);
 	ln = fcl_cache_search ( blkno ) ;
 
+	fcl_stat->fstat_cache_ref++;
 	// hit case  
 	if(ln){
-	//	hit = 1;
+		fcl_stat->fstat_cache_hit++;
 
-	//	if ( (parent->flags & READ) && ln->cn_dirty ) {
-	//		_fcl_make_destage_req ( parent, ln, 0 );
-	//		//printf ( " Read Sequential I/O for dirty data in ssd cache \n" ) ;
-	//	}
+		if ( (parent->flags & READ)) {
+			if ( ln->cn_dirty ) { // dirty sync
+				hit = 1;
+				_fcl_make_destage_req ( parent, ln, 0 );
+			} 
+		}
 
 		ln = CACHE_REMOVE(fcl_cache_mgr[ln->cn_devno], ln);
 		reverse_map_release_blk ( ln->cn_devno, ln->cn_ssd_blk );
 		free ( ln );
 	}
 
-	if ( parent->flags & READ ) {
-		if ( !hit ) { 
+	if ( !hit ) {
+		if ( !(parent->flags & READ) ) {
+			fcl_generate_child_request ( parent, HDD, blkno, WRITE, FCL_EVENT_MAX - 1, 0);
+		 } else {
 			fcl_generate_child_request ( parent, HDD, blkno, READ, FCL_EVENT_MAX - 2, 0);
-		}
-	 } else  { 
-		fcl_generate_child_request ( parent, HDD, blkno, WRITE, FCL_EVENT_MAX - 1, 0);
-	 }
+		 }
+	}
 }
 
 
@@ -508,7 +493,7 @@ int fcl_cache_alloc ( int blkno ) {
 	seq++;
 
 	devno = seq % FCL_NUM_CACHE;
-	devno = SLC_CACHE;
+	devno = FCL_NUM_CACHE-1;
 	//printf ( " seq = %d, devno = %d \n", seq, devno );
 	//devno = SLC_CACHE;
 
@@ -516,6 +501,21 @@ int fcl_cache_alloc ( int blkno ) {
 }
 
 
+struct lru_node *fcl_alloc_node( int devno, int blkno ) { 
+	struct lru_node *ln;
+
+	ln = CACHE_ALLOC(fcl_cache_mgr[devno], NULL, blkno);
+	ASSERT ( ln );
+
+	ln->cn_devno = devno;
+	ln->cn_flag = FCL_CACHE_FLAG_FILLING;
+	ln->cn_dirty = 0;
+
+	ln->cn_ssd_blk = reverse_map_alloc_blk( devno, blkno );
+	ASSERT ( ln->cn_ssd_blk != -1 );
+
+	return ln;
+}
 
 void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 	struct lru_node *ln = NULL;
@@ -523,9 +523,11 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 	int devno = -1 ;
 
 
+	fcl_stat->fstat_cache_ref++;
 	ln = fcl_cache_search(blkno);
 	// hit case  
 	if(ln){
+		fcl_stat->fstat_cache_hit++;
 		hit = 1;
 		// remove this node to move the MRU position
 		ln = CACHE_REMOVE(fcl_cache_mgr[ln->cn_devno], ln);
@@ -535,24 +537,24 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 			ASSERT ( ln->cn_flag == FCL_CACHE_FLAG_SEALED );	
 		}
 
-#if 0 
-		// move to dirty list with replacement 
-		if ( !(parent->flags & READ) && ln->cn_dirty == 0 ) {
-			//	printf ( " clean data to dirty data \n");
-			ln = fcl_replace_cache ( parent, blkno, ln, ln->cn_devno );
-		}
-#endif 
-
 	}else{ // miss case 
 
 		devno = fcl_cache_alloc( blkno );
-		ln = fcl_replace_cache ( parent, blkno, NULL, devno );
-		ln->cn_devno = devno;
-		ASSERT ( ln );
+
+		fcl_replace_cache ( parent );
+		ln = fcl_alloc_node ( devno, blkno );
+
+		// first level caching 
 	}
 
 	if ( parent->flags & READ ) {
-		if ( hit ) {
+		if ( !hit ) {
+			// miss penalty request  
+			if ( parent->flags & READ ) { // read clean data 
+				_fcl_make_stage_req ( parent, ln, FCL_EVENT_MAX - 4);
+			}
+
+		} else if ( hit ) {
 			fcl_generate_child_request ( parent, ln->cn_devno+NUM_HDD, ln->cn_ssd_blk, 
 										 READ, FCL_EVENT_MAX - 2, 0 );
 		}
@@ -563,6 +565,7 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 		if ( ln->cn_dirty == 0 ) {
 			ln->cn_dirty = 1;
 		}
+
 	}
 
 	CACHE_INSERT(fcl_cache_mgr[ln->cn_devno], ln);
@@ -610,18 +613,15 @@ void _fcl_make_stage_req ( ioreq_event *parent, struct lru_node *ln, int list_in
 }
 
 void _fcl_make_destage_req ( ioreq_event *parent, struct lru_node *ln, int list_index ) {
-	int devno;
-	int blkno;
-		
-	devno = ln->cn_devno + NUM_HDD;
-	blkno = ln->cn_ssd_blk;
-	fcl_generate_child_request ( parent, devno, blkno, READ, list_index++, 0);
+	int dev, blk;
 
-	devno = HDD;
-	blkno = reverse_get_blk( ln->cn_devno, ln->cn_ssd_blk);
-	fcl_generate_child_request ( parent, devno, blkno, WRITE, list_index++, 0);
+	dev = ln->cn_devno + NUM_HDD;
+	blk = ln->cn_ssd_blk;
+	fcl_generate_child_request ( parent, dev, blk, READ, list_index++, 0);
 
-	fcl_cache_mgr[ln->cn_devno]->cm_destage_count++;
+	dev = HDD;
+	blk = reverse_get_blk( ln->cn_devno, ln->cn_ssd_blk);
+	fcl_generate_child_request ( parent, dev, blk, WRITE, list_index++, 0);
 }
 
 #if 0 
@@ -675,13 +675,14 @@ struct lru_node *fcl_lookup_active_list ( int blkno ) {
 	return NULL;
 }
 
-void fcl_insert_active_list ( ioreq_event *child ) {
+void fcl_insert_active_list ( int blkno,  ioreq_event *child ) {
 	struct lru_node *ln = NULL;	
 
-	ln = CACHE_ALLOC ( fcl_active_block_mgr, NULL, child->blkno );
+	ln = CACHE_ALLOC ( fcl_active_block_mgr, NULL, blkno );
 
 	ln->cn_flag = 0;
-	ln->cn_temp1 = (void *)child;
+	//ln->cn_temp1 = (void *)child;
+	ln->cn_temp1 = NULL;
 	ln->cn_time	= simtime;
 
 	ll_create ( (listnode **) &ln->cn_temp2 );
@@ -704,7 +705,7 @@ void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int b
 
 	if ( !node ) { // insert active list 
 		//printf ( " %f insert active list blkno = %d, %d \n", simtime, blkno, child->blkno );
-		fcl_insert_active_list ( child );
+		fcl_insert_active_list ( blkno, child );
 		list_add_tail ( &child->fcl_active_list, &parent->fcl_active_list );
 	} else { // insert inactive list 
 		//printf ( " %f insert inactive list blkno = %d, %d \n", simtime, blkno, child->blkno );
@@ -822,7 +823,9 @@ void fcl_split_parent_request (ioreq_event *parent) {
 	list_for_each ( ptr, head ) {
 		child = list_entry ( ptr, ioreq_event, fcl_active_list );
 		blkno = child->blkno;
-		fcl_make_request ( parent, blkno );
+		if ( !child->fcl_replaced ) {
+			fcl_make_request ( parent, blkno );
+		}
 	}
 
 }
@@ -1494,18 +1497,18 @@ void fcl_seal_complete_request ( ioreq_event *parent ) {
 	list_for_each ( ptr, head ) {
 		child = (ioreq_event *) list_entry ( ptr, ioreq_event, fcl_active_list );
 
-		//ln = CACHE_PRESEARCH(fcl_cache_mgr[SLC_CACHE], child->blkno);
 		ln = fcl_cache_presearch(child->blkno);
 
 		if ( ln == NULL) {
 			// sequential i/o case 
-			//printf ( " blkno = %d \n", child->blkno );
+			//child->fcl_replaced = 0;
 		}
-		//ASSERT ( ln != NULL );
 	
 		if ( ln ) {
 			ln->cn_flag = FCL_CACHE_FLAG_SEALED;
 		}
+		child->fcl_replaced = 0;
+		ASSERT ( child->fcl_replaced == 0 );
 
 	}
 
@@ -1952,7 +1955,6 @@ void _fcl_request_complete ( ioreq_event *child ) {
 
 
 	parent = (ioreq_event *)child->fcl_parent;
-
 	parent->fcl_event_count[parent->fcl_event_ptr-1] -- ;
 
 	// next events are remaining. 
@@ -2352,6 +2354,8 @@ void fcl_print_stat ( FILE *fp) {
 		fprintf ( fp , " FCL: Arrive and complete request mis-matched = %d \n", fcl_stat->fstat_complete_count );
 	}
 
+	fprintf( fp, " FCL: Cache Hit Ratio = %.3f\n", (double)fcl_stat->fstat_cache_hit/fcl_stat->fstat_cache_ref);
+
 	fprintf ( fp , " FCL: Total I/O	= %5.3fGB\n", PAGE_TO_GB(fcl_stat->fstat_io_total_pages) );
 	fprintf ( fp , " FCL: READ I/O	= %5.3fGB\n", PAGE_TO_GB(fcl_stat->fstat_io_read_pages) );
 	fprintf ( fp , " FCL: WRITE I/O	= %5.3fGB\n", PAGE_TO_GB(fcl_stat->fstat_io_write_pages) );
@@ -2363,6 +2367,7 @@ void fcl_print_stat ( FILE *fp) {
 	}
 
 
+	fprintf( fp, "\n");
 	for ( i = 0;i < FCL_NUM_CACHE; i++ ) {
 		double mean, variance;
 		ssd_avg_erasecount(i, &mean, &variance );
@@ -2589,3 +2594,67 @@ int fcl_resize_cache () {
 #endif 
 #if 0 
 #endif 
+#if 0 
+struct lru_node * fcl_replace_cache (ioreq_event *parent, int blkno, struct lru_node *ln, int devno) {
+	int replace_type; //  = (parent->flags & READ) ? 0 : 1;
+	int low_watermark = 0;
+	int debug = 0;
+
+	if ( fcl_params->fpa_partitioning_scheme == FCL_CACHE_FIXED ) 
+		replace_type = FCL_REPLACE_ANY;
+	else // FCL_CACHE_RW, FCL_CACHE_FIXED
+		replace_type = parent->flags & READ;
+
+
+	if ( !( parent->flags & READ )  			// Write Request 
+		&& replace_type != FCL_REPLACE_ANY		// Dynamic Partitioning 
+		&& fcl_cache_mgr[devno]->cm_dirty_free == 0	// High Watermark
+		&& fcl_params->fpa_ondemand_group_destage )   
+	{
+		low_watermark = FCL_MAX_DESTAGE - 1;
+		debug = 1;
+	} else if ( !(parent->flags & READ ) 
+			&& replace_type == FCL_REPLACE_ANY 
+			&& fcl_cache_mgr[devno]->cm_free == 0 	 
+			&& fcl_params->fpa_ondemand_group_destage )   
+	{ 
+		low_watermark = FCL_MAX_DESTAGE - 1;
+	} else {
+		low_watermark = 0;
+	}
+
+	while ( 1 ) {
+		int victim;
+
+		victim = _fcl_replace_cache ( devno, parent, low_watermark, replace_type );
+		if ( !victim ) {
+			break;
+		}
+
+	}
+
+	/*if ( debug ) 
+		printf ( " Clean free = %d, dirty free = %d flags = %d \n", 
+								 fcl_cache_mgr[SLC_CACHE]->cm_clean_free,
+								 fcl_cache_mgr[SLC_CACHE]->cm_dirty_free,
+								 parent->flags);
+								 */
+
+	if ( ln == NULL ) {
+		ln = CACHE_ALLOC(fcl_cache_mgr[devno], NULL, blkno);
+		ln->cn_devno = devno;
+		ln->cn_flag = FCL_CACHE_FLAG_FILLING;
+		ln->cn_ssd_blk = reverse_map_alloc_blk( devno, blkno );
+		ln->cn_dirty = 0;
+
+		ASSERT ( ln->cn_ssd_blk != -1 );
+	} 
+
+	// miss penalty request  
+	if ( parent->flags & READ ) { // read clean data 
+		_fcl_make_stage_req ( parent, ln, 2);
+	}
+
+	return ln;
+}
+#endif  

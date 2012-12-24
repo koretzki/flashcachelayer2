@@ -279,11 +279,11 @@ typedef struct foo {
 //#define DISKSIM_EVENT_SIZE	184 // ysoh 
 //#define DISKSIM_EVENT_SIZE	200 // ysoh 
 //#define DISKSIM_EVENT_SIZE	204 // ysoh 
-#define DISKSIM_EVENT_SIZE	220 // ysoh 
+#define DISKSIM_EVENT_SIZE	240 // ysoh 
 #define DISKSIM_EVENT_SPACESIZE	(DISKSIM_EVENT_SIZE - sizeof(struct foo))
 
 // ysoh
-#define FCL_EVENT_MAX 6 
+#define FCL_EVENT_MAX 8 
 
 typedef struct ev {
    double time;
@@ -315,6 +315,7 @@ typedef struct ioreq_ev {
 
 // ysoh 
 // for FCL 
+   int		fcl_replaced;
    void  	*fcl_parent; 
    int    	 fcl_event_num;  
    int		 fcl_event_ptr;
