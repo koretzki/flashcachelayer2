@@ -379,12 +379,16 @@ void fcl_make_seq_req (ioreq_event *parent, int blkno) {
 
 	// hit case  
 	if(ln){
-	//	hit = 1;
 
-	//	if ( (parent->flags & READ) && ln->cn_dirty ) {
-	//		_fcl_make_destage_req ( parent, ln, 0 );
+		if ( (parent->flags & READ) ) {
+			if ( ln->cn_dirty ) {
+				hit = 1;
+				_fcl_make_destage_req ( parent, ln, 0 );
+			} else {
+				hit = 0;
+			}
 	//		//printf ( " Read Sequential I/O for dirty data in ssd cache \n" ) ;
-	//	}
+		}
 
 		ln = CACHE_REMOVE(fcl_cache_mgr, ln);
 		reverse_map_release_blk ( SSD, ln->cn_ssd_blk );
