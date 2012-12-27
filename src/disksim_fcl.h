@@ -18,15 +18,22 @@
 #define FCL_PAGE_SIZE (fcl_params->fpa_page_size)
 #define FCL_PAGE_SIZE_BYTE (FCL_PAGE_SIZE * 512)
 
-#define HDD 0 // physically 0
-#define NUM_HDD 1
+//#define HDD 0 // physically 0
 
+// device numbering rule
+//		logical	physical
+// hdd0	0		0
+// hdd1	1		1
+// hdd2	2		2
+// ssd0	3		0
+// ssd2	4		1
+// ssd2	5		2
 
-#define TLC_CACHE 0 // physically 1
-#define SLC_CACHE 1 // physically 2
+#define MAX_DISK 2
 #define MAX_CACHE 2
 
 #define FCL_NUM_CACHE (fcl_params->fpa_num_cache)
+#define FCL_NUM_DISK (fcl_params->fpa_num_disk)
 
 #define FCL_READ DISKSIM_READ
 #define FCL_WRITE DISKSIM_WRITE
@@ -63,8 +70,8 @@
 #define	flash_usable_pages(d)	(fcl_params->fpa_flash_usable_pages[d])
 #define	flash_usable_sectors(d)	(fcl_params->fpa_flash_usable_sectors[d])
 
-#define	hdd_total_pages			(fcl_params->fpa_hdd_total_pages)
-#define	hdd_total_sectors		(fcl_params->fpa_hdd_total_sectors)
+#define	hdd_total_pages(d)		(fcl_params->fpa_hdd_total_pages[d])
+#define	hdd_total_sectors(d)	(fcl_params->fpa_hdd_total_sectors[d])
 
 #define fcl_hit_tracker_nsegment (fcl_params->fpa_hit_tracker_nsegment)
 
@@ -80,6 +87,7 @@
 
 struct fcl_parameters {
 	int		fpa_num_cache;
+	int		fpa_num_disk;
 	int		fpa_page_size;
 	double	fpa_max_pages_percent;
 	int		fpa_bypass_cache;
@@ -123,8 +131,8 @@ struct fcl_parameters {
 	int		fpa_flash_usable_pages[MAX_CACHE];
 	int		fpa_flash_usable_sectors[MAX_CACHE];
 
-	int		fpa_hdd_total_pages;
-	int		fpa_hdd_total_sectors;	
+	int		fpa_hdd_total_pages[MAX_DISK];
+	int		fpa_hdd_total_sectors[MAX_DISK];
 };
 
 struct fcl_statistics { 
@@ -138,9 +146,13 @@ struct fcl_statistics {
 	int fstat_io_write_pages;
 	int fstat_io_total_pages;
 
-	int fstat_dev_total_pages[NUM_HDD+MAX_CACHE];
-	int fstat_dev_read_pages[NUM_HDD+MAX_CACHE];
-	int fstat_dev_write_pages[NUM_HDD+MAX_CACHE];
+	int fstat_dev_total_pages[MAX_DISK+MAX_CACHE];
+	int fstat_dev_read_pages[MAX_DISK+MAX_CACHE];
+	int fstat_dev_write_pages[MAX_DISK+MAX_CACHE];
+
+	int fstat_seq_total_pages;
+	int fstat_seq_read_pages;
+	int fstat_seq_write_pages;
 };
 
 extern struct fcl_parameters *fcl_params;
@@ -166,15 +178,16 @@ double fcl_predict_hit_ratio(struct cache_manager **lru_manager,int lru_num, int
 int fcl_destage_request ( int destage_num) ;
 int fcl_invalid_request ( int devno, int invalid_num) ;
 
-struct lru_node *fcl_lookup_active_list ( int blkno ) ;
+struct lru_node *fcl_lookup_active_list ( int devno, int blkno ) ;
 
 void fcl_event_next_foreground_request () ;
 void fcl_event_next_background_request () ;
 
 void fcl_update_workload_tracker ( ioreq_event *parent ) ;
-struct lru_node *fcl_cache_search( int blkno ) ;
-struct lru_node *fcl_cache_presearch( int blkno ) ;
+struct lru_node *fcl_cache_search( int hddno,  int blkno ) ;
+struct lru_node *fcl_cache_presearch( int hddno, int blkno ) ;
 struct lru_node *fcl_alloc_node( int devno, int blkno ) ;
 void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int blkno ) ;
+void fcl_insert_active_temp_list ( ioreq_event *parent, ioreq_event *chld, int blkno ) ;
 
 #endif // ifndef _DISKSIM_FCL_H 

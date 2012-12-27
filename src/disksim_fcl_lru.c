@@ -32,7 +32,7 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 		INIT_HLIST_HEAD ( &c->cm_hash[i] );
 	}
 
-	c->cm_destage_ptr = &c->cm_head;
+	//c->cm_destage_ptr = &c->cm_head;
 	c->cm_ref = 0;
 	c->cm_hit = 0;
 	c->cm_miss = 0;
@@ -124,8 +124,8 @@ void lru_close(struct cache_manager *c){
 		ln = (struct lru_node *) list_entry ( ptr, struct lru_node, cn_list );
 
 		total++;
-		if(ln->cn_read)
-			read_count++;
+		//if(ln->cn_read)
+		//	read_count++;
 		if(ln->cn_dirty)
 			write_count++;
 
@@ -209,7 +209,7 @@ static int lru_compare_page(const void *a,const void *b){
 
 #endif
 
-struct lru_node *lru_presearch(struct cache_manager *c, unsigned int blkno){
+struct lru_node *lru_presearch(struct cache_manager *c, int devno, int blkno){
 	struct hlist_node *node;
 	struct hlist_head *head;
 	struct lru_node *ln;
@@ -218,7 +218,7 @@ struct lru_node *lru_presearch(struct cache_manager *c, unsigned int blkno){
 	hlist_for_each ( node, head ) {
 		ln = hlist_entry( node,  struct lru_node, cn_hash );
 
-		if ( ln->cn_blkno == blkno ) 
+		if ( ln->cn_hddno == devno && ln->cn_blkno == blkno ) 
 			return ln;
 	}
 
@@ -226,19 +226,17 @@ struct lru_node *lru_presearch(struct cache_manager *c, unsigned int blkno){
 }
 
 
-struct lru_node *lru_search(struct cache_manager *c,unsigned int blkno){
+struct lru_node *lru_search(struct cache_manager *c, int devno, int blkno){
 	struct lru_node *ln;
 		
 	c->cm_ref++;
 	//head = c->cm_hash[mod];
 	//node = ll_find_node(head,(void *)blkno, lru_compare_page);
-	ln = lru_presearch ( c, blkno );
+	ln = lru_presearch ( c, devno, blkno );
 
 	if(ln){
 		c->cm_hit++;
 		//ln = (struct lru_node *)node->data;
-		ln->cn_recency = 1;
-		ln->cn_frequency++;
 		return ln;
 	}else{
 		c->cm_miss++;
@@ -305,7 +303,6 @@ void *lru_alloc(struct lru_node *ln, unsigned int blkno){
 	
 	ln->cn_blkno = blkno;	
 	ln->cn_ssd_blk = -1;
-	ln->cn_frequency = 0;
 	
 	return ln;
 }
@@ -327,9 +324,6 @@ void lru_move_clean_list ( struct cache_manager *c, struct lru_node *ln ) {
 }
 
 void lru_insert(struct cache_manager *c,struct lru_node *ln){
-
-	// insert node to next of destage ptr 
-	//ln->cn_node = (listnode *)ll_insert_at_next(c->cm_head, c->cm_destage_ptr,(void *)ln);
 
 	list_add( &ln->cn_list, &c->cm_head );
 
@@ -538,9 +532,10 @@ void mlru_remove(struct cache_manager **lru_manager,int lru_num, int blkno){
 //	listnode *node = NULL;
 	struct lru_node *ln;	
 	int j;
+	int devno;
 
 	for(j = 0;j < lru_num;j++){
-		ln = CACHE_SEARCH(lru_manager[j], blkno);
+		ln = CACHE_SEARCH(lru_manager[j], devno,  blkno);
 		if(ln){			
 			break;
 		}
@@ -561,9 +556,10 @@ struct lru_node *mlru_search(struct cache_manager **lru_manager,int lru_num, int
 	//listnode *node = NULL;
 	struct lru_node *ln;	
 	int j;
+	int devno;
 
 	for(j = 0;j < lru_num;j++){
-		ln = CACHE_SEARCH(lru_manager[j], blkno);
+		ln = CACHE_SEARCH(lru_manager[j], devno, blkno);
 
 		if ( hit_position )
 			*hit_position = j;
@@ -575,8 +571,6 @@ struct lru_node *mlru_search(struct cache_manager **lru_manager,int lru_num, int
 
 	if(ln){		
 		//ln =(struct lru_node *) node->data;
-		if(ln->cn_frequency > 1)
-			ln = ln;
 	}
 
 	//if ( j > 0 && j < lru_num ) {

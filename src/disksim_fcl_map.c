@@ -162,13 +162,14 @@ void reverse_map_discard_freeblk (int devno) {
 		
 		if ( fm->fm_reverse_map [ blkno ] == MAP_RELEASED ) {
 			if ( ssd_page_size == 8) { // 4kb
-				ssd_trim_command ( devno + NUM_HDD, (int) blkno * FCL_PAGE_SIZE );
+				ssd_trim_command ( devno + FCL_NUM_DISK, (int) blkno * FCL_PAGE_SIZE );
 				fm->fm_reverse_map [ blkno ] = MAP_TRIMMED;
 				fm->fm_reverse_wait_pages --;
 				ASSERT ( fm->fm_reverse_wait_pages >= 0 );
 			} else {
 				int high_sector, low_sector;
 				int high_page, low_page;
+				int count = 0;
 
 				//low_sector = 16 * ( blkno/16 ) ;
 				low_sector = blkno / (ssd_page_size/FCL_PAGE_SIZE) * ssd_page_size;
@@ -177,12 +178,16 @@ void reverse_map_discard_freeblk (int devno) {
 				low_page = low_sector / FCL_PAGE_SIZE ;
 				high_page = high_sector / FCL_PAGE_SIZE ;
 
+				if ( low_page == blkno ) count ++;
+				if ( high_page == blkno ) count ++;
+				ASSERT ( count == 1 );
+
 
 				if ( fm->fm_reverse_map [ low_page ] == MAP_RELEASED &&
 					fm->fm_reverse_map [ high_page ] == MAP_RELEASED ) {
 
 					//printf (" devno = %d, trim = blkno %d, %d \n", devno, low_sector, low_sector % ssd_page_size );
-					ssd_trim_command ( devno + NUM_HDD, (int) low_sector ) ;
+					ssd_trim_command ( devno + FCL_NUM_DISK, (int) low_sector ) ;
 					fm->fm_reverse_map [ low_page ] = MAP_TRIMMED;
 					fm->fm_reverse_map [ high_page ] = MAP_TRIMMED;
 					fm->fm_reverse_wait_pages --;

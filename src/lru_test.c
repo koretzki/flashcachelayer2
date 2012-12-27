@@ -12,8 +12,9 @@ int main(){
 	for(i =0;i < 1000000;i++){
 		struct lru_node *ln = NULL;
 		unsigned int blkno = RND(10000);
+		int devno;
 
-		ln = CACHE_SEARCH(lru_manager, blkno);
+		ln = CACHE_SEARCH(lru_manager, devno, blkno);
 		if(!ln){
 			
 			ln = CACHE_REPLACE(lru_manager, 0, FCL_REPLACE_ANY);

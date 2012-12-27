@@ -279,11 +279,11 @@ typedef struct foo {
 //#define DISKSIM_EVENT_SIZE	184 // ysoh 
 //#define DISKSIM_EVENT_SIZE	200 // ysoh 
 //#define DISKSIM_EVENT_SIZE	204 // ysoh 
-#define DISKSIM_EVENT_SIZE	240 // ysoh 
+#define DISKSIM_EVENT_SIZE	264 // ysoh 
 #define DISKSIM_EVENT_SPACESIZE	(DISKSIM_EVENT_SIZE - sizeof(struct foo))
 
 // ysoh
-#define FCL_EVENT_MAX 8 
+#define FCL_EVENT_MAX 10 
 
 typedef struct ev {
    double time;
@@ -326,6 +326,7 @@ typedef struct ioreq_ev {
    // 4KB sub requests lists 
    struct	list_head 	fcl_complete_list;
    struct	list_head	fcl_active_list;
+   struct	list_head	fcl_active_temp_list;
    struct	list_head	fcl_inactive_list;
    struct	list_head 	fcl_pending_list;
 
