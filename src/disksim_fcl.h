@@ -78,7 +78,7 @@
 #define PAGE_TO_MB(x) ((double)x/256)
 #define PAGE_TO_GB(x) ((double)x/256/1024)
 
-#define FCL_BACKGROUND_TIMER	0 
+#define FCL_BACKGROUND_TIMER	1 
 
 #define fcl_io_read_pages	(fcl_stat->fstat_io_read_pages)
 #define fcl_io_total_pages	(fcl_stat->fstat_io_total_pages)
@@ -92,6 +92,7 @@ struct fcl_parameters {
 	double	fpa_max_pages_percent;
 	int		fpa_bypass_cache;
 	double	fpa_idle_detect_time;
+	int		fpa_dirty_migration;
 	int		fpa_partitioning_scheme;
 	int		fpa_background_activity;
 	double	fpa_overhead;
@@ -121,11 +122,11 @@ struct fcl_parameters {
 	double	fpa_hdd_bandwidth;	// mb/s
 
 	// SSD Cost 
-	double	fpa_ssd_cprog;	//us
-	double	fpa_ssd_cread;	//us 
-	double	fpa_ssd_cerase;	//us
-	double	fpa_ssd_cbus;	//us
-	int		fpa_ssd_np;
+	double	fpa_ssd_cprog[MAX_CACHE];	//us
+	double	fpa_ssd_cread[MAX_CACHE];	//us 
+	double	fpa_ssd_cerase[MAX_CACHE];	//us
+	double	fpa_ssd_cbus[MAX_CACHE];	//us
+	int		fpa_ssd_np[MAX_CACHE];
 
 	int		fpa_flash_total_pages[MAX_CACHE];
 	int		fpa_flash_usable_pages[MAX_CACHE];
@@ -153,6 +154,9 @@ struct fcl_statistics {
 	int fstat_seq_total_pages;
 	int fstat_seq_read_pages;
 	int fstat_seq_write_pages;
+	double fstat_idle_start;
+	double fstat_idle_time;
+	int fstat_idle_count;	
 };
 
 extern struct fcl_parameters *fcl_params;
@@ -189,5 +193,7 @@ struct lru_node *fcl_cache_presearch( int hddno, int blkno ) ;
 struct lru_node *fcl_alloc_node( int devno, int blkno ) ;
 void fcl_classify_child_request ( ioreq_event *parent, ioreq_event *child, int blkno ) ;
 void fcl_insert_active_temp_list ( ioreq_event *parent, ioreq_event *chld, int blkno ) ;
+ioreq_event *fcl_create_parent (int devno, int blkno,int bcount, double time, int flags) ;
+int fcl_all_queue_empty () ;
 
 #endif // ifndef _DISKSIM_FCL_H 

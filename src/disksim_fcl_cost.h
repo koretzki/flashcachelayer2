@@ -16,12 +16,11 @@
 #define  HDD_CWPOS		(fcl_params->fpa_hdd_cwpos) //us
 #define  HDD_BANDWIDTH	(fcl_params->fpa_hdd_bandwidth) //mb/s
 
-#define	SSD_PROG		(fcl_params->fpa_ssd_cprog) //us
-#define	SSD_READ		(fcl_params->fpa_ssd_cread)	//us
-#define SSD_ERASE		(fcl_params->fpa_ssd_cerase)//us
-#define SSD_BUS			(fcl_params->fpa_ssd_cbus)  //us
-
-#define SSD_NP			(fcl_params->fpa_ssd_np)    
+#define	SSD_PROG(d)		(fcl_params->fpa_ssd_cprog[d]) //us
+#define	SSD_READ(d)		(fcl_params->fpa_ssd_cread[d])	//us
+#define SSD_ERASE(d)	(fcl_params->fpa_ssd_cerase[d])//us
+#define SSD_BUS(d)		(fcl_params->fpa_ssd_cbus[d])  //us
+#define SSD_NP(d)		(fcl_params->fpa_ssd_np[d]) 
 
 void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker, 
 						 struct cache_manager **read_hit_tracker,
@@ -32,4 +31,5 @@ void fcl_find_optimal_size ( struct cache_manager **write_hit_tracker,
 
 void fcl_decay_hit_tracker(struct cache_manager **lru_manager,int lru_num);
 void print_test_cost () ;
+double HDD_COST(int rw);
 #endif // DISKSIM_FCL_COST_H

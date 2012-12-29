@@ -1346,7 +1346,7 @@ void ssd_print_block_lifetime_distribution(int elem_num, ssd_t *s, int ssdno, do
 
 
 double ssd_avg_cleaningtime(int devno) {
-	int i, j;
+	int i;
 	double total_cleaning_time = 0;
 	double sum_sqr = 0.0;
 	double mean = 0.0;
@@ -1355,7 +1355,7 @@ double ssd_avg_cleaningtime(int devno) {
 	ssd_t *s = getssd(devno);
 
 	for ( i = 0; i < s->params.nelements; i++ ) {
-        ssd_element_stat *stat = &(s->elements[j].stat);
+        ssd_element_stat *stat = &(s->elements[i].stat);
 
 		total_cleaning_time += stat->tot_clean_time;
 	}

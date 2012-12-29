@@ -14,13 +14,13 @@
 
 double u_table[1000];
 
-double SSD_GC(double u){
-	return ((double)u*SSD_NP*(SSD_PROG+SSD_READ) + (double)SSD_ERASE);
+double SSD_GC(int devno, double u){
+	return ((double)u*SSD_NP(devno)*(SSD_PROG(devno)+SSD_READ(devno)) + (double)SSD_ERASE(devno));
 }
 
-double SSD_PW(double u){
+double SSD_PW(int devno, double u){
 	//return ((float)SSD_GC(u)/((1-u)*SSD_NP) + (float)SSD_PROG + SSD_BUS);
-	return ((double)SSD_GC(u)/(((double)1-u)*SSD_NP) + (double)SSD_PROG + SSD_BUS);
+	return ((double)SSD_GC(devno, u)/(((double)1-u)*SSD_NP(devno)) + (double)SSD_PROG(devno) + SSD_BUS(devno));
 }
 
 
@@ -117,16 +117,16 @@ static int calc_rw_partition_size(int cache_size, double r_p_rate, int *r_sz,int
 }
 void print_test_cost () {
 	double u = 0.9;
+	int i;
 
 	printf ( " HDD Read Cost = %.1f us \n", (double)HDD_COST ( READ ) );
 	printf ( " HDD Write Cost = %.1f us  \n", (double)HDD_COST ( WRITE ) );
 
-	printf ( " SSD Read Cost = %.1f us \n", (double)SSD_READ );
-	printf ( " SSD Write Cost (u = %.2f)  = %.1f us \n", u, (double)SSD_PW ( ssd_predict_util ( u ) ) );
+	for ( i = 0; i < FCL_NUM_CACHE; i++ ) {
+		printf ( " SSD Read Cost = %.1f us \n", (double)SSD_READ(i) );
+		printf ( " SSD Write Cost (u = %.2f)  = %.1f us \n", u, (double)SSD_PW ( i, ssd_predict_util ( u ) ) );
+	}
 
-//	for ( u = 0.1 ; u < 0.9; u+= 0.1 ) {
-//		printf ( " SSD Write Cost (u = %.2f)  = %.1f us \n", u, (double)SSD_PW ( ssd_predict_util ( u ) ) );
-//	}
 
 }
 static double calc_write_cost(int total, int cache_size, double hit_ratio, double rhit_ratio_in_write){
@@ -141,11 +141,11 @@ static double calc_write_cost(int total, int cache_size, double hit_ratio, doubl
 	u = ssd_predict_util2((double)cache_size/total);
 #endif 
 
-	pw = SSD_PW(u);
+	pw = SSD_PW(0, u);
 
 
-	Cwh = ((double)1-rhit_ratio_in_write) * (pw) + rhit_ratio_in_write * (SSD_READ + SSD_BUS);	
-	cost = hit_ratio * Cwh + (double)((double)1-hit_ratio) * (HDD_COST(WRITE) + (SSD_READ + SSD_BUS) + pw);
+	Cwh = ((double)1-rhit_ratio_in_write) * (pw) + rhit_ratio_in_write * (SSD_READ(0) + SSD_BUS(0));	
+	cost = hit_ratio * Cwh + (double)((double)1-hit_ratio) * (HDD_COST(WRITE) + (SSD_READ(0) + SSD_BUS(0)) + pw);
 
 	return cost;
 }
@@ -160,9 +160,9 @@ static double calc_read_cost(int total, int cache_size, double hit_ratio){
 #else
 	u = ssd_predict_util2((double)cache_size/total);
 #endif 
-	pw = SSD_PW(u);
+	pw = SSD_PW(0, u);
 	
-	cost = hit_ratio * (SSD_READ + SSD_BUS) + ((double)1-hit_ratio) * (HDD_COST(READ) + pw);
+	cost = hit_ratio * (SSD_READ(0) + SSD_BUS(0)) + ((double)1-hit_ratio) * (HDD_COST(READ) + pw);
 
 	return cost;
 }

@@ -46,6 +46,7 @@ void reverse_map_create(int devno,int max){
 	fm->fm_reverse_used = 0;
 	fm->fm_reverse_free = fm->fm_reverse_max_pages-1;
 	fm->fm_reverse_alloc = 1;
+	fm->fm_devno = devno;
 
 	fprintf(stdout, " Reverse Map Allocation = %.2fKB\n", (double)sizeof(int)*fm->fm_reverse_max_pages/1024);
 
@@ -98,8 +99,8 @@ int reverse_map_alloc_blk(int devno, int hdd_blk){
 
 	if(alloc_blk == -1){
 		printf( " Cannot allocate block .. free num = %d, wait num = %d\n", fm->fm_reverse_free, fm->fm_reverse_wait_pages);
-		printf( " Cannot allocate block .. \n");
-		//ASSERT ( alloc_blk != -1 );
+		printf( " Cannot allocate block .. cache devno = %d \n", devno );
+		ASSERT ( alloc_blk != -1 );
 	}
 
 

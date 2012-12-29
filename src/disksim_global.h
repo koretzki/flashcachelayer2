@@ -294,6 +294,23 @@ typedef struct ev {
    char space[DISKSIM_EVENT_SPACESIZE];
 } event;
 
+struct fcl_ctrl_block{
+   int		fcl_replaced;
+   void  	*fcl_parent; 
+   int    	 fcl_event_num;  
+   int		 fcl_event_ptr;
+   int		 fcl_event_count[FCL_EVENT_MAX];
+   struct 	 ioreq_ev *fcl_event_list[FCL_EVENT_MAX];
+   struct	 ioreq_ev *fcl_event_next;
+
+   // 4KB sub requests lists 
+   struct	list_head 	fcl_complete_list;
+   struct	list_head	fcl_active_list;
+   struct	list_head	fcl_active_temp_list;
+   struct	list_head	fcl_inactive_list;
+   struct	list_head 	fcl_pending_list;
+
+};
 typedef struct ioreq_ev {
    double time;
    int    type;
@@ -313,23 +330,9 @@ typedef struct ioreq_ev {
    void  *tempptr1;
    void  *tempptr2;
 
-// ysoh 
-// for FCL 
-   int		fcl_replaced;
-   void  	*fcl_parent; 
-   int    	 fcl_event_num;  
-   int		 fcl_event_ptr;
-   int		 fcl_event_count[FCL_EVENT_MAX];
-   struct 	 ioreq_ev *fcl_event_list[FCL_EVENT_MAX];
-   struct	 ioreq_ev *fcl_event_next;
-
-   // 4KB sub requests lists 
-   struct	list_head 	fcl_complete_list;
-   struct	list_head	fcl_active_list;
-   struct	list_head	fcl_active_temp_list;
-   struct	list_head	fcl_inactive_list;
-   struct	list_head 	fcl_pending_list;
-
+	// ysoh 
+	// for FCL 
+   struct fcl_ctrl_block *fcb;
    int		fcl_data_class; // Read or Write Data 
 
    void  *mems_sled;	 /* mems sled associated with a particular event */

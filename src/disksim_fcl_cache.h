@@ -14,7 +14,7 @@
 #ifndef _FCL_CACHE_H
 #define _FCL_CACHE_H  
 
-#define HASH_NUM (1024*1024)
+#define HASH_NUM (4*1024*1024)
 
 #define FCL_CACHE_FLAG_FILLING 1 
 #define FCL_CACHE_FLAG_SEALED 2  

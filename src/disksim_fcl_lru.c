@@ -42,8 +42,8 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 	c->cm_max =  cache_max;
 
 
-	c->cm_clean_size = cache_size;
-	c->cm_clean_free = cache_size;
+	c->cm_clean_size = 0 ;
+	c->cm_clean_free = 0;
 	c->cm_clean_count = 0;
 
 	c->cm_dirty_size = 0;
@@ -318,7 +318,7 @@ void lru_move_clean_list ( struct cache_manager *c, struct lru_node *ln ) {
 	c->cm_clean_free --;
 
 
-	ASSERT ( c->cm_clean_count <= c->cm_clean_size );
+//	ASSERT ( c->cm_clean_count <= c->cm_clean_size );
 	ASSERT ( c->cm_clean_count + c->cm_dirty_count == c->cm_count );
 
 }
