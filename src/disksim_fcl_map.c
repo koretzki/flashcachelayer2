@@ -26,7 +26,7 @@ int reverse_get_blk(int devno, int ssdblk){
 	return fm->fm_reverse_map[ssdblk];
 }
 
-void reverse_map_create(int devno,int max){
+void reverse_map_create(int devno,int max, struct cache_manager *cache){
 	struct fcl_mapping_table *fm = &fcl_map[devno];
 	int i;
 
@@ -47,8 +47,9 @@ void reverse_map_create(int devno,int max){
 	fm->fm_reverse_free = fm->fm_reverse_max_pages-1;
 	fm->fm_reverse_alloc = 1;
 	fm->fm_devno = devno;
+	fm->fm_cache_mgr = cache;
 
-	fprintf(stdout, " Reverse Map Allocation = %.2fKB\n", (double)sizeof(int)*fm->fm_reverse_max_pages/1024);
+	fprintf(stdout, " Reverse Map Allocation = %.2fMB\n", (double)sizeof(int)*fm->fm_reverse_max_pages/(1024*1024));
 
 	ll_create(&fm->fm_reverse_freeq);
 }
@@ -58,6 +59,7 @@ void reverse_map_create(int devno,int max){
 
 int reverse_map_alloc_blk(int devno, int hdd_blk){
 	struct fcl_mapping_table *fm = &fcl_map[devno];
+	struct cache_manager *cache = fm->fm_cache_mgr;
 	int i;
 	int alloc_blk = -1;
 
@@ -103,15 +105,6 @@ int reverse_map_alloc_blk(int devno, int hdd_blk){
 		ASSERT ( alloc_blk != -1 );
 	}
 
-
-	//if(fm_reverse_free == 0){
-	//	fm_reverse_free = reverse_free;
-	//}
-
-	//fprintf ( stdout, " Revermap Alloc devno = %d, blk  = %d, hdd = %d  \n", devno, alloc_blk * FCL_PAGE_SIZE, hdd_blk);
-
-	//if(alloc_blk == 3866)
-	//	alloc_blk = alloc_blk;
 	return alloc_blk;
 }
 

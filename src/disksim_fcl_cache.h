@@ -22,7 +22,7 @@
 struct lru_node{
 	
 	struct list_head cn_list;
-	struct list_head cn_clean_list;
+//	struct list_head cn_clean_list;
 	struct list_head cn_dirty_list;
 	struct hlist_node cn_hash;
 
@@ -36,9 +36,6 @@ struct lru_node{
 
 	void *cn_temp1;
 	void *cn_temp2;
-
-	//double cn_time;
-
 };
 
 struct cache_manager{
@@ -46,6 +43,8 @@ struct cache_manager{
  struct list_head cm_head;
  struct list_head cm_dirty_head;
  struct list_head cm_clean_head;
+ struct list_head cm_free_head;
+
  struct hlist_head *cm_hash;
 
  //struct list_head *cm_destage_ptr;
@@ -79,6 +78,8 @@ struct cache_manager{
  int cm_highwater;
  int cm_policy;
 
+ int cm_memalloc_size;
+
  void (*cache_open)(struct cache_manager *cache,int cache_size, int cache_max);
  void (*cache_close)(struct cache_manager *cache);
  struct lru_node *(*cache_presearch)(struct cache_manager *cache, int devno, int blkno);
@@ -87,7 +88,7 @@ struct cache_manager{
  void *(*cache_remove)(struct cache_manager *cache, struct lru_node *ln); 
  void (*cache_move_mru)(struct cache_manager *cache, struct lru_node *ln); 
  void (*cache_insert)(struct cache_manager *cache, struct lru_node *node);
- void *(*cache_alloc)(struct lru_node *node, unsigned int blkno);
+ void *(*cache_alloc)(struct cache_manager *cache, struct lru_node *node, unsigned int blkno);
  int (*cache_inc)(struct cache_manager *cache, int i);
  int (*cache_dec)(struct cache_manager *cache, int i);
  void (*cache_print)(struct cache_manager *cache, FILE *fp);
@@ -152,7 +153,7 @@ struct seq_node{
 #define CACHE_MOVEMRU(c, w) c->cache_move_mru((struct cache_manager *)c, w)
 #define CACHE_REMOVE(c, p) c->cache_remove((struct cache_manager *)c, p)
 #define CACHE_INSERT(c, p) c->cache_insert((struct cache_manager *)c, p)
-#define CACHE_ALLOC(c, n, p) c->cache_alloc(n, p)
+#define CACHE_ALLOC(c, n, p) c->cache_alloc(c, n, p)
 #define CACHE_PRINT(c, p) c->cache_print((struct cache_manager *)c, p)
 
 //#define CACHE_INC(c, i) c->cache_inc((struct cache_manager *)c, i)
@@ -169,7 +170,7 @@ void lru_close(struct cache_manager *c);
 struct lru_node *lru_presearch(struct cache_manager *c, int devno, int blkno);
 struct lru_node *lru_search(struct cache_manager *c, int devno, int blkno);
 void *lru_remove(struct cache_manager *c, struct lru_node *ln);
-void *lru_alloc(struct lru_node *ln, unsigned int blkno);
+void *lru_alloc(struct cache_manager *c,struct lru_node *ln, unsigned int blkno);
 void lru_insert(struct cache_manager *c,struct lru_node *ln);
 void *lru_replace(struct cache_manager *c, int watermark, int dirty);	
 //int lru_inc(struct cache_manager *c, int inc_val);

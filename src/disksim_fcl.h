@@ -97,6 +97,9 @@ struct fcl_parameters {
 	int		fpa_background_activity;
 	double	fpa_overhead;
 
+	int		fpa_destage_highwater;
+	int		fpa_destage_lowwater;
+	int		fpa_destage_triggered;
 	int		fpa_max_resize_size;
 	int		fpa_max_destage_size;
 
@@ -157,6 +160,8 @@ struct fcl_statistics {
 	double fstat_idle_start;
 	double fstat_idle_time;
 	int fstat_idle_count;	
+
+	int fstat_background_destage_count;
 };
 
 extern struct fcl_parameters *fcl_params;

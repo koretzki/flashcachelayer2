@@ -130,6 +130,7 @@ disksim_t *disksim = NULL;
 /* Called by getfromextraq when the queue is found to be empty.          */
 
 #define EXTRAEVENTS 32
+static int malloc_size = 0;
 
 static void allocateextra ()
 {
@@ -139,6 +140,7 @@ static void allocateextra ()
    StaticAssert (sizeof(event) == DISKSIM_EVENT_SIZE);
 
    temp = calloc(EXTRAEVENTS, sizeof(event));
+   malloc_size += ( sizeof(event) * EXTRAEVENTS);
 
    //   if ((temp = (event *)DISKSIM_malloc(ALLOCSIZE)) == NULL) {
 
@@ -185,6 +187,9 @@ INLINE void addtoextraq (event *temp)
    temp->prev = NULL;
    disksim->extraq = temp;
    disksim->extraqlen++;
+
+//   if(disksim->extraqlen > 10000 )
+ //  printf("%d \n", disksim->extraqlen );
 }
 
 

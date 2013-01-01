@@ -23,10 +23,11 @@ struct fcl_mapping_table {
 	int fm_reverse_max_pages;
 	int fm_reverse_wait_pages;
 	listnode *fm_reverse_freeq;
+	struct cache_manager *fm_cache_mgr;
 };
 
 int reverse_get_blk(int devno,int ssdblk);
-void reverse_map_create(int devno, int max);
+void reverse_map_create(int devno, int max, struct cache_manager *cache);
 int reverse_map_alloc_blk(int devno, int hdd_blk);
 int reverse_map_release_blk(int devno, int ssd_blk);
 void reverse_map_free(int devno);
