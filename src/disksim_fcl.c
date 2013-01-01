@@ -1370,7 +1370,6 @@ void fcl_move_pending_list ( listnode *inactive_list ){
 	}
 
 	//printf (" inactive size = %d \n", ll_get_size ( inactive_list ) );
-	ll_release ( inactive_list );
 }
 
 void fcl_remove_active_block_in_active_list (int blkno ) {
@@ -1389,10 +1388,11 @@ void fcl_remove_active_block_in_active_list (int blkno ) {
 			//		parent->blkno);
 
 			fcl_move_pending_list ( ln->cn_temp2 );
-			ln->cn_temp2 = NULL;
 			//ASSERT ( ll_get_size ((listnode *)ln->cn_temp2 ) == 0);	
 		}
 
+		ll_release ( ln->cn_temp2 );
+		ln->cn_temp2 = NULL;
 		CACHE_REMOVE ( fcl_active_block_mgr, ln ); 
 
 		free (ln);
