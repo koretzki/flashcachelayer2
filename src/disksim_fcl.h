@@ -29,7 +29,7 @@
 // ssd2	4		1
 // ssd2	5		2
 
-#define MAX_DISK 2
+#define MAX_DISK 5
 #define MAX_CACHE 2
 
 #define FCL_NUM_CACHE (fcl_params->fpa_num_cache)
@@ -88,6 +88,7 @@
 struct fcl_parameters {
 	int		fpa_num_cache;
 	int		fpa_num_disk;
+	int		fpa_use_array;
 	int		fpa_page_size;
 	double	fpa_max_pages_percent;
 	int		fpa_bypass_cache;

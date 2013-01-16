@@ -65,7 +65,7 @@ int reverse_map_alloc_blk(int devno, int hdd_blk){
 
 	
 	if(ll_get_size(fm->fm_reverse_freeq)){
-		fm->fm_reverse_alloc = (int)ll_get_tail(fm->fm_reverse_freeq);		
+		fm->fm_reverse_alloc = (int)ll_get_tail(fm->fm_reverse_freeq);
 		ll_release_tail(fm->fm_reverse_freeq);
 	}
 

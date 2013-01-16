@@ -648,6 +648,7 @@ void simpledisk_get_mapping (int maptype, int devno, int blkno, int *cylptr, int
 
    if ((blkno < 0) || (blkno >= currdisk->numblocks)) {
       fprintf(stderr, "Invalid blkno at simpledisk_get_mapping: %d\n", blkno);
+	  ASSERT(0);
       exit(1);
    }
 

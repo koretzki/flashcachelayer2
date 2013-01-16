@@ -1,4 +1,4 @@
-export CC=gcc -m32
+export CC=gcc -m32 
 
 # libdisksim
 export LIBDISKSIM_PREFIX=

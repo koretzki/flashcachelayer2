@@ -16,6 +16,8 @@
 #include "disksim_fcl_map.h"
 #include "disksim_fcl_cost.h"
 #include "disksim_fcl_seq_detect.h"
+#include "disksim_iodriver.h"
+#include "disksim_logorg.h"
 
 #include "disksim_device.h"
 #include "../ssdmodel/ssd_clean.h"
@@ -226,6 +228,9 @@ void fcl_issue_next_child ( ioreq_event *parent ){
 
 		ASSERT ( req->blkno >= 0 );
 
+		//if ( req->devno == 0 ) 
+		//	req->blkno += hdd_total_sectors(0);
+
 		addtointq((event *) req);
 
 		fcl_update_stat ( req ) ;
@@ -411,7 +416,7 @@ void fcl_replace_cache (ioreq_event *parent) {
 		fcl_cache_mgr[remove_ln->cn_cacheno]->cm_destage_count++;
 		ASSERT ( fcl_cache_mgr[rep_devno]->cm_dirty_count >= 0 );
 		reverse_map_release_blk ( remove_ln->cn_cacheno, remove_ln->cn_ssd_blk );
-	//	free( remove_ln );
+		free( remove_ln );
 	}
 
 	return;
@@ -479,7 +484,7 @@ void fcl_make_seq_req (ioreq_event *parent, int blkno) {
 
 		ln = CACHE_REMOVE(fcl_cache_mgr[ln->cn_cacheno], ln);
 		reverse_map_release_blk ( ln->cn_cacheno, ln->cn_ssd_blk );
-		//free ( ln );
+		free ( ln );
 	}
 
 	if ( !hit ) {
@@ -532,7 +537,7 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 		if (!(parent->flags & READ) && ln->cn_cacheno < (FCL_NUM_CACHE-1) ) {
 			ln = CACHE_REMOVE(fcl_cache_mgr[ln->cn_cacheno], ln);
 			reverse_map_release_blk ( ln->cn_cacheno, ln->cn_ssd_blk );
-			//free ( ln );
+			free ( ln );
 			ln = NULL;
 		}
 	} 	// hit case  
@@ -541,11 +546,13 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 		fcl_stat->fstat_cache_hit++;
 		hit = 1;
 		// remove this node to move the MRU position
-		//ln = CACHE_REMOVE(fcl_cache_mgr[ln->cn_cacheno], ln);
-		if ( !(parent->flags & READ ) ) {
-			ln->cn_dirty = 1;
-		}
 		CACHE_MOVEMRU(fcl_cache_mgr[ln->cn_cacheno], ln);
+		if ( !(parent->flags & READ ) ) {
+			if ( ln->cn_dirty == 0 ) {
+				ln->cn_dirty = 1;
+				lru_move_dirty_list (fcl_cache_mgr[ln->cn_cacheno], ln);
+			}
+		}
 
 		// TODO: this child request must be blocked  
 		if ( ln->cn_flag == FCL_CACHE_FLAG_FILLING ) {
@@ -1352,8 +1359,13 @@ void fcl_update_max_destage () {
 int debug_arrive = 0;
 
 void fcl_align_request ( ioreq_event *parent) {
-	int devno = parent->devno;
+	int devno = -1;
 
+	if ( fcl_params->fpa_use_array ) {
+		parent->devno = 0;
+	}
+
+	devno = parent->devno;
 	ASSERT ( parent->devno >= 0 && parent->devno < FCL_NUM_DISK );
 
 	parent->blkno = parent->blkno % (hdd_total_sectors(devno));
@@ -1383,6 +1395,7 @@ void fcl_request_arrive (ioreq_event *parent){
 		}
 		fcl_stat->fstat_idle_start = simtime;
 	}
+	ASSERT ( ioqueue_get_number_in_queue ( fcl_fore_q ) <= 100000 ) ;
 
 	if ( ++debug_arrive % 50000 == 0 ) {
 		printf ( " FCL Req Arrive time = %.2f, blkno = %d, bcount = %d, flags = %d, devno = %d, fqueue = %d, bqueue = %d \n", 
@@ -1538,12 +1551,12 @@ void fcl_remove_active_block_in_active_list (int devno, int blkno ) {
 			fcl_move_pending_list ( ln->cn_temp2 );
 			//ASSERT ( ll_get_size ((listnode *)ln->cn_temp2 ) == 0);	
 		}
-		ll_release ( ln->cn_temp2 );
+		ll_release ( (listnode *)ln->cn_temp2 );
 		ln->cn_temp2 = NULL;
 
 		CACHE_REMOVE ( fcl_active_block_mgr, ln ); 
 
-		//free (ln);
+		free (ln);
 	}
 }
 
@@ -1635,7 +1648,7 @@ void fcl_issue_pending_parent (){
 
 			//list_del ( ptr );
 			CACHE_REMOVE ( fcl_pending_mgr, ln );
-			//free ( ln );
+			free ( ln );
 		}
 	}
 
@@ -1802,8 +1815,8 @@ int fcl_destage_request ( int destage_num) {
 			// cache remove 
 			ln = CACHE_REMOVE(fcl_cache_mgr[ln->cn_cacheno], ln);
 			reverse_map_release_blk ( ln->cn_cacheno, ln->cn_ssd_blk );
-			//free ( ln );
-			//ln = NULL;
+			free ( ln );
+			ln = NULL;
 		}
 
 		//if ( ll_get_size ( dirty_list ) >= destage_num ) 
@@ -1812,8 +1825,10 @@ int fcl_destage_request ( int destage_num) {
 
 	}
 
-	if ( destage_count == 0 ) 
+	if ( destage_count == 0 ) {
+		ll_release ( dirty_list );
 		return destage_count;
+	}
 
 	fcl_merge_list ( dirty_list );
 
@@ -1829,7 +1844,6 @@ int fcl_destage_request ( int destage_num) {
 	}
 
 	ll_release ( dirty_list );
-
 	return destage_count;
 }
 
@@ -2343,20 +2357,26 @@ void fcl_set_ssd_params(int devno, ssd_t *curssd){
 void fcl_init () {
 	int lru_size = 50000;
 	int i;
-
+	logorg *log = sysorgs[0];
 
 	FCL_NUM_DISK = disk_get_numdisks();
 	if ( !FCL_NUM_DISK ) {
 		FCL_NUM_DISK = simpledisk_get_numdisks();
-
 	}
-	FCL_NUM_CACHE = ssd_get_numdisks();
-
-
 	for ( i = 0; i < FCL_NUM_DISK; i++ ) {
 		hdd_total_pages(i) = device_get_number_of_blocks (i)/FCL_PAGE_SIZE;
 		hdd_total_sectors(i) = hdd_total_pages(i) * FCL_PAGE_SIZE; 
 	}
+	// parts
+	if ( log->addrbyparts ) {
+	// array
+	} else {
+		hdd_total_pages(0) = log->blksperpart * log->numdisks/FCL_PAGE_SIZE;
+		hdd_total_sectors(0) = hdd_total_pages(0) * FCL_PAGE_SIZE;
+		fcl_params->fpa_use_array = 1;
+	}
+
+	FCL_NUM_CACHE = ssd_get_numdisks();
 
 	for ( i = 0; i < FCL_NUM_CACHE; i++ ) {
 		ssd_t *currssd = getssd ( i );
@@ -2400,14 +2420,16 @@ void fcl_init () {
 
 	fcl_initial_discard_pages ();
 
-	lru_init ( &fcl_active_block_mgr, "AtiveBlockManager", lru_size, lru_size, 1, 0);
-	lru_init ( &fcl_pending_mgr, "PengdingBlockManager", lru_size, lru_size, 1, 0);
+	lru_init ( &fcl_active_block_mgr, "AtiveBlockManager", 20000, 20000, 1, 0);
+	lru_init ( &fcl_pending_mgr, "PengdingBlockManager", 20000, 20000, 1, 0);
 		
 	// alloc queue memory 
 	fcl_fore_q = ioqueue_createdefaultqueue();
+	//fcl_fore_q = malloc(sizeof(ioqueue));
 	ioqueue_initialize (fcl_fore_q, 0);
 
 	fcl_back_q = ioqueue_createdefaultqueue();
+	//fcl_back_q = malloc(sizeof(ioqueue));
 	ioqueue_initialize (fcl_back_q, 0);
 
 	fcl_stat = (struct fcl_statistics *) malloc ( sizeof ( struct fcl_statistics) );

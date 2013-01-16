@@ -43,7 +43,7 @@ struct cache_manager{
  struct list_head cm_head;
  struct list_head cm_dirty_head;
  struct list_head cm_clean_head;
- struct list_head cm_free_head;
+ //struct list_head cm_free_head;
 
  struct hlist_head *cm_hash;
 
@@ -177,6 +177,7 @@ void *lru_replace(struct cache_manager *c, int watermark, int dirty);
 //int lru_dec(struct cache_manager *c, int dec_val);
 void lru_init(struct cache_manager **c,char *name, int size,int max_sz,int high,int low);
 void lru_move_clean_list ( struct cache_manager *c, struct lru_node *ln );
+void lru_move_dirty_list ( struct cache_manager *c, struct lru_node *ln ) ;
 
 void lru_print ( struct cache_manager *c, FILE *fp) ;
 struct lru_node *mlru_search(struct cache_manager **lru_manager,int lru_num, int blkno, int insert,int hit, int *hit_position);

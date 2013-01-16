@@ -21,7 +21,7 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 	INIT_LIST_HEAD ( &c->cm_head );
 	INIT_LIST_HEAD ( &c->cm_dirty_head ); 
 	INIT_LIST_HEAD ( &c->cm_clean_head ); 
-	INIT_LIST_HEAD ( &c->cm_free_head ); 
+	//INIT_LIST_HEAD ( &c->cm_free_head ); 
 
 	c->cm_hash = (struct hlist_head *)malloc(sizeof(struct hlist_head) * HASH_NUM);
 	if(c->cm_hash == NULL){
@@ -53,11 +53,13 @@ void lru_open(struct cache_manager *c,int cache_size, int cache_max){
 	c->cm_memalloc_size = 0;
 
 	for ( i = 0; i < cache_size; i++ ) {
+#if 0 
 		struct lru_node *ln = malloc ( sizeof( struct lru_node) );//lru_alloc ( c, NULL, -1 );
 		memset ( ln, 0x00, sizeof(struct lru_node));
 		list_add( &ln->cn_list, &c->cm_free_head );
+#endif 
 		c->cm_free++;
-		c->cm_memalloc_size += sizeof(struct lru_node);
+	//	c->cm_memalloc_size += sizeof(struct lru_node);
 	}
 
 	printf ( " LRU Size = %fMB \n", (double)c->cm_memalloc_size/1024/1024);
@@ -292,7 +294,8 @@ void *lru_remove(struct cache_manager *c, struct lru_node *ln ) {
 	//printf ( " insert free q = %d %d \n", ln->cn_hddno, ln->cn_blkno );
 	hlist_del ( &ln->cn_hash );
 
-	list_add_tail( &ln->cn_list, &c->cm_free_head );
+	//free ( ln );
+	//list_add_tail( &ln->cn_list, &c->cm_free_head );
 	c->cm_free++;
 	c->cm_count--;
 
@@ -307,20 +310,17 @@ void *lru_remove(struct cache_manager *c, struct lru_node *ln ) {
 void *lru_alloc(struct cache_manager *c, struct lru_node *ln, unsigned int blkno){
 	
 	if(ln == NULL){
-#if 0 
-		ln = (struct lru_node *)malloc(sizeof(struct lru_node));
-		if(ln == NULL){
-			fprintf(stderr, " Malloc Error %s %d \n",__FUNCTION__,__LINE__);
-			ASSERT (0);
-			exit(1);
-		}
-		c->cm_memalloc_size += sizeof(struct lru_node);
-#else 
-		ln = list_first_entry ( &(c->cm_free_head), struct lru_node, cn_list );
-		list_del (&ln->cn_list);
+		ASSERT ( c->cm_free > 0 );
+		//ln = list_first_entry ( &(c->cm_free_head), struct lru_node, cn_list );
+		//list_del (&ln->cn_list);
+		ln = malloc ( sizeof( struct lru_node) );//lru_alloc ( c, NULL, -1 );
+		ASSERT ( ln );
+		//memset ( ln, 0x00, sizeof(struct lru_node));
 		c->cm_free--;
-#endif 
+	} else {
+		ASSERT (0);
 	}
+
 
 	memset(ln, 0x00, sizeof(struct lru_node));
 	
@@ -340,10 +340,20 @@ void lru_move_clean_list ( struct cache_manager *c, struct lru_node *ln ) {
 	c->cm_clean_count ++;
 	c->cm_clean_free --;
 
-
-//	ASSERT ( c->cm_clean_count <= c->cm_clean_size );
 	ASSERT ( c->cm_clean_count + c->cm_dirty_count == c->cm_count );
+}
 
+void lru_move_dirty_list ( struct cache_manager *c, struct lru_node *ln ) {
+
+	list_del ( &ln->cn_dirty_list );
+	c->cm_clean_count --;
+	c->cm_clean_free ++;
+
+	list_add ( &ln->cn_dirty_list, &c->cm_dirty_head );
+	c->cm_dirty_count ++;
+	c->cm_dirty_free --;
+
+	ASSERT ( c->cm_clean_count + c->cm_dirty_count == c->cm_count );
 }
 
 void lru_insert(struct cache_manager *c,struct lru_node *ln){

@@ -316,7 +316,18 @@ ioqueue_get_cylinder_mapping(ioqueue *queue,
 			     int *surfptr, 
 			     int cylmaptype)
 {
+	int blocks;
    cylmaptype = (cylmaptype == -1) ? queue->cylmaptype : cylmaptype;
+
+   // ysoh 
+   blocks = device_get_number_of_blocks ( curr->iolist->devno );
+   if ( blkno > blocks ) {
+	   if ( cylmaptype == MAP_FULL ) {
+		   cylmaptype = MAP_NONE;
+	   }
+   }
+
+
    switch (cylmaptype) {
       case MAP_NONE:
          *cylptr = 0;
