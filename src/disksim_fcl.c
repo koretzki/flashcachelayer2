@@ -401,7 +401,7 @@ void fcl_replace_cache (ioreq_event *parent) {
 		} else { // move to the next lower level cache 
 			// to HDD
 			if ( remove_ln->cn_dirty ) {
-				if ( fcl_params->fpa_dirty_migration ) {
+				if ( fcl_params->fpa_selective_migration ) {
 					fcl_migrate_data_to_next_cache ( parent, remove_ln, rep_devno, &list_index);
 					// clean only migration
 				} else {
@@ -2265,8 +2265,8 @@ int disksim_fcl_loadparams ( struct lp_block *b, int *num) {
 	if ( fcl_params->fpa_num_cache == 0 ) 
 		fcl_params->fpa_num_cache = 1;
 	
-	if ( fcl_params->fpa_dirty_migration == 0 ) 
-		fcl_params->fpa_dirty_migration = 1;
+	//if ( fcl_params->fpa_selective_migration == 0 ) 
+	//	fcl_params->fpa_selective_migration = 1;
 
 
 	fcl_params->fpa_resize_next = 1;
@@ -2279,6 +2279,7 @@ void fcl_print_parameters ( FILE *fp ) {
 
 	fprintf ( fp, "\n" );
 	fprintf ( fp, " Print FCL Parameters .. \n" );
+	fprintf ( fp, " Selective Migration = %d\n", fcl_params->fpa_selective_migration );
 	fprintf ( fp, " Page size = %d sectors \n", fcl_params->fpa_page_size );
 	fprintf ( fp, " Max pages percent = %.2f \n", fcl_params->fpa_max_pages_percent );
 	fprintf ( fp, " Bypass cache = %d \n", fcl_params->fpa_bypass_cache );
@@ -2374,6 +2375,7 @@ void fcl_init () {
 		hdd_total_pages(0) = log->blksperpart * log->numdisks/FCL_PAGE_SIZE;
 		hdd_total_sectors(0) = hdd_total_pages(0) * FCL_PAGE_SIZE;
 		fcl_params->fpa_use_array = 1;
+		printf ( " Use RAID System \n" );
 	}
 
 	FCL_NUM_CACHE = ssd_get_numdisks();

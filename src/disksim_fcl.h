@@ -93,10 +93,11 @@ struct fcl_parameters {
 	double	fpa_max_pages_percent;
 	int		fpa_bypass_cache;
 	double	fpa_idle_detect_time;
-	int		fpa_dirty_migration;
+	int		fpa_selective_migration;
 	int		fpa_partitioning_scheme;
 	int		fpa_background_activity;
 	double	fpa_overhead;
+
 
 	int		fpa_destage_highwater;
 	int		fpa_destage_lowwater;
