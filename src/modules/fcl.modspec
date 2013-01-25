@@ -5,6 +5,10 @@ HEADER \#include "../disksim_fcl.h"
 RESTYPE struct fcl_parameters * 
 PROTO int disksim_fcl_loadparams(struct lp_block *b, int *num);
 
+PARAM Update Policy		I	1
+TEST (i >= 0)
+INIT result->fpa_update_policy = i;
+
 PARAM Selective Migration		I	1
 TEST (i >= 0)
 INIT result->fpa_selective_migration = i;

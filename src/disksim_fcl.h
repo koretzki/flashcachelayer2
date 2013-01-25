@@ -25,9 +25,17 @@
 // hdd0	0		0
 // hdd1	1		1
 // hdd2	2		2
+
 // ssd0	3		0
 // ssd2	4		1
 // ssd2	5		2
+
+#define FCL_UPDATE_CURRENTCACHE	1
+#define FCL_UPDATE_FIRSTCACHE	2
+
+#define FCL_MIGRATION_BASELINE	1 // all data can be migrated 
+#define FCL_MIGRATION_CLEANONLY 2 // only clean data in slc can be migrated 
+#define FCL_MIGRATION_DIRTYSYNC	3 // dirty data in slc may be synced into HDD and clean data can be migrated
 
 #define MAX_DISK 5
 #define MAX_CACHE 2
@@ -93,7 +101,10 @@ struct fcl_parameters {
 	double	fpa_max_pages_percent;
 	int		fpa_bypass_cache;
 	double	fpa_idle_detect_time;
+
+	int		fpa_update_policy;
 	int		fpa_selective_migration;
+
 	int		fpa_partitioning_scheme;
 	int		fpa_background_activity;
 	double	fpa_overhead;

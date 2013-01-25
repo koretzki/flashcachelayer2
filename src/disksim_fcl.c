@@ -401,12 +401,24 @@ void fcl_replace_cache (ioreq_event *parent) {
 		} else { // move to the next lower level cache 
 			// to HDD
 			if ( remove_ln->cn_dirty ) {
-				if ( fcl_params->fpa_selective_migration ) {
-					fcl_migrate_data_to_next_cache ( parent, remove_ln, rep_devno, &list_index);
-					// clean only migration
-				} else {
-					fcl_migrate_dirty_to_hdd ( parent, remove_ln, &list_index);
+
+				switch (fcl_params->fpa_selective_migration) {
+					case FCL_MIGRATION_BASELINE:
+						fcl_migrate_data_to_next_cache ( parent, remove_ln, rep_devno, &list_index);
+						break;
+					case FCL_MIGRATION_CLEANONLY:
+						fcl_migrate_dirty_to_hdd ( parent, remove_ln, &list_index);
+						break;
+					case FCL_MIGRATION_DIRTYSYNC:
+						fcl_migrate_dirty_to_hdd ( parent, remove_ln, &list_index);
+						remove_ln->cn_dirty = 0;
+						fcl_migrate_data_to_next_cache ( parent, remove_ln, rep_devno, &list_index);
+						break;
+					default:
+						ASSERT(0);
+						break;
 				}
+
 				// to lower level cache
 			} else {
 				fcl_migrate_data_to_next_cache ( parent, remove_ln, rep_devno, &list_index );
@@ -531,17 +543,22 @@ void fcl_make_normal_req (ioreq_event *parent, int blkno) {
 	int cacheno = -1 ;
 
 	fcl_stat->fstat_cache_ref++;
-	ln = fcl_cache_search( parent->devno, blkno);
-	// write updated data in the first level SSD cache 
-	if ( ln ) {
-		if (!(parent->flags & READ) && ln->cn_cacheno < (FCL_NUM_CACHE-1) ) {
-			ln = CACHE_REMOVE(fcl_cache_mgr[ln->cn_cacheno], ln);
-			reverse_map_release_blk ( ln->cn_cacheno, ln->cn_ssd_blk );
-			free ( ln );
-			ln = NULL;
-		}
-	} 	// hit case  
 
+	ln = fcl_cache_search( parent->devno, blkno);
+
+	if ( fcl_params->fpa_update_policy == FCL_UPDATE_FIRSTCACHE ) {
+		// write updated data in the first level SSD cache 
+		if ( ln ) {
+			if (!(parent->flags & READ) && ln->cn_cacheno < (FCL_NUM_CACHE-1) ) {
+				ln = CACHE_REMOVE(fcl_cache_mgr[ln->cn_cacheno], ln);
+				reverse_map_release_blk ( ln->cn_cacheno, ln->cn_ssd_blk );
+				free ( ln );
+				ln = NULL;
+			}
+		} 	
+	}
+	
+	// hit case  
 	if(ln){
 		fcl_stat->fstat_cache_hit++;
 		hit = 1;
@@ -2265,8 +2282,14 @@ int disksim_fcl_loadparams ( struct lp_block *b, int *num) {
 	if ( fcl_params->fpa_num_cache == 0 ) 
 		fcl_params->fpa_num_cache = 1;
 	
-	//if ( fcl_params->fpa_selective_migration == 0 ) 
-	//	fcl_params->fpa_selective_migration = 1;
+	if ( fcl_params->fpa_update_policy == 0 ) {
+		fcl_params->fpa_update_policy = FCL_UPDATE_CURRENTCACHE;;
+	}
+
+	if ( fcl_params->fpa_selective_migration == 0 ) {
+		fcl_params->fpa_selective_migration = FCL_MIGRATION_BASELINE;
+	}
+
 
 
 	fcl_params->fpa_resize_next = 1;
@@ -2279,7 +2302,26 @@ void fcl_print_parameters ( FILE *fp ) {
 
 	fprintf ( fp, "\n" );
 	fprintf ( fp, " Print FCL Parameters .. \n" );
-	fprintf ( fp, " Selective Migration = %d\n", fcl_params->fpa_selective_migration );
+
+	switch (fcl_params->fpa_update_policy) {
+		case FCL_UPDATE_CURRENTCACHE:
+			fprintf ( fp, " Update Policy: In Current Cache \n");
+			break;
+		case FCL_UPDATE_FIRSTCACHE:
+			fprintf ( fp, " Update Policy: In First Cache\n");
+			break;
+	}
+
+	if ( fcl_params->fpa_selective_migration == FCL_MIGRATION_BASELINE ) {
+		fprintf ( fp, " Selective Migration = Baseline \n");
+	} else if ( fcl_params->fpa_selective_migration == FCL_MIGRATION_CLEANONLY ) {
+		fprintf ( fp, " Selective Migration = CleanOnly \n");
+	} else if ( fcl_params->fpa_selective_migration == FCL_MIGRATION_DIRTYSYNC ) {
+		fprintf ( fp, " Selective Migration = CleanOnly after Dirty Sync \n");
+	} else {
+		ASSERT ( 0 );
+	}
+
 	fprintf ( fp, " Page size = %d sectors \n", fcl_params->fpa_page_size );
 	fprintf ( fp, " Max pages percent = %.2f \n", fcl_params->fpa_max_pages_percent );
 	fprintf ( fp, " Bypass cache = %d \n", fcl_params->fpa_bypass_cache );
